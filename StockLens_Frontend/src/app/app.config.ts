@@ -10,6 +10,8 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptors([ngrokInterceptor])),
-    provideHighcharts({ instance: () => import('highcharts/esm/highcharts').then(m => m.default) })
+    provideHighcharts({
+      instance: () => import('highcharts/esm/highstock').then((m: any) => m.default || m)
+    })
   ]
 };
