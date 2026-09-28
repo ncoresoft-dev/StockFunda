@@ -2,6 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideHighcharts } from 'highcharts-angular';
+import Highcharts from 'highcharts/esm/highstock.js';
 import { routes } from './app.routes';
 import { ngrokInterceptor } from './interceptors/ngrok.interceptor';
 
@@ -11,7 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptors([ngrokInterceptor])),
     provideHighcharts({
-      instance: () => import('highcharts/esm/highstock').then((m: any) => m.default || m)
+      instance: async () => Highcharts
     })
   ]
 };
