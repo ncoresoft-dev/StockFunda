@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { StockShareholdingService } from './stock-shareholding.service';
 import { StockShareholdingResponse } from '../models/stock-shareholding.model';
+import { environment } from '../../environments/environment';
 
 describe('StockShareholdingService', () => {
   let service: StockShareholdingService;
@@ -83,7 +84,7 @@ describe('StockShareholdingService', () => {
       expect(data.change.promoter).toBe(0.45);
     });
 
-    const req = httpTesting.expectOne('http://localhost:5020/api/stocks/1/shareholding?refresh=false');
+    const req = httpTesting.expectOne(`${environment.apiUrl}/api/stocks/1/shareholding?refresh=false`);
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
@@ -94,7 +95,7 @@ describe('StockShareholdingService', () => {
       expect(data.change.fii).toBe(-0.90);
     });
 
-    const req = httpTesting.expectOne('http://localhost:5020/api/stocks/shareholding?symbol=RELIANCE&exchange=NSE&refresh=true');
+    const req = httpTesting.expectOne(`${environment.apiUrl}/api/stocks/shareholding?symbol=RELIANCE&exchange=NSE&refresh=true`);
     expect(req.request.method).toBe('GET');
     req.flush(mockResponse);
   });
