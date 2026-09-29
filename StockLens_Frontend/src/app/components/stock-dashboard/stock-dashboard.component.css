@@ -995,12 +995,12 @@
   box-shadow: 0 0 6px rgba(234, 179, 8, 0.4);
 }
 
-/* 3. 200 DMA: Slate */
+/* 3. 200 DMA: Purple */
 .custom-checkbox.cb-dma200.checked {
-  background: #475569;
-  border-color: #475569;
+  background: #a855f7;
+  border-color: #a855f7;
   color: #ffffff;
-  box-shadow: 0 0 6px rgba(71, 85, 105, 0.4);
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.4);
 }
 
 /* 4. Volume: Soft Blue */
@@ -2546,4 +2546,36 @@
   .company-title {
     font-size: 0.9rem;
   }
+}
+.technical-alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.3px;
+    border: 1px solid transparent;
+    animation: pulseGlow 2s infinite;
+    cursor: default;
+}
+.technical-alert-badge.bullish {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+.technical-alert-badge.bearish {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+@keyframes pulseGlow {
+    0% { box-shadow: 0 0 5px currentColor; }
+    50% { box-shadow: 0 0 15px currentColor; }
+    100% { box-shadow: 0 0 5px currentColor; }
 }

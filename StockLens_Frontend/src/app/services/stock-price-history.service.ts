@@ -16,6 +16,8 @@ export interface PriceHistoryResponseDto {
   lastSyncedAt?: string;
   dma50?: (number | null)[];
   dma200?: (number | null)[];
+  detectedPatterns?: { date: string, patternName: string, signal: string, coordinates?: { date: string, price: number }[] }[];
+  patternCounts?: { [key: string]: number };
 }
 
 @Injectable({

@@ -673,7 +673,8 @@
                   <span class="mini-delta" [ngClass]="getChangeClass(g)">YoY: {{ formatPercent(g) }}</span>
                   }
                 </div>
-                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{ formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
+                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{
+                  formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
               </div>
 
               <!-- Net Cash Flow -->
@@ -681,7 +682,8 @@
                 <div class="cf-left">
                   <span class="cf-name">Net Cash Flow</span>
                 </div>
-                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{ formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
+                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{
+                  formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
               </div>
 
               <!-- CFO / OP -->
@@ -861,24 +863,27 @@
               <path d="M17 8v6M17 5v3M17 14v4"></path>
               <line x1="3" y1="21" x2="21" y2="21"></line>
             </svg>
-            <span class="card-title">OHLC CANDLESTICK CHART</span>
+            <span class="card-title">{{ selectedChartType() === 'candlestick' ? 'OHLC CANDLESTICK CHART' : 'PRICE /
+              TECHNICAL CHART' }}</span>
+            <!-- Chart Type Toggle (Near Heading) -->
+            <div class="chart-type-toggle"
+              style="display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 6px; margin-left: 12px; border: 1px solid rgba(255,255,255,0.1);">
+              <button type="button" class="type-btn" (click)="setChartType('candlestick')"
+                [style.background]="selectedChartType() === 'candlestick' ? '#38bdf8' : 'transparent'"
+                [style.color]="selectedChartType() === 'candlestick' ? '#0f141c' : '#94a3b8'"
+                style="border: none; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">🕯️
+                Candle</button>
+              <button type="button" class="type-btn" (click)="setChartType('area')"
+                [style.background]="selectedChartType() === 'area' ? '#38bdf8' : 'transparent'"
+                [style.color]="selectedChartType() === 'area' ? '#0f141c' : '#94a3b8'"
+                style="border: none; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">📈
+                Line</button>
+            </div>
           </div>
 
           <!-- Candlestick Series Checkboxes -->
-          <div class="chart-checkbox-group">
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Candlestick')" title="Toggle Candlestick OHLC">
-              <span class="custom-checkbox cb-candle" [class.checked]="candleComp.activeSeriesState['Candlestick'] !== false">
-                @if (candleComp.activeSeriesState['Candlestick'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                }
-              </span>
-              <span class="cb-label">Candlestick (OHLC)</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
+          <div class="chart-checkbox-group"> <label class="chart-checkbox-item"
+              (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
               <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.activeSeriesState['50 DMA'] !== false">
                 @if (candleComp.activeSeriesState['50 DMA'] !== false) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
@@ -905,7 +910,8 @@
 
             <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
               title="Toggle Volume Histogram">
-              <span class="custom-checkbox cb-volume" [class.checked]="candleComp.activeSeriesState['Volume'] !== false">
+              <span class="custom-checkbox cb-volume"
+                [class.checked]="candleComp.activeSeriesState['Volume'] !== false">
                 @if (candleComp.activeSeriesState['Volume'] !== false) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
@@ -915,6 +921,7 @@
               </span>
               <span class="cb-label">Volume</span>
             </label>
+
           </div>
 
           <!-- Candlestick Timeframe Selector Pills (1M, 3M, 1Y, 3Y, 5Y) -->
@@ -923,20 +930,29 @@
               (click)="setCandlestickPeriod('1m')">1M</button>
             <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3m'"
               (click)="setCandlestickPeriod('3m')">3M</button>
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
               (click)="setCandlestickPeriod('1yr')">1Y</button>
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
               (click)="setCandlestickPeriod('3yr')">3Y</button>
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
               (click)="setCandlestickPeriod('5yr')">5Y</button>
           </div>
         </div>
 
-        <div class="chart-canvas-wrapper">
+        <div class="chart-canvas-wrapper" style="position: relative;">
           <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-            [period]="candlestickPeriod()" customHeight="100%"></app-stock-candlestick-chart>
+            [period]="candlestickPeriod()" [chartType]="selectedChartType()"
+            customHeight="100%"></app-stock-candlestick-chart>
         </div>
       </div>
+    </div>
+
+    <!-- ROW 4: TECHNICAL ANALYSIS (BREAKOUTS & INDICATORS) -->
+    <div class="cockpit-row-technical">
+      <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"></app-stock-technical-analysis>
     </div>
   </div>
 

@@ -1,0 +1,109 @@
+<div class="technical-widget">
+  <div class="widget-header">
+    <h3>Technical Analysis</h3>
+    <div class="tabs">
+      <button [class.active]="activeTab === 'BREAKOUTS'" (click)="activeTab = 'BREAKOUTS'">Breakouts</button>
+      <button [class.active]="activeTab === 'EMA'" (click)="activeTab = 'EMA'">Moving Averages</button>
+    </div>
+  </div>
+  
+  <div class="widget-body">
+    <!-- Loader & Error -->
+    <div class="loader" *ngIf="loading">
+      Analyzing breakouts and volume...
+    </div>
+    
+    <div class="error-msg" *ngIf="!loading && error">
+      Unable to load technical data for {{symbol}}.
+    </div>
+
+    <!-- Breakouts Tab Content -->
+    <div class="breakout-content" *ngIf="activeTab === 'BREAKOUTS' && !loading && !error && breakoutData">
+      
+      <!-- Left: The Meter -->
+      <div class="meter-section">
+        <div class="gauge-container">
+          <div class="gauge-arc"></div>
+          <!-- Apply rotation based on signal -->
+          <div class="gauge-needle" 
+               [class.needle-bullish]="breakoutData.overallSignal === 'Bullish'"
+               [class.needle-bearish]="breakoutData.overallSignal === 'Bearish'"
+               [class.needle-neutral]="breakoutData.overallSignal === 'Neutral'">
+          </div>
+        </div>
+        
+        <div class="signal-text" 
+             [class.signal-bullish]="breakoutData.overallSignal === 'Bullish'"
+             [class.signal-bearish]="breakoutData.overallSignal === 'Bearish'"
+             [class.signal-neutral]="breakoutData.overallSignal === 'Neutral'">
+          {{ breakoutData.signalBadgeText }}
+        </div>
+        
+        <p class="summary-text">{{ breakoutData.summaryText }}</p>
+      </div>
+
+      <!-- Right: The Levels Grid -->
+      <div class="levels-section">
+        <div class="levels-grid">
+          
+          <!-- 1 Year -->
+          <div class="level-card">
+            <div class="level-header">1 Year (52W)</div>
+            <div class="level-row">
+              <span class="level-label">High</span>
+              <span class="level-value">{{ breakoutData.levels.year1High | number:'1.2-2' }}</span>
+            </div>
+            <div class="level-row">
+              <span class="level-label">Low</span>
+              <span class="level-value">{{ breakoutData.levels.year1Low | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          
+          <!-- 2 Year -->
+          <div class="level-card" *ngIf="breakoutData.levels.year2High">
+            <div class="level-header">2 Years</div>
+            <div class="level-row">
+              <span class="level-label">High</span>
+              <span class="level-value">{{ breakoutData.levels.year2High | number:'1.2-2' }}</span>
+            </div>
+            <div class="level-row">
+              <span class="level-label">Low</span>
+              <span class="level-value">{{ breakoutData.levels.year2Low | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- 3 Year -->
+          <div class="level-card" *ngIf="breakoutData.levels.year3High">
+            <div class="level-header">3 Years</div>
+            <div class="level-row">
+              <span class="level-label">High</span>
+              <span class="level-value">{{ breakoutData.levels.year3High | number:'1.2-2' }}</span>
+            </div>
+            <div class="level-row">
+              <span class="level-label">Low</span>
+              <span class="level-value">{{ breakoutData.levels.year3Low | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- Volume Spike -->
+        <div class="volume-card">
+          <h4 class="volume-title">Today's Volume vs 1M Avg</h4>
+          <span class="volume-data">
+            {{ breakoutData.todayVolume | number }} / {{ breakoutData.avgVolume1Month | number:'1.0-0' }}
+          </span>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- EMA Tab Content (Placeholder) -->
+    <div class="ema-content" *ngIf="activeTab === 'EMA'">
+      <div class="loader">
+        Moving Averages module coming soon...
+      </div>
+    </div>
+    
+  </div>
+</div>

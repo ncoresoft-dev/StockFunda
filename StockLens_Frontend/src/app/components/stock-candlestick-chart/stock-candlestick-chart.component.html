@@ -18,7 +18,8 @@
       </svg>
     </div>
     <h3 class="state-title">Unable to Load Candlestick Chart</h3>
-    <p class="state-description">{{ errorMessage || 'An error occurred while fetching OHLC price history from Yahoo Finance.' }}</p>
+    <p class="state-description">{{ errorMessage || 'An error occurred while fetching OHLC price history from Yahoo
+      Finance.' }}</p>
     <button type="button" class="action-btn" (click)="onRefreshClick()">
       Retry Sync
     </button>
@@ -45,10 +46,37 @@
 
   <!-- State 4: Success Content -->
   @if (priceHistory && loadingState !== 'error' && loadingState !== 'empty') {
-  <div class="chart-wrapper">
-    <highcharts-chart [options]="chartOptions" [(update)]="updateFlag"
-      [oneToOne]="true" (chartInstance)="chart = $event"
-      style="width: 100%; height: 100%; display: block;"></highcharts-chart>
+  <div class="chart-wrapper" style="position: relative;">
+    @if (legendData) {
+
+    <!-- Top Right Legend -->
+    <div class="static-legend"
+      style="position: absolute; top: 12px; right: 60px; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; font-family: Inter, sans-serif;">
+      <div style="display: flex; gap: 8px; margin-bottom: 4px; align-items: center;">
+        <span style="color:#94a3b8; font-size: 11px;">Price</span>
+        <span style="color:#94a3b8; font-weight: 600;">O</span>
+        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.open | number:'1.2-2' }}</span>
+
+        <span style="color:#94a3b8; font-weight: 600;">H</span>
+        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.high | number:'1.2-2' }}</span>
+
+        <span style="color:#94a3b8; font-weight: 600;">L</span>
+        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.low | number:'1.2-2' }}</span>
+
+        <span style="color:#94a3b8; font-weight: 600;">C</span>
+        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.close | number:'1.2-2' }}</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span
+          style="color:#38bdf8; background: rgba(56,189,248,0.1); padding: 2px 4px; border-radius: 4px; font-size: 10px;">📊
+          Vol</span>
+        <span style="font-weight:600; color:#e2e8f0;">{{ legendData.volume | number }}</span>
+      </div>
+    </div>
+    }
+
+    <highcharts-chart [options]="chartOptions" [(update)]="updateFlag" [oneToOne]="true"
+      (chartInstance)="chart = $event" style="width: 100%; height: 100%; display: block;"></highcharts-chart>
   </div>
   }
 </div>

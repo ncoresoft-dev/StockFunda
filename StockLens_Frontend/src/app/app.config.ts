@@ -2,7 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideHighcharts } from 'highcharts-angular';
-import Highcharts from 'highcharts/esm/highstock.js';
+import * as Highcharts from 'highcharts/highstock';
 import { routes } from './app.routes';
 import { ngrokInterceptor } from './interceptors/ngrok.interceptor';
 

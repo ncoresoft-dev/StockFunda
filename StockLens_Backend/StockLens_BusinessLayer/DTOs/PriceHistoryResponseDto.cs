@@ -22,5 +22,23 @@ namespace StockLens_BusinessLayer.DTOs
         
         public string Source { get; set; } = "YahooFinance";
         public string LastSyncedAt { get; set; } = string.Empty;
+        
+        public List<PatternEventDto> DetectedPatterns { get; set; } = new();
+        public Dictionary<string, int> PatternCounts { get; set; } = new();
+
+    }
+
+    public class PatternPointDto
+    {
+        public string Date { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+    }
+
+    public class PatternEventDto
+    {
+        public string Date { get; set; } = string.Empty;
+        public string PatternName { get; set; } = string.Empty;
+        public string Signal { get; set; } = string.Empty; // "Bullish" or "Bearish"
+        public List<PatternPointDto> Coordinates { get; set; } = new();
     }
 }

@@ -56,5 +56,38 @@ namespace StockLens_API.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Evaluates Multi-Year Breakouts and Volume Spikes for a stock.
+        /// </summary>
+        [HttpGet("evaluation/breakouts")]
+        [ProducesResponseType(typeof(BreakoutEvaluationDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetBreakoutAnalysis(
+            [FromQuery] string symbol,
+            [FromQuery] string? exchange = "NSE",
+            [FromQuery] bool refresh = false,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                return BadRequest(new { message = "The 'symbol' query parameter is required." });
+            }
+
+            try
+            {
+                var response = await _evaluationService.GetBreakoutAnalysisAsync(symbol, exchange, refresh, cancellationToken);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "An error occurred while evaluating stock breakouts.",
+                    detail = ex.Message
+                });
+            }
+        }
     }
 }

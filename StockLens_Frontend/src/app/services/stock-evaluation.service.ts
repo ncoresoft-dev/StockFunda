@@ -9,6 +9,25 @@ import { StockQuarterlyResultsResponse } from '../models/stock-quarterly-results
 import { StockShareholdingResponse } from '../models/stock-shareholding.model';
 import { BalanceSheetResponseDto } from './stock-balancesheet.service';
 
+export interface BreakoutEvaluationDto {
+  summaryText: string;
+  overallSignal: string;
+  signalBadgeText: string;
+  bullishCount: number;
+  bearishCount: number;
+  currentPrice: number;
+  avgVolume1Month: number;
+  todayVolume: number;
+  levels: {
+    year1High?: number;
+    year1Low?: number;
+    year2High?: number;
+    year2Low?: number;
+    year3High?: number;
+    year3Low?: number;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -28,6 +47,23 @@ export class StockEvaluationService {
     return this.http.get<StockHealthScoreResponse>(`${this.baseUrl}/api/stocks/evaluation`, { params }).pipe(
       catchError((err) => {
         console.warn(`[StockEvaluationService] Backend evaluation call failed for ${symbol}, fallback will be used:`, err);
+        return of(null);
+      })
+    );
+  }
+
+  /**
+   * Fetches the technical breakouts (1Y/2Y/3Y) and volume analysis from backend.
+   */
+  getBreakoutAnalysis(symbol: string, exchange = 'NSE', refresh = false): Observable<BreakoutEvaluationDto | null> {
+    const params = new HttpParams()
+      .set('symbol', symbol)
+      .set('exchange', exchange)
+      .set('refresh', refresh.toString());
+
+    return this.http.get<BreakoutEvaluationDto>(`${this.baseUrl}/api/stocks/evaluation/breakouts`, { params }).pipe(
+      catchError((err) => {
+        console.warn(`[StockEvaluationService] Breakout analysis call failed for ${symbol}`, err);
         return of(null);
       })
     );

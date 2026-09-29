@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, inject, Output, EventEmitter, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HighchartsChartComponent } from 'highcharts-angular';
-import * as Highcharts from 'highcharts';
+import * as Highcharts from 'highcharts/highstock';
 import { StockPriceHistoryService, PriceHistoryResponseDto } from '../../services/stock-price-history.service';
 
 @Component({

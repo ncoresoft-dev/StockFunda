@@ -17,6 +17,7 @@ import { StockHealthScoreResponse } from '../../models/stock-evaluation.model';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { StockPriceChartComponent } from '../stock-price-chart/stock-price-chart.component';
 import { StockCandlestickChartComponent } from '../stock-candlestick-chart/stock-candlestick-chart.component';
+import { StockTechnicalAnalysis } from '../stock-technical-analysis/stock-technical-analysis';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -29,7 +30,8 @@ export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' 
     FormsModule,
     TimeAgoPipe,
     StockPriceChartComponent,
-    StockCandlestickChartComponent
+    StockCandlestickChartComponent,
+    StockTechnicalAnalysis
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -53,6 +55,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     { symbol: 'ICICIBANK', name: 'ICICI Bank Ltd', exchange: 'NSE' }
   ];
 
+
   // Core Active State
   availableStocks = signal<Stock[]>([]);
   selectedSymbol = signal<string>('RELIANCE');
@@ -60,6 +63,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   searchQuery = signal<string>('');
   chartPeriod = signal<string>('1yr');
   candlestickPeriod = signal<string>('1yr');
+  selectedChartType = signal<'candlestick' | 'area'>('candlestick');
   newsTab = signal<NewsFilterTab>('all');
   activeDetailModal = signal<DetailModalType>(null);
 
@@ -749,6 +753,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     if (val === null || val === undefined || isNaN(val)) return '—';
     const pct = val > 5 ? val : val * 100;
     return `${Math.round(pct)}%`;
+  }
+
+  setChartType(type: 'candlestick' | 'area'): void {
+    this.selectedChartType.set(type);
   }
 
   openExternalUrl(url?: string): void {

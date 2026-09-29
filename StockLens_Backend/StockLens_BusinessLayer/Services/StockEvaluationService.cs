@@ -816,6 +816,98 @@ namespace StockLens_BusinessLayer.Services
             return category;
         }
 
+        public async Task<BreakoutEvaluationDto> GetBreakoutAnalysisAsync(string symbol, string? exchange = "NSE", bool refresh = false, CancellationToken cancellationToken = default)
+        {
+            var result = new BreakoutEvaluationDto();
+            var priceHistory = await _priceHistoryService.GetPriceHistoryBySymbolAsync(symbol, exchange, "3yr", refresh, "price", cancellationToken);
+
+            if (priceHistory == null || priceHistory.ClosePrices.Count == 0)
+                return result;
+
+            var closes = priceHistory.ClosePrices;
+            var vols = priceHistory.Volumes;
+            int daysAvailable = closes.Count;
+
+            result.CurrentPrice = closes.LastOrDefault();
+            result.TodayVolume = vols.LastOrDefault();
+
+            var year1Days = Math.Min(252, daysAvailable);
+            var year2Days = Math.Min(504, daysAvailable);
+            var year3Days = Math.Min(756, daysAvailable);
+
+            result.Levels.Year1High = closes.TakeLast(year1Days).Max();
+            result.Levels.Year1Low = closes.TakeLast(year1Days).Min();
+
+            if (daysAvailable >= 253)
+            {
+                result.Levels.Year2High = closes.TakeLast(year2Days).Max();
+                result.Levels.Year2Low = closes.TakeLast(year2Days).Min();
+            }
+            if (daysAvailable >= 505)
+            {
+                result.Levels.Year3High = closes.TakeLast(year3Days).Max();
+                result.Levels.Year3Low = closes.TakeLast(year3Days).Min();
+            }
+
+            var avgVol1MonthDays = Math.Min(21, daysAvailable);
+            result.AvgVolume1Month = (decimal)vols.TakeLast(avgVol1MonthDays).Average();
+
+            bool isHighVol = result.TodayVolume > result.AvgVolume1Month;
+            bool isMassiveVol = result.TodayVolume > (result.AvgVolume1Month * 5m);
+
+            if (result.Levels.Year3High.HasValue && result.CurrentPrice >= result.Levels.Year3High.Value * 0.98m)
+            {
+                result.OverallSignal = "Bullish";
+                result.SignalBadgeText = isMassiveVol ? "🚀 3Y-BO (>5x Vol)" : "🚀 3Y Breakout";
+                result.BullishCount = 3; result.BearishCount = 0;
+            }
+            else if (result.Levels.Year2High.HasValue && result.CurrentPrice >= result.Levels.Year2High.Value * 0.98m)
+            {
+                result.OverallSignal = "Bullish";
+                result.SignalBadgeText = isMassiveVol ? "🚀 2Y-BO (>5x Vol)" : "🚀 2Y Breakout";
+                result.BullishCount = 2; result.BearishCount = 0;
+            }
+            else if (result.Levels.Year1High.HasValue && result.CurrentPrice >= result.Levels.Year1High.Value * 0.98m)
+            {
+                result.OverallSignal = "Bullish";
+                result.SignalBadgeText = isMassiveVol ? "🔥 52W High (>5x Vol)" : "⬆️ 52W High";
+                result.BullishCount = 1; result.BearishCount = 0;
+            }
+            else if (result.Levels.Year3Low.HasValue && result.CurrentPrice <= result.Levels.Year3Low.Value * 1.02m)
+            {
+                result.OverallSignal = "Bearish";
+                result.SignalBadgeText = isMassiveVol ? "🩸 3Y Low (>5x Vol)" : "🩸 3Y Low";
+                result.BearishCount = 3; result.BullishCount = 0;
+            }
+            else if (result.Levels.Year2Low.HasValue && result.CurrentPrice <= result.Levels.Year2Low.Value * 1.02m)
+            {
+                result.OverallSignal = "Bearish";
+                result.SignalBadgeText = isMassiveVol ? "🩸 2Y Low (>5x Vol)" : "🩸 2Y Low";
+                result.BearishCount = 2; result.BullishCount = 0;
+            }
+            else if (result.Levels.Year1Low.HasValue && result.CurrentPrice <= result.Levels.Year1Low.Value * 1.02m)
+            {
+                result.OverallSignal = "Bearish";
+                result.SignalBadgeText = isMassiveVol ? "⚠️ 52W Low (>5x Vol)" : "📉 52W Low";
+                result.BearishCount = 1; result.BullishCount = 0;
+            }
+            else
+            {
+                result.OverallSignal = "Neutral";
+                result.SignalBadgeText = "No Breakout";
+                result.BullishCount = 0; result.BearishCount = 0;
+            }
+
+            if (result.OverallSignal == "Bullish")
+                result.SummaryText = $"{symbol} is showing a strong Bullish trend, hitting key highs with {(isMassiveVol ? "massive 5x" : isHighVol ? "high" : "normal")} volume.";
+            else if (result.OverallSignal == "Bearish")
+                result.SummaryText = $"{symbol} is showing a Bearish trend, breaking its support levels with {(isMassiveVol ? "massive 5x" : isHighVol ? "high" : "normal")} volume.";
+            else
+                result.SummaryText = $"{symbol} is trading in a normal range between its 52-Week High and Low.";
+
+            return result;
+        }
+
         #endregion
 
         #region Helpers
