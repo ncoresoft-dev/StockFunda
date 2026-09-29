@@ -102,9 +102,17 @@ namespace StockLens_BusinessLayer.Services
                              gScore.EarnedPoints + smScore.EarnedPoints + eScore.EarnedPoints;
 
             // Check for Critical Red Flag overrides
-            if (redFlags.Count > 0)
+            if (redFlags.Count >= 3)
             {
-                totalScore = Math.Min(totalScore, 44); // Cap at Risky / Avoid
+                totalScore = Math.Min(totalScore, 30); // Cap at Risky / Avoid
+            }
+            else if (redFlags.Count == 2)
+            {
+                totalScore = Math.Min(totalScore, 44);
+            }
+            else if (redFlags.Count == 1)
+            {
+                totalScore = Math.Min(totalScore, 60);
             }
 
             result.TotalScore = Math.Max(0, Math.Min(100, totalScore));
@@ -832,63 +840,86 @@ namespace StockLens_BusinessLayer.Services
             result.TodayVolume = vols.LastOrDefault();
 
             var year1Days = Math.Min(252, daysAvailable);
-            var year2Days = Math.Min(504, daysAvailable);
-            var year3Days = Math.Min(756, daysAvailable);
-
+            
             result.Levels.Year1High = closes.TakeLast(year1Days).Max();
             result.Levels.Year1Low = closes.TakeLast(year1Days).Min();
 
             if (daysAvailable >= 253)
             {
-                result.Levels.Year2High = closes.TakeLast(year2Days).Max();
-                result.Levels.Year2Low = closes.TakeLast(year2Days).Min();
+                var year2Available = Math.Min(252, daysAvailable - 252);
+                result.Levels.Year2High = closes.SkipLast(252).TakeLast(year2Available).Max();
+                result.Levels.Year2Low = closes.SkipLast(252).TakeLast(year2Available).Min();
             }
             if (daysAvailable >= 505)
             {
-                result.Levels.Year3High = closes.TakeLast(year3Days).Max();
-                result.Levels.Year3Low = closes.TakeLast(year3Days).Min();
+                var year3Available = Math.Min(252, daysAvailable - 504);
+                result.Levels.Year3High = closes.SkipLast(504).TakeLast(year3Available).Max();
+                result.Levels.Year3Low = closes.SkipLast(504).TakeLast(year3Available).Min();
             }
 
-            var avgVol1MonthDays = Math.Min(21, daysAvailable);
-            result.AvgVolume1Month = (decimal)vols.TakeLast(avgVol1MonthDays).Average();
+            var lookback = Math.Min(21, daysAvailable - 1);
+            if (lookback > 0)
+            {
+                result.AvgVolume1Month = (decimal)vols.TakeLast(lookback + 1).SkipLast(1).Average();
+            }
+            else
+            {
+                result.AvgVolume1Month = 0;
+            }
 
-            bool isHighVol = result.TodayVolume > result.AvgVolume1Month;
-            bool isMassiveVol = result.TodayVolume > (result.AvgVolume1Month * 5m);
+            bool isAboveAvgVol = result.TodayVolume > result.AvgVolume1Month;   // > 1x
+            bool isHighVol = result.TodayVolume > (result.AvgVolume1Month * 2m); // > 2x
+            bool isMassiveVol = result.TodayVolume > (result.AvgVolume1Month * 5m); // > 5x
 
-            if (result.Levels.Year3High.HasValue && result.CurrentPrice >= result.Levels.Year3High.Value * 0.98m)
+            // Volatility-based buffer (Point #6)
+            decimal buffer = 0.02m; // default 2%
+            if (daysAvailable >= 21)
+            {
+                var recentCloses = closes.TakeLast(21).ToList();
+                var recentMax = recentCloses.Max();
+                var recentMin = recentCloses.Min();
+                var volatility = recentMin > 0 ? (recentMax - recentMin) / recentMin : 0;
+                
+                if (volatility > 0.10m) buffer = 0.03m; // 3% for high volatility (small cap proxy)
+                else if (volatility < 0.05m) buffer = 0.01m; // 1% for low volatility (large cap proxy)
+            }
+            decimal highBuffer = 1m - buffer;
+            decimal lowBuffer = 1m + buffer;
+
+            if (result.Levels.Year3High.HasValue && result.CurrentPrice >= result.Levels.Year3High.Value * highBuffer)
             {
                 result.OverallSignal = "Bullish";
-                result.SignalBadgeText = isMassiveVol ? "🚀 3Y-BO (>5x Vol)" : "🚀 3Y Breakout";
+                result.SignalBadgeText = isMassiveVol ? "3Y-BO (>5x Vol)" : "3Y Breakout";
                 result.BullishCount = 3; result.BearishCount = 0;
             }
-            else if (result.Levels.Year2High.HasValue && result.CurrentPrice >= result.Levels.Year2High.Value * 0.98m)
+            else if (result.Levels.Year2High.HasValue && result.CurrentPrice >= result.Levels.Year2High.Value * highBuffer)
             {
                 result.OverallSignal = "Bullish";
-                result.SignalBadgeText = isMassiveVol ? "🚀 2Y-BO (>5x Vol)" : "🚀 2Y Breakout";
+                result.SignalBadgeText = isMassiveVol ? "2Y-BO (>5x Vol)" : "2Y Breakout";
                 result.BullishCount = 2; result.BearishCount = 0;
             }
-            else if (result.Levels.Year1High.HasValue && result.CurrentPrice >= result.Levels.Year1High.Value * 0.98m)
+            else if (result.Levels.Year1High.HasValue && result.CurrentPrice >= result.Levels.Year1High.Value * highBuffer)
             {
                 result.OverallSignal = "Bullish";
-                result.SignalBadgeText = isMassiveVol ? "🔥 52W High (>5x Vol)" : "⬆️ 52W High";
+                result.SignalBadgeText = isMassiveVol ? "52W High (>5x Vol)" : "52W High";
                 result.BullishCount = 1; result.BearishCount = 0;
             }
-            else if (result.Levels.Year3Low.HasValue && result.CurrentPrice <= result.Levels.Year3Low.Value * 1.02m)
+            else if (result.Levels.Year3Low.HasValue && result.CurrentPrice <= result.Levels.Year3Low.Value * lowBuffer)
             {
                 result.OverallSignal = "Bearish";
-                result.SignalBadgeText = isMassiveVol ? "🩸 3Y Low (>5x Vol)" : "🩸 3Y Low";
+                result.SignalBadgeText = isMassiveVol ? "3Y Low (>5x Vol)" : "3Y Low";
                 result.BearishCount = 3; result.BullishCount = 0;
             }
-            else if (result.Levels.Year2Low.HasValue && result.CurrentPrice <= result.Levels.Year2Low.Value * 1.02m)
+            else if (result.Levels.Year2Low.HasValue && result.CurrentPrice <= result.Levels.Year2Low.Value * lowBuffer)
             {
                 result.OverallSignal = "Bearish";
-                result.SignalBadgeText = isMassiveVol ? "🩸 2Y Low (>5x Vol)" : "🩸 2Y Low";
+                result.SignalBadgeText = isMassiveVol ? "2Y Low (>5x Vol)" : "2Y Low";
                 result.BearishCount = 2; result.BullishCount = 0;
             }
-            else if (result.Levels.Year1Low.HasValue && result.CurrentPrice <= result.Levels.Year1Low.Value * 1.02m)
+            else if (result.Levels.Year1Low.HasValue && result.CurrentPrice <= result.Levels.Year1Low.Value * lowBuffer)
             {
                 result.OverallSignal = "Bearish";
-                result.SignalBadgeText = isMassiveVol ? "⚠️ 52W Low (>5x Vol)" : "📉 52W Low";
+                result.SignalBadgeText = isMassiveVol ? "52W Low (>5x Vol)" : "52W Low";
                 result.BearishCount = 1; result.BullishCount = 0;
             }
             else
@@ -898,12 +929,235 @@ namespace StockLens_BusinessLayer.Services
                 result.BullishCount = 0; result.BearishCount = 0;
             }
 
+            // Signal Strength calculation
+            if (result.OverallSignal == "Bullish")
+            {
+                if (isMassiveVol && result.BullishCount >= 2) result.SignalStrength = "Strong";
+                else if (isHighVol || result.BullishCount >= 2) result.SignalStrength = "Medium";
+                else result.SignalStrength = "Weak";
+            }
+            else if (result.OverallSignal == "Bearish")
+            {
+                if (isMassiveVol && result.BearishCount >= 2) result.SignalStrength = "Strong";
+                else if (isHighVol || result.BearishCount >= 2) result.SignalStrength = "Medium";
+                else result.SignalStrength = "Weak";
+            }
+            else
+            {
+                result.SignalStrength = "Neutral";
+            }
+
             if (result.OverallSignal == "Bullish")
                 result.SummaryText = $"{symbol} is showing a strong Bullish trend, hitting key highs with {(isMassiveVol ? "massive 5x" : isHighVol ? "high" : "normal")} volume.";
             else if (result.OverallSignal == "Bearish")
                 result.SummaryText = $"{symbol} is showing a Bearish trend, breaking its support levels with {(isMassiveVol ? "massive 5x" : isHighVol ? "high" : "normal")} volume.";
             else
                 result.SummaryText = $"{symbol} is trading in a normal range between its 52-Week High and Low.";
+
+            // Volume Logic
+            result.VolumeRatio = result.AvgVolume1Month > 0 ? (result.TodayVolume / result.AvgVolume1Month) : 0;
+            
+            if (result.VolumeRatio >= 5)
+            {
+                result.VolumeStatusText = "Very Strong Volume";
+                result.VolumeStatusColor = "#10b981";
+                result.VolumeStatusClass = "green";
+            }
+            else if (result.VolumeRatio > 2)
+            {
+                result.VolumeStatusText = "High Volume";
+                result.VolumeStatusColor = "#10b981";
+                result.VolumeStatusClass = "green";
+            }
+            else if (result.VolumeRatio > 0)
+            {
+                result.VolumeStatusText = "Normal / Below Avg";
+                result.VolumeStatusColor = "#f59e0b";
+                result.VolumeStatusClass = "yellow";
+            }
+            else
+            {
+                result.VolumeStatusText = "Not Available";
+                result.VolumeStatusColor = "#64748b";
+                result.VolumeStatusClass = "grey";
+            }
+
+            if (result.OverallSignal == "Bearish" && result.VolumeRatio > 1)
+            {
+                result.VolumeStatusColor = "#ef4444";
+                result.VolumeStatusClass = "red";
+            }
+            
+            // Sirf significant volume pe text dikhao
+            if (result.VolumeRatio >= 5)
+            {
+                result.VolumeSummaryTitle = result.OverallSignal == "Bearish"
+                    ? "Extreme Selling Pressure"
+                    : "Extreme Buying Interest";
+            }
+            else if (result.VolumeRatio >= 2)
+            {
+                result.VolumeSummaryTitle = result.OverallSignal == "Bearish"
+                    ? "High Selling Pressure"
+                    : "High Buying Interest";
+            }
+            else
+            {
+                result.VolumeSummaryTitle = ""; // Normal volume — kuch mat dikhao
+            }
+
+            string volText = result.VolumeRatio > 1 ? $"Vol {result.VolumeRatio:F1}x Avg" : "Vol < Avg";
+            string volTrend;
+            if (result.VolumeRatio > 5)
+                volTrend = result.OverallSignal == "Bullish" ? "bullish" : (result.OverallSignal == "Bearish" ? "bearish" : "neutral");
+            else if (result.VolumeRatio > 1)
+                volTrend = "neutral";
+            else
+                volTrend = "weak";
+
+            // Year 1
+            if (result.Levels.Year1High.HasValue && result.Levels.Year1Low.HasValue)
+            {
+                decimal range1 = result.Levels.Year1High.Value - result.Levels.Year1Low.Value;
+                decimal progress1 = range1 > 0 ? Math.Max(0, Math.Min(100, ((result.CurrentPrice - result.Levels.Year1Low.Value) / range1) * 100)) : 0;
+                bool isBrkHigh = result.CurrentPrice >= result.Levels.Year1High.Value * highBuffer;
+                bool isBrkLow = result.CurrentPrice <= result.Levels.Year1Low.Value * lowBuffer;
+                
+                string tfTrend = isBrkHigh ? "BULLISH" : (isBrkLow ? "BEARISH" : "NEUTRAL");
+                string tfBreakoutText = isBrkHigh ? "52W High Breakout" : (isBrkLow ? "52W Low Breakout" : "Trading in Range");
+                
+                result.Timeframes.Add(new BreakoutTimeframeDto
+                {
+                    Period = "1 YEAR (52W)",
+                    Trend = tfTrend,
+                    VolText = volText,
+                    VolTrend = volTrend,
+                    BreakoutText = tfBreakoutText,
+                    BreakoutTrend = tfTrend.ToLower(),
+                    High = result.Levels.Year1High.Value,
+                    Low = result.Levels.Year1Low.Value,
+                    ProgressPercent = progress1,
+                    IsBreakout = isBrkHigh,
+                    StatusText = isBrkHigh ? "Above 1Y High" : (isBrkLow ? "Below 1Y Low" : "Below 1Y High")
+                });
+            }
+
+            // Year 2
+            if (result.Levels.Year2High.HasValue && result.Levels.Year2Low.HasValue)
+            {
+                decimal range2 = result.Levels.Year2High.Value - result.Levels.Year2Low.Value;
+                decimal progress2 = range2 > 0 ? Math.Max(0, Math.Min(100, ((result.CurrentPrice - result.Levels.Year2Low.Value) / range2) * 100)) : 0;
+                bool isBrkHigh = result.CurrentPrice >= result.Levels.Year2High.Value * highBuffer;
+                bool isBrkLow = result.CurrentPrice <= result.Levels.Year2Low.Value * lowBuffer;
+                
+                string tfTrend = isBrkHigh ? "BULLISH" : (isBrkLow ? "BEARISH" : "NEUTRAL");
+                string tfBreakoutText = isBrkHigh ? "2Y High Breakout" : (isBrkLow ? "2Y Low Breakout" : "Trading in Range");
+
+                result.Timeframes.Add(new BreakoutTimeframeDto
+                {
+                    Period = "2 YEARS",
+                    Trend = tfTrend,
+                    VolText = volText,
+                    VolTrend = volTrend,
+                    BreakoutText = tfBreakoutText,
+                    BreakoutTrend = tfTrend.ToLower(),
+                    High = result.Levels.Year2High.Value,
+                    Low = result.Levels.Year2Low.Value,
+                    ProgressPercent = progress2,
+                    IsBreakout = isBrkHigh,
+                    StatusText = isBrkHigh ? "Above 2Y High" : (isBrkLow ? "Below 2Y Low" : "Below 2Y High")
+                });
+            }
+
+            // Year 3
+            if (result.Levels.Year3High.HasValue && result.Levels.Year3Low.HasValue)
+            {
+                decimal range3 = result.Levels.Year3High.Value - result.Levels.Year3Low.Value;
+                decimal progress3 = range3 > 0 ? Math.Max(0, Math.Min(100, ((result.CurrentPrice - result.Levels.Year3Low.Value) / range3) * 100)) : 0;
+                bool isBrkHigh = result.CurrentPrice >= result.Levels.Year3High.Value * highBuffer;
+                bool isBrkLow = result.CurrentPrice <= result.Levels.Year3Low.Value * lowBuffer;
+                
+                string tfTrend = isBrkHigh ? "BULLISH" : (isBrkLow ? "BEARISH" : "NEUTRAL");
+                string tfBreakoutText = isBrkHigh ? "3Y High Breakout" : (isBrkLow ? "3Y Low Breakout" : "Trading in Range");
+
+                result.Timeframes.Add(new BreakoutTimeframeDto
+                {
+                    Period = "3 YEARS",
+                    Trend = tfTrend,
+                    VolText = volText,
+                    VolTrend = volTrend,
+                    BreakoutText = tfBreakoutText,
+                    BreakoutTrend = tfTrend.ToLower(),
+                    High = result.Levels.Year3High.Value,
+                    Low = result.Levels.Year3Low.Value,
+                    ProgressPercent = progress3,
+                    IsBreakout = isBrkHigh,
+                    StatusText = isBrkHigh ? "Above 3Y High" : (isBrkLow ? "Below 3Y Low" : "Below 3Y High")
+                });
+            }
+
+            // Populate Priority Signals Dynamically
+            int rank = 1;
+            
+            if (result.OverallSignal == "Bullish")
+            {
+                // Signal 1: Volume > 5x
+                if (isMassiveVol)
+                {
+                    result.PrioritySignals.Add(new PrioritySignalDto { 
+                        Rank = rank++, Level = "Highest", Description = "Volume > 5x Month Avg", 
+                        SubDescription = "Massive institutional buying", Type = "BULLISH" 
+                    });
+                }
+                
+                // Signal 2: Breakout level
+                result.PrioritySignals.Add(new PrioritySignalDto { 
+                    Rank = rank++, Level = "High", Description = result.SignalBadgeText, 
+                    SubDescription = "Stock is breaking key resistance", Type = "BULLISH" 
+                });
+
+                // Signal 3: Volume > 1x (only if not massive)
+                if (isHighVol && !isMassiveVol)
+                {
+                    result.PrioritySignals.Add(new PrioritySignalDto { 
+                        Rank = rank++, Level = "Medium", Description = "Volume > 1 Month Avg", 
+                        SubDescription = "Strong buying interest", Type = "BULLISH" 
+                    });
+                }
+            }
+            else if (result.OverallSignal == "Bearish")
+            {
+                // Signal 1: Volume > 5x
+                if (isMassiveVol)
+                {
+                    result.PrioritySignals.Add(new PrioritySignalDto { 
+                        Rank = rank++, Level = "Highest", Description = "Volume > 5x Month Avg", 
+                        SubDescription = "Massive institutional selling", Type = "BEARISH" 
+                    });
+                }
+                
+                // Signal 2: Breakdown level
+                result.PrioritySignals.Add(new PrioritySignalDto { 
+                    Rank = rank++, Level = "High", Description = result.SignalBadgeText, 
+                    SubDescription = "Stock is breaking key support", Type = "BEARISH" 
+                });
+
+                // Signal 3: Volume > 1x
+                if (isHighVol && !isMassiveVol)
+                {
+                    result.PrioritySignals.Add(new PrioritySignalDto { 
+                        Rank = rank++, Level = "Medium", Description = "Volume > 1 Month Avg", 
+                        SubDescription = "Strong selling pressure", Type = "BEARISH" 
+                    });
+                }
+            }
+            else
+            {
+                result.PrioritySignals.Add(new PrioritySignalDto { 
+                    Rank = rank++, Level = "Low", Description = "Trading in Normal Range", 
+                    SubDescription = "No clear breakout direction", Type = "NEUTRAL" 
+                });
+            }
 
             return result;
         }

@@ -1,109 +1,187 @@
-<div class="technical-widget">
-  <div class="widget-header">
-    <h3>Technical Analysis</h3>
-    <div class="tabs">
-      <button [class.active]="activeTab === 'BREAKOUTS'" (click)="activeTab = 'BREAKOUTS'">Breakouts</button>
-      <button [class.active]="activeTab === 'EMA'" (click)="activeTab = 'EMA'">Moving Averages</button>
+<div class="technical-dashboard">
+
+  <!-- Loading State -->
+  <div class="loader" *ngIf="loading">Analyzing technical signals...</div>
+
+  <!-- Error State -->
+  <div class="state-card error-state" *ngIf="!loading && error">
+    <div class="state-icon-wrapper error-icon-bg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
     </div>
+    <h3 class="state-title">Unable to Load Technical Analysis</h3>
+    <p class="state-description">Failed to fetch technical & breakout data for {{symbol}}.</p>
+    <button type="button" class="action-btn" (click)="fetchData(true)">
+      Retry Sync
+    </button>
   </div>
-  
-  <div class="widget-body">
-    <!-- Loader & Error -->
-    <div class="loader" *ngIf="loading">
-      Analyzing breakouts and volume...
-    </div>
-    
-    <div class="error-msg" *ngIf="!loading && error">
-      Unable to load technical data for {{symbol}}.
-    </div>
 
-    <!-- Breakouts Tab Content -->
-    <div class="breakout-content" *ngIf="activeTab === 'BREAKOUTS' && !loading && !error && breakoutData">
-      
-      <!-- Left: The Meter -->
-      <div class="meter-section">
-        <div class="gauge-container">
-          <div class="gauge-arc"></div>
-          <!-- Apply rotation based on signal -->
-          <div class="gauge-needle" 
-               [class.needle-bullish]="breakoutData.overallSignal === 'Bullish'"
-               [class.needle-bearish]="breakoutData.overallSignal === 'Bearish'"
-               [class.needle-neutral]="breakoutData.overallSignal === 'Neutral'">
+  <ng-container *ngIf="!loading && !error && breakoutData">
+    <div class="main-grid">
+
+      <!-- LEFT COLUMN -->
+      <div class="left-col">
+        <!-- Breakout Signals Panel -->
+        <div class="panel breakout-panel">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                <polyline points="16 7 22 7 22 13" />
+              </svg>
+              <div>
+                <h3>Breakout Signals</h3>
+                <p>Check if the stock has broken key resistance levels</p>
+              </div>
+            </div>
+
+            <div class="signal-badge-container"
+              *ngIf="breakoutData.overallSignal && breakoutData.overallSignal !== 'Neutral'">
+              <div class="signal-badge"
+                [ngClass]="{'bullish-badge': breakoutData.overallSignal === 'Bullish', 'bearish-badge': breakoutData.overallSignal === 'Bearish'}">
+                <span class="signal-dot"></span>
+                {{ breakoutData.signalStrength }} {{ breakoutData.overallSignal }}
+              </div>
+            </div>
+          </div>
+
+          <div class="breakout-cards">
+            <div class="b-card" *ngFor="let tf of breakoutData.timeframes; let i = index">
+              <div class="b-card-header">
+                <div class="b-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"
+                    [attr.stroke]="tf.isBreakout ? '#10b981' : '#ef4444'">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  <div>
+                    <h4>{{ tf.period }}</h4>
+                  </div>
+                </div>
+                <div class="badge-no-breakout"
+                  [ngStyle]="{'background': tf.isBreakout ? '#064e3b' : '#7f1d1d', 'color': tf.isBreakout ? '#34d399' : '#fca5a5'}">
+                  <svg *ngIf="!tf.isBreakout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  <svg *ngIf="tf.isBreakout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 19V5M5 12l7-7 7 7" />
+                  </svg>
+                  {{ tf.isBreakout ? 'Breakout' : 'No Breakout' }}
+                </div>
+              </div>
+
+              <div class="b-card-body">
+                <div class="b-row">
+                  <span class="label">Current Price</span>
+                  <span class="val">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
+                </div>
+                <div class="b-row">
+                  <span class="label">Previous High</span>
+                  <span class="val" *ngIf="tf.high">₹{{ tf.high | number:'1.2-2' }}</span>
+                  <span class="val" *ngIf="!tf.high">--</span>
+                </div>
+                <div class="b-row status-row">
+                  <span class="label">Status</span>
+                  <span class="val" [ngClass]="tf.isBreakout ? 'text-green' : 'text-red'">{{ tf.statusText }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div class="signal-text" 
-             [class.signal-bullish]="breakoutData.overallSignal === 'Bullish'"
-             [class.signal-bearish]="breakoutData.overallSignal === 'Bearish'"
-             [class.signal-neutral]="breakoutData.overallSignal === 'Neutral'">
-          {{ breakoutData.signalBadgeText }}
-        </div>
-        
-        <p class="summary-text">{{ breakoutData.summaryText }}</p>
+
+
       </div>
 
-      <!-- Right: The Levels Grid -->
-      <div class="levels-section">
-        <div class="levels-grid">
-          
-          <!-- 1 Year -->
-          <div class="level-card">
-            <div class="level-header">1 Year (52W)</div>
-            <div class="level-row">
-              <span class="level-label">High</span>
-              <span class="level-value">{{ breakoutData.levels.year1High | number:'1.2-2' }}</span>
+      <!-- RIGHT COLUMN -->
+      <div class="right-col">
+        <!-- Volume Signal Panel -->
+        <div class="panel volume-panel">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                <path d="M18 20V10M12 20V4M6 20v-6" />
+              </svg>
+              <div>
+                <h3>Volume Signal</h3>
+                <p>Compare current volume with 1 month average</p>
+              </div>
             </div>
-            <div class="level-row">
-              <span class="level-label">Low</span>
-              <span class="level-value">{{ breakoutData.levels.year1Low | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          
-          <!-- 2 Year -->
-          <div class="level-card" *ngIf="breakoutData.levels.year2High">
-            <div class="level-header">2 Years</div>
-            <div class="level-row">
-              <span class="level-label">High</span>
-              <span class="level-value">{{ breakoutData.levels.year2High | number:'1.2-2' }}</span>
-            </div>
-            <div class="level-row">
-              <span class="level-label">Low</span>
-              <span class="level-value">{{ breakoutData.levels.year2Low | number:'1.2-2' }}</span>
+            
+            <div class="signal-badge-container" *ngIf="breakoutData.volumeStatusText && breakoutData.volumeRatio > 1">
+               <div class="signal-badge" [ngClass]="'vol-' + breakoutData.volumeStatusClass">
+                  <span class="signal-dot"></span>
+                  {{ breakoutData.volumeStatusText }}
+               </div>
             </div>
           </div>
 
-          <!-- 3 Year -->
-          <div class="level-card" *ngIf="breakoutData.levels.year3High">
-            <div class="level-header">3 Years</div>
-            <div class="level-row">
-              <span class="level-label">High</span>
-              <span class="level-value">{{ breakoutData.levels.year3High | number:'1.2-2' }}</span>
+          <div class="volume-content">
+            <div class="volume-left">
+              <div class="volume-gauge">
+                <div class="gauge-svg-container"
+                  style="position: relative; width: 100%; display: flex; justify-content: center;">
+                  <svg viewBox="0 0 100 55" class="gauge-svg" style="width: 100%; max-width: 250px; overflow: visible;">
+                    <defs>
+                      <linearGradient id="needleGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#f59e0b" />
+                        <stop offset="100%" stop-color="#10b981" />
+                      </linearGradient>
+                      <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#10b981" flood-opacity="0.2" />
+                      </filter>
+                    </defs>
+                    <!-- Full Gradient Arc -->
+                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#needleGaugeGradient)"
+                      stroke-width="12" stroke-linecap="round" filter="url(#gaugeShadow)" />
+                    <!-- Needle -->
+                    <g [style.transform]="'rotate(' + (breakoutData.volumeRatio >= 5 ? 180 : (breakoutData.volumeRatio / 5) * 180) + 'deg)'"
+                      style="transform-origin: 50px 50px; transition: transform 1s ease-out;">
+                      <line x1="50" y1="50" x2="18" y2="50" stroke="#ffffff" stroke-width="2.5"
+                        stroke-linecap="round" />
+                    </g>
+                    <!-- Center Dot -->
+                    <circle cx="50" cy="50" r="4" fill="#ffffff" />
+                  </svg>
+                </div>
+                <div class="gauge-text">
+                  <h3>{{ breakoutData.volumeRatio | number:'1.2-2' }}x</h3>
+                  <p>Volume Ratio</p>
+                </div>
+              </div>
             </div>
-            <div class="level-row">
-              <span class="level-label">Low</span>
-              <span class="level-value">{{ breakoutData.levels.year3Low | number:'1.2-2' }}</span>
+
+            <div class="volume-right">
+              <div class="volume-stats">
+                <div class="stat-card">
+
+                  <div>
+                    <h5>1M Avg Volume</h5>
+                    <h3>{{ breakoutData.avgVolume1Month / 1000000 | number:'1.2-2' }}M</h3>
+                  </div>
+                </div>
+
+                <div class="stat-card highlight">
+
+                  <div>
+                    <h5>Current Volume</h5>
+                    <h3>{{ breakoutData.todayVolume / 1000000 | number:'1.2-2' }}M</h3>
+                  </div>
+                </div>
+              </div>
+
+
             </div>
           </div>
-          
-        </div>
-        
-        <!-- Volume Spike -->
-        <div class="volume-card">
-          <h4 class="volume-title">Today's Volume vs 1M Avg</h4>
-          <span class="volume-data">
-            {{ breakoutData.todayVolume | number }} / {{ breakoutData.avgVolume1Month | number:'1.0-0' }}
-          </span>
         </div>
       </div>
-      
-    </div>
 
-    <!-- EMA Tab Content (Placeholder) -->
-    <div class="ema-content" *ngIf="activeTab === 'EMA'">
-      <div class="loader">
-        Moving Averages module coming soon...
-      </div>
     </div>
-    
-  </div>
+  </ng-container>
 </div>

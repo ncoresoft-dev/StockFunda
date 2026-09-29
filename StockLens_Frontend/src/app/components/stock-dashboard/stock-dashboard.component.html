@@ -952,7 +952,19 @@
 
     <!-- ROW 4: TECHNICAL ANALYSIS (BREAKOUTS & INDICATORS) -->
     <div class="cockpit-row-technical">
-      <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"></app-stock-technical-analysis>
+      <div class="cockpit-card" style="width: 100%;">
+        <div class="card-top-bar">
+          <div class="card-title-group">
+            <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span class="card-title">TECHNICAL ANALYSIS</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper" style="min-height: auto;">
+          <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"></app-stock-technical-analysis>
+        </div>
+      </div>
     </div>
   </div>
 

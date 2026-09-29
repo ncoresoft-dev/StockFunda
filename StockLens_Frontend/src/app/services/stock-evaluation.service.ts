@@ -13,11 +13,17 @@ export interface BreakoutEvaluationDto {
   summaryText: string;
   overallSignal: string;
   signalBadgeText: string;
+  signalStrength: string;
   bullishCount: number;
   bearishCount: number;
   currentPrice: number;
   avgVolume1Month: number;
   todayVolume: number;
+  volumeRatio: number;
+  volumeStatusText: string;
+  volumeStatusColor: string;
+  volumeStatusClass: string;
+  volumeSummaryTitle: string;
   levels: {
     year1High?: number;
     year1Low?: number;
@@ -26,6 +32,26 @@ export interface BreakoutEvaluationDto {
     year3High?: number;
     year3Low?: number;
   };
+  timeframes: {
+    period: string;
+    trend: string;
+    volText: string;
+    volTrend: string;
+    breakoutText: string;
+    breakoutTrend: string;
+    high: number;
+    low: number;
+    progressPercent: number;
+    isBreakout: boolean;
+    statusText: string;
+  }[];
+  prioritySignals: {
+    rank: number;
+    level: string;
+    description: string;
+    subDescription: string;
+    type: string;
+  }[];
 }
 
 @Injectable({
