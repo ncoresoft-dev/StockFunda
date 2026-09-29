@@ -2,8 +2,19 @@
   <!-- State 1: Loading Skeleton -->
   @if (loadingState === 'loading' && !priceHistory) {
   <div class="skeleton-wrapper">
-    <div class="skeleton-header shimmer"></div>
-    <div class="skeleton-chart shimmer"></div>
+    <div class="skeleton-chart shimmer">
+      <div class="chart-loader-content">
+        <div class="candlestick-loader-anim">
+          <span class="bar-candle c1"></span>
+          <span class="bar-candle c2"></span>
+          <span class="bar-candle c3"></span>
+          <span class="bar-candle c4"></span>
+          <span class="bar-candle c5"></span>
+        </div>
+        <div class="loader-title">Reloading {{ symbol }} Highcharts Candlestick &amp; Volume...</div>
+        <div class="loader-subtitle">Processing 5Y Historical Data, 50/200 DMA &amp; Technical Patterns</div>
+      </div>
+    </div>
   </div>
   }
 

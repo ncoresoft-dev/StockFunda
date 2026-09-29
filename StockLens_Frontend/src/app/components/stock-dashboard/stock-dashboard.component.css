@@ -49,6 +49,68 @@
   background: rgba(56, 189, 248, 0.4);
 }
 
+/* Top Animated Cyber Reload Progress Bar */
+.top-reload-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #3b82f6, #06b6d4, #38bdf8);
+  background-size: 200% 100%;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.top-reload-bar.active {
+  opacity: 1;
+  animation: reloadBarSlide 1.2s infinite linear;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.8), 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+@keyframes reloadBarSlide {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.reloading-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+  animation: pulseBadge 1.5s infinite ease-in-out;
+}
+
+.reloading-live-badge .mini-spinner {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+}
+
+@keyframes pulseBadge {
+  0%, 100% {
+    opacity: 0.85;
+    box-shadow: 0 0 4px rgba(56, 189, 248, 0.2);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  }
+}
+
 /* ==========================================================================
    1. TOP APPLICATION HEADER & SEARCH BAR (~42px)
    ========================================================================== */
@@ -420,13 +482,16 @@
   flex-shrink: 0;
   user-select: none;
 }
+
 .verdict-header-btn:hover {
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.9));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
+
 .verdict-header-btn:active {
   transform: translateY(0);
 }
+
 .verdict-dot {
   width: 8px;
   height: 8px;
@@ -435,6 +500,7 @@
   animation: pulse-dot 2s infinite;
   flex-shrink: 0;
 }
+
 .verdict-info {
   display: flex;
   flex-direction: column;
@@ -442,6 +508,7 @@
   justify-content: center;
   line-height: 1.15;
 }
+
 .verdict-lbl {
   font-size: 0.62rem;
   font-weight: 800;
@@ -449,6 +516,7 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
+
 .verdict-val {
   font-family: 'Outfit', sans-serif;
   font-size: 0.95rem;
@@ -456,6 +524,7 @@
   white-space: nowrap;
   letter-spacing: -0.01em;
 }
+
 .verdict-score-box {
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -466,18 +535,21 @@
   margin-left: 0.25rem;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
+
 .v-score {
   font-family: 'Outfit', sans-serif;
   font-size: 0.95rem;
   font-weight: 900;
   color: #f8fafc;
 }
+
 .v-max {
   font-size: 0.65rem;
   font-weight: 700;
   color: #64748b;
   margin-left: 2px;
 }
+
 .v-arrow {
   width: 14px;
   height: 14px;
@@ -486,6 +558,7 @@
   transition: transform 0.2s ease, color 0.2s ease;
   flex-shrink: 0;
 }
+
 .verdict-header-btn:hover .v-arrow {
   transform: translateX(2px);
   color: #f8fafc;
@@ -778,17 +851,53 @@
   padding: 8px 12px 24px 12px;
 }
 
-/* Row 1: Technical Price Chart & News (Split 62% / 38%) */
-.cockpit-row-upper {
+/* Full Width Cockpit Rows */
+.cockpit-row-full {
   flex: 0 0 auto;
-  min-height: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-full-row {
+  min-height: 680px;
+  height: auto;
+}
+
+/* Row 2: Volume Delivery Analysis (Left) & Real-Time Corporate News (Right) */
+.cockpit-row-split.volume-news-row {
+  flex: 0 0 auto;
   display: grid;
-  grid-template-columns: 62% 38%;
+  grid-template-columns: 1.15fr 1fr;
   gap: 10px;
+  min-height: 380px;
   align-items: stretch;
 }
 
-/* Row 2: 4-Column Fundamental Grid (Ownership, Quarters, Cash Flow, Balance Sheet) */
+@media (max-width: 1024px) {
+  .cockpit-row-split.volume-news-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.split-col-left,
+.split-col-right {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+.split-col-left app-stock-volume-delivery-card {
+  height: 100%;
+}
+
+.split-col-right .news-card {
+  height: 100%;
+  min-height: 380px;
+}
+
+/* Row 3: 4-Column Fundamental Grid (Ownership, Quarters, Cash Flow, Balance Sheet) */
 .cockpit-row-middle {
   flex: 0 0 auto;
   min-height: fit-content;
@@ -798,12 +907,9 @@
   align-items: stretch;
 }
 
-/* Row 3: Dedicated OHLC Candlestick Chart (Below 4 Cards) */
-.cockpit-row-candlestick {
-  flex: 0 0 auto;
-  min-height: 440px;
+.technical-full-row {
+  min-height: fit-content;
   width: 100%;
-  display: flex;
 }
 
 /* Common Cockpit Card Styling */
@@ -818,17 +924,19 @@
   backdrop-filter: blur(10px);
 }
 
-.chart-card {
-  min-height: 380px;
-}
-
 .candlestick-card {
-  min-height: 440px;
+  min-height: 680px;
+  height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 .news-card {
-  min-height: 380px;
+  min-height: 260px;
+}
+
+.news-card.full-width {
+  width: 100%;
 }
 
 .fundamental-card {
@@ -888,7 +996,75 @@
   border-radius: 3px;
 }
 
-/* ==========================================================================
+/* Chart Type Toggle */
+.chart-type-toggle {
+  display: flex;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 2px 3px;
+  margin-left: 8px;
+}
+
+.type-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.type-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.type-btn.active {
+  background: #38bdf8;
+  color: #080b11;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.news-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mini-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mini-sync-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.mini-sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Chart Mode Switcher */
 .chart-mode-toggle {
   display: flex;
@@ -1050,9 +1226,9 @@
   flex: 1;
   width: 100%;
   height: 100%;
-  min-height: 340px;
+  min-height: 630px;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* News Feed Scrollable Stream */
@@ -1080,6 +1256,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.news-stream-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 0.5rem;
 }
 
 .stream-item {
@@ -2540,42 +2722,57 @@
 }
 
 @media (max-width: 900px) {
-  .sector-badge, .exchange-badge {
+
+  .sector-badge,
+  .exchange-badge {
     display: none;
   }
+
   .company-title {
     font-size: 0.9rem;
   }
 }
+
 .technical-alert-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.3px;
-    border: 1px solid transparent;
-    animation: pulseGlow 2s infinite;
-    cursor: default;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+  border: 1px solid transparent;
+  animation: pulseGlow 2s infinite;
+  cursor: default;
 }
+
 .technical-alert-badge.bullish {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.3);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
 }
+
 .technical-alert-badge.bearish {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border-color: rgba(239, 68, 68, 0.3);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
+
 @keyframes pulseGlow {
-    0% { box-shadow: 0 0 5px currentColor; }
-    50% { box-shadow: 0 0 15px currentColor; }
-    100% { box-shadow: 0 0 5px currentColor; }
+  0% {
+    box-shadow: 0 0 5px currentColor;
+  }
+
+  50% {
+    box-shadow: 0 0 15px currentColor;
+  }
+
+  100% {
+    box-shadow: 0 0 5px currentColor;
+  }
 }

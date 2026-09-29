@@ -14,6 +14,9 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi.Models
         public decimal? Dma50 { get; set; }
         public decimal? Dma200 { get; set; }
 
+        public decimal? DeliveryPercentage { get; set; }
+        public long? DeliveryVolume { get; set; }
+
         public DateTime? ResolvedDate
         {
             get

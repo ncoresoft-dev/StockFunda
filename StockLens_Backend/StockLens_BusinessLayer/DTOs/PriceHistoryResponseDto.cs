@@ -25,7 +25,30 @@ namespace StockLens_BusinessLayer.DTOs
         
         public List<PatternEventDto> DetectedPatterns { get; set; } = new();
         public Dictionary<string, int> PatternCounts { get; set; } = new();
+        public List<decimal?> DeliveryPercentages { get; set; } = new();
+        public List<long?> DeliveryVolumes { get; set; } = new();
+        public VolumeDeliveryAnalysisDto? VolumeDeliveryAnalysis { get; set; }
+    }
 
+    public class VolumeDeliveryAnalysisDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public string Exchange { get; set; } = "NSE";
+        public string AsOfDate { get; set; } = string.Empty;
+
+        public VolumeDeliveryPeriodDto Day { get; set; } = new();
+        public VolumeDeliveryPeriodDto Week { get; set; } = new();
+        public VolumeDeliveryPeriodDto Month { get; set; } = new();
+    }
+
+    public class VolumeDeliveryPeriodDto
+    {
+        public long TradedVolume { get; set; }
+        public long DeliveryVolume { get; set; }
+        public decimal DeliveryPercentage { get; set; }
+        public string FormattedTradedVolume { get; set; } = string.Empty;
+        public string FormattedDeliveryVolume { get; set; } = string.Empty;
     }
 
     public class PatternPointDto

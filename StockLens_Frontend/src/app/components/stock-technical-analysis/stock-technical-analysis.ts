@@ -40,6 +40,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
     
     this.loading = true;
     this.error = false;
+    this.breakoutData = null;
     this.cd.detectChanges();
 
     this.evalService.getBreakoutAnalysis(this.symbol, this.exchange, refresh).subscribe({

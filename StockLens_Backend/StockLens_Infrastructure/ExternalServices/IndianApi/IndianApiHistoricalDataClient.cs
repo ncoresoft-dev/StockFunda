@@ -118,6 +118,26 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
                                         {
                                             record.Volume = vol;
                                         }
+
+                                        if (item.GetArrayLength() >= 3 && item[2].ValueKind == JsonValueKind.Object)
+                                        {
+                                            if (item[2].TryGetProperty("delivery", out var deliveryProp))
+                                            {
+                                                if (deliveryProp.ValueKind == JsonValueKind.Number)
+                                                {
+                                                    record.DeliveryPercentage = deliveryProp.GetDecimal();
+                                                }
+                                                else if (deliveryProp.ValueKind == JsonValueKind.String && decimal.TryParse(deliveryProp.GetString(), out var delVal))
+                                                {
+                                                    record.DeliveryPercentage = delVal;
+                                                }
+                                            }
+                                        }
+
+                                        if (record.Volume.HasValue && record.DeliveryPercentage.HasValue)
+                                        {
+                                            record.DeliveryVolume = (long)Math.Round(record.Volume.Value * (record.DeliveryPercentage.Value / 100m));
+                                        }
                                     }
                                     else if (metric == "DMA50")
                                     {

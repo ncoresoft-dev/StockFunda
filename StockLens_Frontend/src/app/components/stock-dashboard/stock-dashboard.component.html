@@ -1,4 +1,7 @@
 <div class="cockpit-container">
+  <!-- Top Animated Cyber Reload Progress Bar -->
+  <div class="top-reload-bar" [class.active]="isLoadingStock()"></div>
+
   <!-- ========================================================================= -->
   <!-- 1. TOP GLOBAL APPLICATION HEADER & SEARCH BAR                             -->
   <!-- ========================================================================= -->
@@ -87,6 +90,12 @@
           <span class="symbol-badge">{{ selectedSymbol() }}</span>
           <span class="exchange-badge">{{ selectedExchange() }}</span>
           <span class="sector-badge">{{ getSector() }}</span>
+          @if (isLoadingStock()) {
+            <span class="reloading-live-badge">
+              <span class="mini-spinner"></span>
+              <span>Syncing {{ selectedSymbol() }} Live Charts...</span>
+            </span>
+          }
         </div>
       </div>
     </div>
@@ -254,37 +263,38 @@
   <!-- ========================================================================= -->
   <div class="cockpit-body">
     <!-- ===================================================================== -->
-    <!-- ROW 1: TECHNICAL PRICE CHART & REAL-TIME NEWS/FILINGS FEED (Split)     -->
+    <!-- ROW 1: DEDICATED 100% FULL-WIDTH OHLC CANDLESTICK / LINE CHART (HERO)   -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-upper">
-      <!-- LEFT: TECHNICAL PRICE CHART -->
-      <div class="cockpit-card chart-card">
+    <div class="cockpit-row-full chart-full-row">
+      <div class="cockpit-card candlestick-card">
         <div class="card-top-bar">
           <div class="card-title-group">
             <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 3v18h18"></path>
-              <path d="M18 9l-5 5-4-4-6 6"></path>
+              <path d="M7 10v4M7 8v2M7 14v2"></path>
+              <path d="M12 6v10M12 4v2M12 16v2"></path>
+              <path d="M17 8v6M17 5v3M17 14v4"></path>
+              <line x1="3" y1="21" x2="21" y2="21"></line>
             </svg>
-            <span class="card-title">PRICE / TECHNICAL CHART</span>
+            <span class="card-title">{{ selectedChartType() === 'candlestick' ? 'OHLC CANDLESTICK CHART' : 'PRICE /
+              TECHNICAL CHART' }}</span>
+            <!-- Chart Type Toggle (Candle / Line) -->
+            <div class="chart-type-toggle">
+              <button type="button" class="type-btn" (click)="setChartType('candlestick')"
+                [class.active]="selectedChartType() === 'candlestick'">
+                🕯️ Candle
+              </button>
+              <button type="button" class="type-btn" (click)="setChartType('area')"
+                [class.active]="selectedChartType() === 'area'">
+                📈 Line
+              </button>
+            </div>
           </div>
 
-          <!-- Series Checkboxes in Top Heading -->
+          <!-- Candlestick Series Checkboxes -->
           <div class="chart-checkbox-group">
-            <label class="chart-checkbox-item" (click)="chartComp.toggleSeries('Price')" title="Toggle Price Line">
-              <span class="custom-checkbox cb-price" [class.checked]="chartComp.activeSeriesState['Price'] !== false">
-                @if (chartComp.activeSeriesState['Price'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                }
-              </span>
-              <span class="cb-label">Price on {{ selectedExchange() }}</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="chartComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
-              <span class="custom-checkbox cb-dma50" [class.checked]="chartComp.activeSeriesState['50 DMA'] !== false">
-                @if (chartComp.activeSeriesState['50 DMA'] !== false) {
+            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
+              <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.activeSeriesState['50 DMA'] !== false">
+                @if (candleComp.activeSeriesState['50 DMA'] !== false) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -294,10 +304,10 @@
               <span class="cb-label">50 DMA</span>
             </label>
 
-            <label class="chart-checkbox-item" (click)="chartComp.toggleSeries('200 DMA')" title="Toggle 200 DMA Line">
+            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('200 DMA')" title="Toggle 200 DMA Line">
               <span class="custom-checkbox cb-dma200"
-                [class.checked]="chartComp.activeSeriesState['200 DMA'] !== false">
-                @if (chartComp.activeSeriesState['200 DMA'] !== false) {
+                [class.checked]="candleComp.activeSeriesState['200 DMA'] !== false">
+                @if (candleComp.activeSeriesState['200 DMA'] !== false) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -307,10 +317,11 @@
               <span class="cb-label">200 DMA</span>
             </label>
 
-            <label class="chart-checkbox-item" (click)="chartComp.toggleSeries('Volume')"
+            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
               title="Toggle Volume Histogram">
-              <span class="custom-checkbox cb-volume" [class.checked]="chartComp.activeSeriesState['Volume'] !== false">
-                @if (chartComp.activeSeriesState['Volume'] !== false) {
+              <span class="custom-checkbox cb-volume"
+                [class.checked]="candleComp.activeSeriesState['Volume'] !== false">
+                @if (candleComp.activeSeriesState['Volume'] !== false) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -321,89 +332,106 @@
             </label>
           </div>
 
-          <!-- Timeframe Selector Pills (1M, 6M, 1Y, 3Y, 5Y) -->
+          <!-- Candlestick Timeframe Selector Pills (1M, 3M, 1Y, 3Y, 5Y) -->
           <div class="chart-timeframe-pills">
-            <button type="button" class="tf-pill" [class.active]="chartPeriod() === '1m'"
-              (click)="setChartPeriod('1m')">1M</button>
-            <button type="button" class="tf-pill" [class.active]="chartPeriod() === '6m'"
-              (click)="setChartPeriod('6m')">6M</button>
-            <button type="button" class="tf-pill" [class.active]="chartPeriod() === '1yr' || chartPeriod() === '1y'"
-              (click)="setChartPeriod('1yr')">1Y</button>
-            <button type="button" class="tf-pill" [class.active]="chartPeriod() === '3yr' || chartPeriod() === '3y'"
-              (click)="setChartPeriod('3yr')">3Y</button>
-            <button type="button" class="tf-pill" [class.active]="chartPeriod() === '5yr' || chartPeriod() === '5y'"
-              (click)="setChartPeriod('5yr')">5Y</button>
+            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '1m'"
+              (click)="setCandlestickPeriod('1m')">1M</button>
+            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3m'"
+              (click)="setCandlestickPeriod('3m')">3M</button>
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
+              (click)="setCandlestickPeriod('1yr')">1Y</button>
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
+              (click)="setCandlestickPeriod('3yr')">3Y</button>
+            <button type="button" class="tf-pill"
+              [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
+              (click)="setCandlestickPeriod('5yr')">5Y</button>
           </div>
         </div>
 
-        <div class="chart-canvas-wrapper">
-          <app-stock-price-chart #chartComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-            [period]="chartPeriod()" customHeight="100%"></app-stock-price-chart>
-        </div>
-      </div>
-
-      <!-- RIGHT: REAL-TIME NEWS STREAM -->
-      <div class="cockpit-card news-card">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <span class="card-title">LATEST NEWS</span>
-          </div>
-
-          <span class="period-tag">Live Feed</span>
-        </div>
-
-        <!-- News Feed List with Internal Micro-Scroll -->
-        <div class="news-feed-scroll">
-          @if (newsLoadingState() === 'loading' && !isNewsRefreshing()) {
-          <div class="mini-loading-box">
-            <div class="mini-spinner"></div>
-            <span>Syncing corporate filings &amp; headlines...</span>
-          </div>
-          }
-
-          @if (newsLoadingState() === 'error') {
-          <div class="mini-error-box">
-            <span>{{ newsErrorMessage() }}</span>
-            <button type="button" class="mini-retry-btn" (click)="fetchNews(true)">Retry</button>
-          </div>
-          }
-
-          @if (newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getFilteredNews().length === 0)) {
-          <div class="mini-empty-box">
-            <span>No corporate news or filings found for {{ selectedSymbol() }}.</span>
-          </div>
-          }
-
-          @if (getFilteredNews().length > 0) {
-          <div class="news-stream">
-            @for (item of getFilteredNews(); track item.id || item.sourceUrl) {
-            <div class="stream-item" (click)="openExternalUrl(item.articleUrl || item.sourceUrl)">
-              <div class="stream-item-top">
-                <span class="stream-source">{{ item.sourceName || 'Corporate Wire' }}</span>
-                <span class="stream-bullet">•</span>
-                <span class="stream-time">{{ item.publishedAt | timeAgo }}</span>
-                @if (item.category) {
-                <span class="stream-cat-badge">{{ item.category }}</span>
-                }
-              </div>
-              <h4 class="stream-headline" [title]="item.title" [innerHTML]="item.title"></h4>
-            </div>
-            }
-          </div>
-          }
+        <div class="chart-canvas-wrapper" style="position: relative;">
+          <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+            [period]="candlestickPeriod()" [chartType]="selectedChartType()"
+            customHeight="100%"></app-stock-candlestick-chart>
         </div>
       </div>
     </div>
 
     <!-- ===================================================================== -->
-    <!-- ROW 2: 4-COLUMN HIGH-DENSITY FUNDAMENTAL TERMINAL COCKPIT GRID        -->
+    <!-- ROW 2: VOLUME DELIVERY ANALYSIS (LEFT) & LATEST NEWS (RIGHT)          -->
+    <!-- ===================================================================== -->
+    <div class="cockpit-row-split volume-news-row">
+      <!-- Left Column: Volume Delivery Analysis Card -->
+      <div class="split-col-left">
+        <app-stock-volume-delivery-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+          [companyName]="getCompanyName()">
+        </app-stock-volume-delivery-card>
+      </div>
+
+      <!-- Right Column: Real-Time Corporate News & Filings -->
+      <div class="split-col-right">
+        <div class="cockpit-card news-card">
+          <div class="card-top-bar">
+            <div class="card-title-group">
+              <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span class="card-title">LATEST NEWS &amp; CORPORATE FILINGS</span>
+            </div>
+          </div>
+
+          <!-- News Feed List with Internal Micro-Scroll -->
+          <div class="news-feed-scroll">
+            @if (newsLoadingState() === 'loading' && !isNewsRefreshing()) {
+            <div class="mini-loading-box">
+              <div class="mini-spinner"></div>
+              <span>Syncing corporate filings &amp; headlines...</span>
+            </div>
+            }
+
+            @if (newsLoadingState() === 'error') {
+            <div class="mini-error-box">
+              <span>{{ newsErrorMessage() }}</span>
+              <button type="button" class="mini-retry-btn" (click)="fetchNews(true)">Retry</button>
+            </div>
+            }
+
+            @if (newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getFilteredNews().length === 0))
+            {
+            <div class="mini-empty-box">
+              <span>No corporate news or filings found for {{ selectedSymbol() }}.</span>
+            </div>
+            }
+
+            @if (getFilteredNews().length > 0) {
+            <div class="news-stream-grid">
+              @for (item of getFilteredNews(); track item.id || item.sourceUrl) {
+              <div class="stream-item" (click)="openExternalUrl(item.articleUrl || item.sourceUrl)">
+                <div class="stream-item-top">
+                  <span class="stream-source">{{ item.sourceName || 'Corporate Wire' }}</span>
+                  <span class="stream-bullet">•</span>
+                  <span class="stream-time">{{ item.publishedAt | timeAgo }}</span>
+                  @if (item.category) {
+                  <span class="stream-cat-badge">{{ item.category }}</span>
+                  }
+                </div>
+                <h4 class="stream-headline" [title]="item.title" [innerHTML]="item.title"></h4>
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- ROW 3: 4-COLUMN HIGH-DENSITY FUNDAMENTAL TERMINAL COCKPIT GRID        -->
     <!-- ===================================================================== -->
     <div class="cockpit-row-middle">
       <!-- ------------------------------------------------------------------- -->
@@ -851,120 +879,11 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- ROW 3: DEDICATED OHLC CANDLESTICK CHART (Positioned Below 4 Cards)    -->
+    <!-- ROW 4: TECHNICAL ANALYSIS & SIGNALS ENGINE (100% Full Width at End)    -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-candlestick">
-      <div class="cockpit-card candlestick-card">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M7 10v4M7 8v2M7 14v2"></path>
-              <path d="M12 6v10M12 4v2M12 16v2"></path>
-              <path d="M17 8v6M17 5v3M17 14v4"></path>
-              <line x1="3" y1="21" x2="21" y2="21"></line>
-            </svg>
-            <span class="card-title">{{ selectedChartType() === 'candlestick' ? 'OHLC CANDLESTICK CHART' : 'PRICE /
-              TECHNICAL CHART' }}</span>
-            <!-- Chart Type Toggle (Near Heading) -->
-            <div class="chart-type-toggle"
-              style="display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 6px; margin-left: 12px; border: 1px solid rgba(255,255,255,0.1);">
-              <button type="button" class="type-btn" (click)="setChartType('candlestick')"
-                [style.background]="selectedChartType() === 'candlestick' ? '#38bdf8' : 'transparent'"
-                [style.color]="selectedChartType() === 'candlestick' ? '#0f141c' : '#94a3b8'"
-                style="border: none; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">🕯️
-                Candle</button>
-              <button type="button" class="type-btn" (click)="setChartType('area')"
-                [style.background]="selectedChartType() === 'area' ? '#38bdf8' : 'transparent'"
-                [style.color]="selectedChartType() === 'area' ? '#0f141c' : '#94a3b8'"
-                style="border: none; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">📈
-                Line</button>
-            </div>
-          </div>
-
-          <!-- Candlestick Series Checkboxes -->
-          <div class="chart-checkbox-group"> <label class="chart-checkbox-item"
-              (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
-              <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.activeSeriesState['50 DMA'] !== false">
-                @if (candleComp.activeSeriesState['50 DMA'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                }
-              </span>
-              <span class="cb-label">50 DMA</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('200 DMA')" title="Toggle 200 DMA Line">
-              <span class="custom-checkbox cb-dma200"
-                [class.checked]="candleComp.activeSeriesState['200 DMA'] !== false">
-                @if (candleComp.activeSeriesState['200 DMA'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                }
-              </span>
-              <span class="cb-label">200 DMA</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
-              title="Toggle Volume Histogram">
-              <span class="custom-checkbox cb-volume"
-                [class.checked]="candleComp.activeSeriesState['Volume'] !== false">
-                @if (candleComp.activeSeriesState['Volume'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                }
-              </span>
-              <span class="cb-label">Volume</span>
-            </label>
-
-          </div>
-
-          <!-- Candlestick Timeframe Selector Pills (1M, 3M, 1Y, 3Y, 5Y) -->
-          <div class="chart-timeframe-pills">
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '1m'"
-              (click)="setCandlestickPeriod('1m')">1M</button>
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3m'"
-              (click)="setCandlestickPeriod('3m')">3M</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
-              (click)="setCandlestickPeriod('1yr')">1Y</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
-              (click)="setCandlestickPeriod('3yr')">3Y</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
-              (click)="setCandlestickPeriod('5yr')">5Y</button>
-          </div>
-        </div>
-
-        <div class="chart-canvas-wrapper" style="position: relative;">
-          <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-            [period]="candlestickPeriod()" [chartType]="selectedChartType()"
-            customHeight="100%"></app-stock-candlestick-chart>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROW 4: TECHNICAL ANALYSIS (BREAKOUTS & INDICATORS) -->
-    <div class="cockpit-row-technical">
-      <div class="cockpit-card" style="width: 100%;">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-            </svg>
-            <span class="card-title">TECHNICAL ANALYSIS</span>
-          </div>
-        </div>
-        <div class="chart-canvas-wrapper" style="min-height: auto;">
-          <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"></app-stock-technical-analysis>
-        </div>
-      </div>
+    <div class="cockpit-row-full technical-full-row">
+      <app-stock-technical-analysis [symbol]="selectedSymbol()"
+        [exchange]="selectedExchange()"></app-stock-technical-analysis>
     </div>
   </div>
 

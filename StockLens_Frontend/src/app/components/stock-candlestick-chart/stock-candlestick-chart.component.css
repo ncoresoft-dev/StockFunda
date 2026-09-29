@@ -3,6 +3,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-height: 630px;
 }
 
 .chart-wrapper {
@@ -12,11 +13,11 @@
   padding: 0;
   width: 100%;
   height: 100%;
-  min-height: 650px;
+  min-height: 630px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* Empty / Error States */
@@ -115,6 +116,114 @@
   height: 600px;
   width: 100%;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 1px dashed rgba(56, 189, 248, 0.15);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.chart-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  z-index: 2;
+}
+
+.candlestick-loader-anim {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  margin-bottom: 4px;
+}
+
+.bar-candle {
+  width: 7px;
+  border-radius: 2px;
+  position: relative;
+  animation: candleBounce 1.4s ease-in-out infinite alternate;
+}
+
+.bar-candle::before,
+.bar-candle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 1.5px;
+  background: inherit;
+  transform: translateX(-50%);
+}
+
+.bar-candle::before {
+  top: -8px;
+  height: 8px;
+}
+
+.bar-candle::after {
+  bottom: -8px;
+  height: 8px;
+}
+
+.bar-candle.c1 {
+  height: 24px;
+  background: #22c55e;
+  animation-delay: 0s;
+}
+
+.bar-candle.c2 {
+  height: 38px;
+  background: #ef4444;
+  animation-delay: 0.2s;
+}
+
+.bar-candle.c3 {
+  height: 28px;
+  background: #38bdf8;
+  animation-delay: 0.4s;
+}
+
+.bar-candle.c4 {
+  height: 44px;
+  background: #22c55e;
+  animation-delay: 0.6s;
+}
+
+.bar-candle.c5 {
+  height: 32px;
+  background: #ef4444;
+  animation-delay: 0.8s;
+}
+
+@keyframes candleBounce {
+  0% {
+    transform: scaleY(0.6);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleY(1.2);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
+  }
+}
+
+.loader-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.3px;
+  font-family: Inter, sans-serif;
+}
+
+.loader-subtitle {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+  max-width: 420px;
 }
 
 @keyframes shimmer {

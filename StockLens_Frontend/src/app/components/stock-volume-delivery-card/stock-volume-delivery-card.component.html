@@ -1,0 +1,133 @@
+<div class="volume-delivery-container">
+  <!-- 1. Top Section Header Badge -->
+  <div class="volume-header-row">
+    <div class="volume-title-badge">
+      {{ getDisplayTitle() }}
+    </div>
+    @if (isLoading()) {
+    <div class="mini-spinner"></div>
+    }
+  </div>
+
+  @if (isLoading() && !deliveryData()) {
+  <div class="volume-skeleton-wrapper">
+    <div class="skeleton-bar-row shimmer"></div>
+    <div class="skeleton-bar-row shimmer"></div>
+    <div class="skeleton-bar-row shimmer"></div>
+    <div class="skeleton-stats-box shimmer"></div>
+  </div>
+  }
+
+  @if (deliveryData(); as data) {
+  <!-- 2. Main Horizontal Bar Chart Area -->
+  <div class="chart-section">
+    <!-- Background Vertical Grid Lines -->
+    <div class="grid-lines-layer">
+      @for (tick of axisTicks(); track tick.value) {
+      <div class="grid-line" [style.left.%]="tick.pct"></div>
+      }
+    </div>
+
+    <!-- Chart Rows (Day, Week, 1 Month) -->
+    <div class="chart-rows-stack">
+      <!-- Row 1: Day -->
+      <div class="chart-row">
+        <div class="row-label">Day</div>
+        <div class="bar-track-area">
+          <!-- Background: Traded Volume (NSE+BSE) -->
+          <div class="bar-traded" [style.width.%]="getBarWidthPct(data.day.tradedVolume)">
+            <span class="bar-val-label outer-label">{{ data.day.formattedTradedVolume ||
+              formatVolume(data.day.tradedVolume) }}</span>
+          </div>
+          <!-- Foreground: Combined Delivery Volume -->
+          <div class="bar-delivery"
+            [style.width.%]="getBarWidthPct(data.day.deliveryVolume || (data.day.tradedVolume * (data.day.deliveryPercentage / 100)))">
+            <span class="bar-val-label delivery-label">{{ data.day.formattedDeliveryVolume ||
+              formatVolume(data.day.deliveryVolume) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Week -->
+      <div class="chart-row">
+        <div class="row-label">Week</div>
+        <div class="bar-track-area">
+          <!-- Background: Traded Volume -->
+          <div class="bar-traded" [style.width.%]="getBarWidthPct(data.week.tradedVolume)">
+            <span class="bar-val-label outer-label">{{ data.week.formattedTradedVolume ||
+              formatVolume(data.week.tradedVolume) }}</span>
+          </div>
+          <!-- Foreground: Delivery Volume -->
+          <div class="bar-delivery"
+            [style.width.%]="getBarWidthPct(data.week.deliveryVolume || (data.week.tradedVolume * (data.week.deliveryPercentage / 100)))">
+            <span class="bar-val-label delivery-label">{{ data.week.formattedDeliveryVolume ||
+              formatVolume(data.week.deliveryVolume) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: 1 Month -->
+      <div class="chart-row">
+        <div class="row-label">1 Month</div>
+        <div class="bar-track-area">
+          <!-- Background: Traded Volume -->
+          <div class="bar-traded" [style.width.%]="getBarWidthPct(data.month.tradedVolume)">
+            <span class="bar-val-label outer-label">{{ data.month.formattedTradedVolume ||
+              formatVolume(data.month.tradedVolume) }}</span>
+          </div>
+          <!-- Foreground: Delivery Volume -->
+          <div class="bar-delivery"
+            [style.width.%]="getBarWidthPct(data.month.deliveryVolume || (data.month.tradedVolume * (data.month.deliveryPercentage / 100)))">
+            <span class="bar-val-label delivery-label">{{ data.month.formattedDeliveryVolume ||
+              formatVolume(data.month.deliveryVolume) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- X-Axis Scale Ruler -->
+    <div class="x-axis-ruler">
+      @for (tick of axisTicks(); track tick.value) {
+      <div class="axis-tick-item" [style.left.%]="tick.pct">
+        <span class="tick-label">{{ tick.label }}</span>
+      </div>
+      }
+    </div>
+    <div class="axis-title-center">Values</div>
+
+    <!-- Chart Legend -->
+    <div class="chart-legend-row">
+      <div class="legend-item">
+        <span class="legend-dot dot-delivery"></span>
+        <span class="legend-text">Combined Delivery Volume</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot dot-traded"></span>
+        <span class="legend-text">NSE+BSE Traded Volume</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Bottom Delivery Volume % Stats Box -->
+  <div class="delivery-stats-card">
+    <div class="stats-card-title">DELIVERY VOLUME %</div>
+    <div class="stats-columns-grid">
+      <div class="stat-col">
+        <span class="stat-col-lbl">DAY</span>
+        <span class="stat-col-val">{{ data.day.deliveryPercentage ? (data.day.deliveryPercentage | number:'1.2-2') + '%'
+          : '—' }}</span>
+      </div>
+      <div class="stat-col">
+        <span class="stat-col-lbl">WEEK</span>
+        <span class="stat-col-val">{{ data.week.deliveryPercentage ? (data.week.deliveryPercentage | number:'1.2-2') +
+          '%' : '—' }}</span>
+      </div>
+      <div class="stat-col">
+        <span class="stat-col-lbl">1 MONTH</span>
+        <span class="stat-col-val">{{ data.month.deliveryPercentage ? (data.month.deliveryPercentage | number:'1.2-2') +
+          '%' : '—' }}</span>
+      </div>
+    </div>
+  </div>
+  }
+</div>

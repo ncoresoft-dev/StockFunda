@@ -8,5 +8,6 @@ namespace StockLens_BusinessLayer.Interfaces
     {
         Task<PriceHistoryResponseDto> GetPriceHistoryByStockIdAsync(int stockId, string period = "5yr", bool forceRefresh = false, string filter = "price", CancellationToken cancellationToken = default);
         Task<PriceHistoryResponseDto> GetPriceHistoryBySymbolAsync(string symbol, string? exchange = null, string period = "5yr", bool forceRefresh = false, string filter = "price", CancellationToken cancellationToken = default);
+        Task<VolumeDeliveryAnalysisDto> GetVolumeDeliveryAnalysisAsync(string symbol, string? exchange = null, CancellationToken cancellationToken = default);
     }
 }

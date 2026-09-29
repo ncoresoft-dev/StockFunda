@@ -1,0 +1,335 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.volume-delivery-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.85rem 1rem 0.85rem;
+  background: rgba(15, 21, 34, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   1. TOP TITLE BADGE
+   ========================================================================== */
+.volume-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.volume-title-badge {
+  display: inline-block;
+  padding: 0.28rem 0.65rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-transform: uppercase;
+}
+
+.mini-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(56, 189, 248, 0.2);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Skeleton Loading State */
+.volume-skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: 0.5rem 0;
+  flex: 1;
+}
+
+.skeleton-bar-row {
+  height: 24px;
+  width: 100%;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.skeleton-stats-box {
+  height: 65px;
+  width: 100%;
+  border-radius: 8px;
+  margin-top: auto;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.02) 75%);
+  background-size: 200% 100%;
+  animation: shimmerAnim 1.8s infinite linear;
+}
+
+@keyframes shimmerAnim {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   2. MAIN HORIZONTAL BAR CHART AREA
+   ========================================================================== */
+.chart-section {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 165px;
+  margin-bottom: 0.85rem;
+}
+
+/* Grid Lines Layer */
+.grid-lines-layer {
+  position: absolute;
+  top: 0;
+  left: 70px;
+  right: 25px;
+  bottom: 42px;
+  pointer-events: none;
+}
+
+.grid-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateX(-50%);
+}
+
+/* Chart Rows Stack */
+.chart-rows-stack {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-bottom: 0.4rem;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+
+.row-label {
+  width: 70px;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.bar-track-area {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  margin-right: 25px;
+}
+
+/* Background Bar: Traded Volume (NSE+BSE) */
+.bar-traded {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(56, 189, 248, 0.22);
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Foreground Bar: Combined Delivery Volume */
+.bar-delivery {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #0076fe;
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-shadow: 0 1px 6px rgba(0, 118, 254, 0.35);
+  z-index: 2;
+}
+
+/* Labels on the Bars */
+.bar-val-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Traded Volume Outer Label (White) */
+.outer-label {
+  position: absolute;
+  right: -6px;
+  transform: translateX(100%);
+  color: #f1f5f9;
+  padding-left: 6px;
+  background: transparent;
+}
+
+/* Delivery Volume Label (Bright Cyan - Seamless overlay without dark cut box) */
+.delivery-label {
+  position: absolute;
+  right: -4px;
+  transform: translateX(100%);
+  color: #38bdf8;
+  font-weight: 800;
+  font-size: 0.78rem;
+  background: transparent;
+  padding: 0 4px;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  z-index: 4;
+}
+
+/* X-Axis Scale Ruler */
+.x-axis-ruler {
+  position: relative;
+  height: 18px;
+  margin-left: 70px;
+  margin-right: 25px;
+  margin-top: 0.4rem;
+}
+
+.axis-tick-item {
+  position: absolute;
+  transform: translateX(-50%);
+  top: 0;
+}
+
+.tick-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.axis-title-center {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: -2px;
+  margin-bottom: 0.5rem;
+}
+
+/* Chart Legend */
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  padding-top: 0.2rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dot-delivery {
+  background: #0076fe;
+}
+
+.dot-traded {
+  background: rgba(56, 189, 248, 0.4);
+}
+
+.legend-text {
+  font-size: 0.74rem;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   3. BOTTOM DELIVERY VOLUME % STATS BOX
+   ========================================================================== */
+.delivery-stats-card {
+  margin-top: auto;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.stats-card-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #cbd5e1;
+  margin-bottom: 0.65rem;
+  text-transform: uppercase;
+}
+
+.stats-columns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+}
+
+.stat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.stat-col-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.stat-col-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}

@@ -119,6 +119,11 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
     if (changes['symbol'] && changes['symbol'].isFirstChange()) return;
 
     if (this.symbol && (changes['symbol'] || changes['exchange'])) {
+      this.priceHistory = null;
+      this.legendData = null;
+      this.loadingState = 'loading';
+      this.chartOptions = {};
+      this.cd.detectChanges();
       this.loadPriceHistory(false);
     } else if (changes['period'] && !changes['symbol'] && !changes['exchange']) {
       this.zoomToPeriod();
@@ -155,34 +160,37 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
 
   loadPriceHistory(refresh: boolean = false): void {
     this.loadingState = 'loading';
+    this.priceHistory = null;
+    this.legendData = null;
+    this.chartOptions = {};
     this.errorMessage = '';
+    this.cd.detectChanges();
 
     // ALWAYS fetch 5yr data regardless of current period. 
     // This ensures when user clicks '5Y' button later, we actually have the data to show, preventing huge gaps.
     this.priceService.getPriceHistory(this.symbol, this.exchange, '5y', refresh).subscribe({
       next: (data) => {
-        setTimeout(() => {
-          if (!data || !data.dates || data.dates.length === 0) {
-            this.loadingState = 'empty';
-            this.cd.detectChanges();
-          } else {
-            this.priceHistory = data;
+        if (!data || !data.dates || data.dates.length === 0) {
+          this.loadingState = 'empty';
+          this.cd.detectChanges();
+        } else {
+          this.priceHistory = data;
 
-            // Pre-calculate pattern states for the template to prevent NG0100
-            this.availablePatterns = {};
-            if (data.detectedPatterns) {
-              data.detectedPatterns.forEach((p: any) => {
-                this.availablePatterns[p.patternName] = true;
-              });
-            }
-            this.patternCountsObj = data.patternCounts || {};
-
-            this.loadingState = 'success';
-            this.renderChart(data);
-            // Auto-zoom to currently selected period after rendering
-            setTimeout(() => this.zoomToPeriod(), 100);
+          // Pre-calculate pattern states for the template to prevent NG0100
+          this.availablePatterns = {};
+          if (data.detectedPatterns) {
+            data.detectedPatterns.forEach((p: any) => {
+              this.availablePatterns[p.patternName] = true;
+            });
           }
-        }, 0);
+          this.patternCountsObj = data.patternCounts || {};
+
+          this.loadingState = 'success';
+          this.renderChart(data);
+          this.cd.detectChanges();
+          // Auto-zoom to currently selected period after rendering
+          setTimeout(() => this.zoomToPeriod(), 60);
+        }
       },
       error: (err) => {
         console.error('Error fetching candlestick price history:', err);
@@ -859,7 +867,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
         marginLeft: 48,
         marginTop: 65,
         marginBottom: 38,
-        height: 650, // Slightly reduced explicit height
+        height: 600,
         spacing: [4, 4, 8, 4],
         zooming: {
           mouseWheel: {

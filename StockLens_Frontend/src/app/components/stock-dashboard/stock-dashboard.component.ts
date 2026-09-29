@@ -15,9 +15,9 @@ import { StockCashflowResponse } from '../../models/stock-cashflow.model';
 import { StockQuarterlyResultsResponse } from '../../models/stock-quarterly-results.model';
 import { StockHealthScoreResponse } from '../../models/stock-evaluation.model';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
-import { StockPriceChartComponent } from '../stock-price-chart/stock-price-chart.component';
 import { StockCandlestickChartComponent } from '../stock-candlestick-chart/stock-candlestick-chart.component';
 import { StockTechnicalAnalysis } from '../stock-technical-analysis/stock-technical-analysis';
+import { StockVolumeDeliveryCardComponent } from '../stock-volume-delivery-card/stock-volume-delivery-card.component';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -29,9 +29,9 @@ export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' 
     CommonModule,
     FormsModule,
     TimeAgoPipe,
-    StockPriceChartComponent,
     StockCandlestickChartComponent,
-    StockTechnicalAnalysis
+    StockTechnicalAnalysis,
+    StockVolumeDeliveryCardComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -66,6 +66,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   selectedChartType = signal<'candlestick' | 'area'>('candlestick');
   newsTab = signal<NewsFilterTab>('all');
   activeDetailModal = signal<DetailModalType>(null);
+  isLoadingStock = signal<boolean>(false);
 
   private pricePollingSubscription?: Subscription;
 
@@ -149,7 +150,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
         this.cashflowService.getCashflowBySymbol(symbol, exchange, false).subscribe({
           next: (data) => {
-            debugger
             if (data && data.ratios && this.selectedSymbol() === symbol) {
               this.cashflowResponse.set(data);
             }
@@ -198,11 +198,14 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   selectStock(symbol: string, exchange: string = 'NSE'): void {
     const cleanSymbol = symbol.toUpperCase();
     const cleanExchange = exchange.toUpperCase();
+
+    this.isLoadingStock.set(true);
     this.selectedSymbol.set(cleanSymbol);
     this.selectedExchange.set(cleanExchange);
     this.searchQuery.set('');
     this.searchResults.set([]);
-    // Clear previous state before fetching new
+
+    // Clear previous responses to show skeletons immediately
     this.cashflowResponse.set(null);
     this.quartersResponse.set(null);
     this.assetsResponse.set(null);
@@ -210,17 +213,23 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.evaluationResponse.set(null);
     this.newsResponse.set(null);
 
+    this.shareholdingLoadingState.set('loading');
+    this.quartersLoadingState.set('loading');
+    this.cashflowLoadingState.set('loading');
+    this.assetsLoadingState.set('loading');
+    this.newsLoadingState.set('loading');
+
     this.fetchAllData(false);
     this.startLivePricePolling();
+
+    setTimeout(() => {
+      this.isLoadingStock.set(false);
+    }, 600);
   }
 
   toggleExchange(exchange: string): void {
     if (this.selectedExchange() !== exchange) {
-      this.selectedExchange.set(exchange);
-      this.searchQuery.set('');
-      this.searchResults.set([]);
-      this.fetchAllData(false);
-      this.startLivePricePolling();
+      this.selectStock(this.selectedSymbol(), exchange);
     }
   }
 
@@ -253,10 +262,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   onSearchSubmit(): void {
     const query = this.searchQuery().trim();
     if (query) {
-      this.selectedSymbol.set(query.toUpperCase());
-      this.searchResults.set([]);
-      this.fetchAllData(false);
-      this.startLivePricePolling();
+      this.selectStock(query, this.selectedExchange());
     }
   }
 
