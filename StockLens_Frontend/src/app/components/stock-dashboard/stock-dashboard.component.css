@@ -74,6 +74,7 @@
   0% {
     background-position: 100% 0;
   }
+
   100% {
     background-position: -100% 0;
   }
@@ -101,10 +102,13 @@
 }
 
 @keyframes pulseBadge {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.85;
     box-shadow: 0 0 4px rgba(56, 189, 248, 0.2);
   }
+
   50% {
     opacity: 1;
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
@@ -929,6 +933,16 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
+  position: relative;
+}
+
+/* Make the top bar inside the highlighted card match the aesthetic */
+.candlestick-card .card-top-bar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  margin: 12px 12px 0 12px;
+  padding: 8px 12px;
 }
 
 .news-card {
@@ -999,11 +1013,11 @@
 /* Chart Type Toggle */
 .chart-type-toggle {
   display: flex;
-  gap: 3px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 2px 3px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
   margin-left: 8px;
 }
 
@@ -1011,26 +1025,26 @@
   background: transparent;
   border: none;
   color: #94a3b8;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .type-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }
 
 .type-btn.active {
-  background: #38bdf8;
-  color: #080b11;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .news-top-actions {
@@ -1130,16 +1144,20 @@
 }
 
 .custom-checkbox {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.04);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   flex-shrink: 0;
+}
+
+.chart-checkbox-item:hover .custom-checkbox {
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .custom-checkbox svg {
@@ -1192,7 +1210,16 @@
   white-space: nowrap;
 }
 
-.chart-timeframe-pills,
+.chart-timeframe-pills {
+  display: flex;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  align-items: center;
+}
+
 .news-tab-pills {
   display: flex;
   align-items: center;
@@ -1200,26 +1227,26 @@
 }
 
 .tf-pill {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: none;
   color: #94a3b8;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.14rem 0.45rem;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s ease;
 }
 
 .tf-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: #f8fafc;
 }
 
 .tf-pill.active {
-  background: #38bdf8;
-  color: #080b11;
-  border-color: #38bdf8;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .chart-canvas-wrapper {

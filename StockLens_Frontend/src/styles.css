@@ -76,4 +76,25 @@ h6 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
-}@keyframes marker-blink { 0% { box-shadow: 0 0 4px var(--marker-color); transform: scale(1); } 50% { box-shadow: 0 0 16px var(--marker-color); transform: scale(1.15); } 100% { box-shadow: 0 0 4px var(--marker-color); transform: scale(1); } } .marker-blink { animation: marker-blink 1.5s infinite ease-in-out; }
+}
+
+@keyframes marker-blink {
+  0% {
+    box-shadow: 0 0 4px var(--marker-color);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 16px var(--marker-color);
+    transform: scale(1.15);
+  }
+
+  100% {
+    box-shadow: 0 0 4px var(--marker-color);
+    transform: scale(1);
+  }
+}
+
+.marker-blink {
+  animation: marker-blink 1.5s infinite ease-in-out;
+}

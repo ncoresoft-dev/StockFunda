@@ -107,6 +107,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   // Global Refresh State
   isSyncingAll = signal<boolean>(false);
+  technicalRefreshTrigger = signal<number>(0);
 
   // Typeahead search
   searchResults = signal<Company[]>([]);
@@ -273,6 +274,9 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   fetchAllData(isRefresh: boolean = false): void {
+    if (isRefresh) {
+      this.technicalRefreshTrigger.update(v => v + 1);
+    }
     this.fetchCashflow(isRefresh);
     this.fetchBalanceSheet(isRefresh);
     this.fetchShareholding(isRefresh);

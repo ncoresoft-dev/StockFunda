@@ -12,7 +12,6 @@ import { BalanceSheetResponseDto } from './stock-balancesheet.service';
 export interface BreakoutEvaluationDto {
   summaryText: string;
   overallSignal: string;
-  signalBadgeText: string;
   signalStrength: string;
   bullishCount: number;
   bearishCount: number;
@@ -20,10 +19,6 @@ export interface BreakoutEvaluationDto {
   avgVolume1Month: number;
   todayVolume: number;
   volumeRatio: number;
-  volumeStatusText: string;
-  volumeStatusColor: string;
-  volumeStatusClass: string;
-  volumeSummaryTitle: string;
   levels: {
     year1High?: number;
     year1Low?: number;
@@ -35,15 +30,9 @@ export interface BreakoutEvaluationDto {
   timeframes: {
     period: string;
     trend: string;
-    volText: string;
-    volTrend: string;
-    breakoutText: string;
-    breakoutTrend: string;
     high: number;
     low: number;
     progressPercent: number;
-    isBreakout: boolean;
-    statusText: string;
   }[];
   prioritySignals: {
     rank: number;

@@ -27,10 +27,12 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['symbol'] && !changes['symbol'].firstChange) {
-      this.fetchData();
+    if (changes['symbol'] && changes['symbol'].currentValue !== changes['symbol'].previousValue) {
+      if (changes['symbol'].currentValue) {
+        this.fetchData();
+      }
     }
-    if (changes['refreshTrigger'] && !changes['refreshTrigger'].firstChange) {
+    if (changes['refreshTrigger'] && changes['refreshTrigger'].currentValue !== changes['refreshTrigger'].previousValue) {
       this.fetchData(true);
     }
   }
@@ -45,7 +47,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
 
     this.evalService.getBreakoutAnalysis(this.symbol, this.exchange, refresh).subscribe({
       next: (data) => {
-        if (data) {
+        if (data && data.overallSignal && data.overallSignal !== '') {
           this.breakoutData = data;
         } else {
           this.error = true;

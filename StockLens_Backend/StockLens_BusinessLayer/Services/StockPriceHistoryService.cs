@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using StockLens_BusinessLayer.Constants;
@@ -19,6 +20,7 @@ namespace StockLens_BusinessLayer.Services
 {
     public class StockPriceHistoryService : IStockPriceHistoryService
     {
+        private static readonly ConcurrentDictionary<int, SemaphoreSlim> StockLocks = new();
         private readonly IStockPriceHistoryRepository _priceHistoryRepository;
         private readonly IStockRepository _stockRepository;
         private readonly ICompanyRepository _companyRepository;
@@ -122,6 +124,9 @@ namespace StockLens_BusinessLayer.Services
         {
             var result = new PriceHistoryResponseDto { Symbol = stock.Symbol };
 
+            var stockLock = StockLocks.GetOrAdd(stock.Id, _ => new SemaphoreSlim(1, 1));
+            await stockLock.WaitAsync(cancellationToken);
+
             try
             {
                 var dbRecords = await _priceHistoryRepository.GetByStockIdAsync(stock.Id, cancellationToken);
@@ -186,7 +191,7 @@ namespace StockLens_BusinessLayer.Services
                         _logger.LogInformation("Yahoo Finance returned no prices for {Symbol}. Attempting fallback to IndianAPI.", stock.Symbol);
                         try
                         {
-                            rawPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: "5yr", exchange: stock.Exchange, filter: filter, cancellationToken: cancellationToken);
+                            rawPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: period, exchange: stock.Exchange, filter: filter, cancellationToken: cancellationToken);
                             if (rawPrices != null && rawPrices.Count > 0)
                             {
                                 source = "IndianAPI";
@@ -273,6 +278,10 @@ namespace StockLens_BusinessLayer.Services
                 _logger.LogError(ex, "Error in ProcessPriceHistoryAsync for {Symbol}", stock.Symbol);
                 result.ErrorMessage = "An error occurred while processing price history data.";
                 return result;
+            }
+            finally
+            {
+                stockLock.Release();
             }
         }
 

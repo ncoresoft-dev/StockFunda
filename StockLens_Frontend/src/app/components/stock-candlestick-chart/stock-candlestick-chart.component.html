@@ -60,28 +60,29 @@
   <div class="chart-wrapper" style="position: relative;">
     @if (legendData) {
 
-    <!-- Top Right Legend -->
+    <!-- Top Right Legend (OHLCV) -->
     <div class="static-legend"
-      style="position: absolute; top: 12px; right: 60px; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; font-family: Inter, sans-serif;">
-      <div style="display: flex; gap: 8px; margin-bottom: 4px; align-items: center;">
-        <span style="color:#94a3b8; font-size: 11px;">Price</span>
-        <span style="color:#94a3b8; font-weight: 600;">O</span>
-        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.open | number:'1.2-2' }}</span>
+      style="position: absolute; top: 16px; right: 90px; z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-family: 'Inter', sans-serif;">
+      
+      <!-- Price Details -->
+      <div style="display: flex; gap: 10px; align-items: center; font-size: 12px;">
+        <span style="color:#ffffff; font-weight: 600; letter-spacing: 0.5px;">O</span>
+        <span [style.color]="legendData.isUp ? '#34d399' : '#f87171'" style="font-weight: 700; font-variant-numeric: tabular-nums;">₹{{ legendData.open | number:'1.2-2' }}</span>
 
-        <span style="color:#94a3b8; font-weight: 600;">H</span>
-        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.high | number:'1.2-2' }}</span>
+        <span style="color:#ffffff; font-weight: 600; letter-spacing: 0.5px;">H</span>
+        <span [style.color]="legendData.isUp ? '#34d399' : '#f87171'" style="font-weight: 700; font-variant-numeric: tabular-nums;">₹{{ legendData.high | number:'1.2-2' }}</span>
 
-        <span style="color:#94a3b8; font-weight: 600;">L</span>
-        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.low | number:'1.2-2' }}</span>
+        <span style="color:#ffffff; font-weight: 600; letter-spacing: 0.5px;">L</span>
+        <span [style.color]="legendData.isUp ? '#34d399' : '#f87171'" style="font-weight: 700; font-variant-numeric: tabular-nums;">₹{{ legendData.low | number:'1.2-2' }}</span>
 
-        <span style="color:#94a3b8; font-weight: 600;">C</span>
-        <span style="font-weight:600; color:#e2e8f0;">₹{{ legendData.close | number:'1.2-2' }}</span>
+        <span style="color:#ffffff; font-weight: 600; letter-spacing: 0.5px;">C</span>
+        <span [style.color]="legendData.isUp ? '#34d399' : '#f87171'" style="font-weight: 700; font-variant-numeric: tabular-nums;">₹{{ legendData.close | number:'1.2-2' }}</span>
       </div>
-      <div style="display: flex; gap: 6px; align-items: center;">
-        <span
-          style="color:#38bdf8; background: rgba(56,189,248,0.1); padding: 2px 4px; border-radius: 4px; font-size: 10px;">📊
-          Vol</span>
-        <span style="font-weight:600; color:#e2e8f0;">{{ legendData.volume | number }}</span>
+
+      <!-- Volume -->
+      <div style="display: flex; gap: 6px; align-items: center; font-size: 12px;">
+        <span style="color:#38bdf8; font-weight: 600; letter-spacing: 0.5px;">VOL</span>
+        <span style="font-weight:700; color:#e2e8f0; font-variant-numeric: tabular-nums;">{{ legendData.volume | number }}</span>
       </div>
     </div>
     }

@@ -1,5 +1,5 @@
 import { PatternNames } from '../../constants/pattern-constants';
-import { Component, Input, OnChanges, SimpleChanges, inject, Output, EventEmitter, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, inject, Output, EventEmitter, OnInit, ChangeDetectorRef, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HighchartsChartComponent } from 'highcharts-angular';
 import * as Highcharts from 'highcharts/highstock';
@@ -26,7 +26,7 @@ import { StockPriceHistoryService, PriceHistoryResponseDto } from '../../service
   templateUrl: './stock-candlestick-chart.component.html',
   styleUrls: ['./stock-candlestick-chart.component.css']
 })
-export class StockCandlestickChartComponent implements OnChanges, OnInit {
+export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterViewInit {
   @Input() symbol!: string;
   @Input() exchange: string = 'NSE';
   @Input() period: string = '1yr';
@@ -36,6 +36,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
 
   private priceService = inject(StockPriceHistoryService);
   private cd = inject(ChangeDetectorRef);
+  private el = inject(ElementRef);
 
   loadingState: 'loading' | 'success' | 'error' | 'empty' = 'loading';
   errorMessage = '';
@@ -112,6 +113,46 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
   ngOnInit(): void {
     if (this.symbol && !this.priceHistory && this.loadingState !== 'success') {
       this.loadPriceHistory(false);
+    }
+  }
+
+  ngAfterViewInit(): void {
+    // Intercept wheel events on the chart wrapper during the capture phase.
+    // If the mouse is hovering over the lower part of the chart (Volume / empty space), 
+    // stop propagation so Highcharts doesn't preventDefault() and the page scrolls normally.
+    const container = this.el.nativeElement.querySelector('.chart-wrapper');
+    if (container) {
+      container.addEventListener('wheel', (e: WheelEvent) => {
+        if (!this.chart) return;
+
+        const rect = container.getBoundingClientRect();
+        const xPos = e.clientX - rect.left;
+        const yPos = e.clientY - rect.top;
+
+        // Use precise dynamic boundaries from the active Highcharts instance
+        const plotLeft = this.chart.plotLeft;
+        const plotRight = plotLeft + this.chart.plotWidth;
+        const plotTop = this.chart.plotTop;
+        
+        // Get precise boundaries of the Candlestick Y-Axis (yAxis[0])
+        // This ensures zooming ONLY happens exactly over the candlestick graph area
+        // and perfectly ignores the volume area (yAxis[1]) and margins.
+        const candleAxis = this.chart.yAxis[0];
+        const axisTop = candleAxis.top;
+        const axisBottom = candleAxis.top + candleAxis.height;
+
+        const isOverCandles = (
+          xPos >= plotLeft &&
+          xPos <= plotRight &&
+          yPos >= axisTop &&
+          yPos <= axisBottom
+        );
+
+        if (!isOverCandles) {
+          // Hovering over empty sky, volume, axes, or margins -> scroll page!
+          e.stopImmediatePropagation();
+        }
+      }, { capture: true, passive: false });
     }
   }
 
@@ -860,13 +901,14 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
           duration: 400,
           easing: 'easeOutQuart'
         },
-        alignTicks: false,
         backgroundColor: 'transparent',
+        plotBackgroundColor: 'rgba(30, 41, 59, 0.4)', // Lighter gray-blue tint for the grid area
+        plotBorderWidth: 0,
         style: { fontFamily: 'Inter, sans-serif' },
-        marginRight: 60,
-        marginLeft: 48,
+        marginRight: 90,
+        marginLeft: 45,
         marginTop: 65,
-        marginBottom: 38,
+        marginBottom: 28,
         height: 600,
         spacing: [4, 4, 8, 4],
         zooming: {
@@ -901,11 +943,15 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
       },
       xAxis: {
         type: 'datetime',
-        gridLineColor: 'rgba(255, 255, 255, 0.05)',
+        minPadding: 0.02,
+        maxPadding: 0,
+        gridLineWidth: 1,
+        gridLineDashStyle: 'Solid',
+        gridLineColor: 'rgba(255, 255, 255, 0.06)',
         crosshair: {
           color: '#38bdf8',
-          dashStyle: 'ShortDot',
-          width: 2,
+          dashStyle: 'Dash',
+          width: 1,
           zIndex: 5,
           label: {
             enabled: true,
@@ -917,7 +963,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
           }
         },
         labels: {
-          style: { color: 'rgba(255, 255, 255, 0.9)', fontSize: '11px', fontWeight: '600' },
+          style: { color: '#ffffff', fontSize: '11px', fontWeight: '600' },
           formatter: function (this: any): string {
             const date = new Date(this.value);
             const tickPositions = this.axis.tickPositions;
@@ -949,8 +995,9 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
           y: 20
         },
         tickInterval: tickInterval,
-        lineColor: 'rgba(255, 255, 255, 0.15)',
-        tickColor: 'rgba(255, 255, 255, 0.15)',
+        lineWidth: 0,
+        lineColor: 'rgba(255, 255, 255, 0.06)',
+        tickColor: 'rgba(255, 255, 255, 0.06)',
         events: {
           setExtremes: (e: any) => {
             // TradingView-style Sticky Right Axis for Mouse Wheel Zoom
@@ -979,12 +1026,16 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
           // Primary yAxis for Candlestick Price (Right Side)
           opposite: true,
           height: '100%', // Full height
-          title: { text: '' },
+          title: {
+            text: 'Price (₹)',
+            style: { color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }
+          },
           minPadding: 0.3, // Adds empty space BELOW the lowest candle to avoid volume overlap
+          maxPadding: 0.15, // Adds empty space ABOVE the highest candle for headroom
           crosshair: {
             color: '#38bdf8',
-            dashStyle: 'ShortDot',
-            width: 2,
+            dashStyle: 'Dash',
+            width: 1,
             label: {
               enabled: true,
               format: '₹{value:.2f}',
@@ -992,9 +1043,13 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
               style: { color: '#0f141c', fontSize: '11px', fontWeight: 'bold' }
             }
           },
-          gridLineColor: 'rgba(255, 255, 255, 0.05)',
+          gridLineWidth: 1,
+          gridLineDashStyle: 'Solid',
+          gridLineColor: 'rgba(255, 255, 255, 0.06)',
+          lineWidth: 0,
+          lineColor: 'rgba(255, 255, 255, 0.06)',
           labels: {
-            style: { color: 'rgba(255, 255, 255, 0.75)', fontSize: '11px', fontWeight: '500' },
+            style: { color: '#ffffff', fontSize: '11px', fontWeight: '500' },
             formatter: function (this: any) {
               return '₹' + Highcharts.numberFormat(this.value, 0, '', ',');
             }
@@ -1006,11 +1061,15 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit {
           opposite: false,
           height: '100%', // Full height
           offset: 0,
-          title: { text: '' },
+          title: {
+            text: undefined
+          },
           maxPadding: 3, // Forces the volume bars to stay in the lower 25% of the chart
           gridLineWidth: 0,
           labels: {
-            style: { color: 'rgba(255, 255, 255, 0.45)', fontSize: '10px', fontWeight: '500' },
+            align: 'right',
+            x: -5,
+            style: { color: '#ffffff', fontSize: '10px', fontWeight: '500' },
             formatter: function (this: any) {
               const val = this.value as number;
               if (val >= 10000000) return (val / 10000000).toFixed(0) + 'Cr';

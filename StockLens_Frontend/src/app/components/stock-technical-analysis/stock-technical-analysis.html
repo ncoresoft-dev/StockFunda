@@ -25,7 +25,7 @@
       <!-- LEFT COLUMN -->
       <div class="left-col">
         <!-- Breakout Signals Panel -->
-        <div class="panel breakout-panel">
+        <div class="panel breakout-panel" *ngIf="breakoutData.overallSignal && breakoutData.overallSignal !== 'Neutral'">
           <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div class="header-left">
               <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
@@ -37,23 +37,15 @@
                 <p>Check if the stock has broken key resistance levels</p>
               </div>
             </div>
-
-            <div class="signal-badge-container"
-              *ngIf="breakoutData.overallSignal && breakoutData.overallSignal !== 'Neutral'">
-              <div class="signal-badge"
-                [ngClass]="{'bullish-badge': breakoutData.overallSignal === 'Bullish', 'bearish-badge': breakoutData.overallSignal === 'Bearish'}">
-                <span class="signal-dot"></span>
-                {{ breakoutData.signalStrength }} {{ breakoutData.overallSignal }}
-              </div>
-            </div>
           </div>
 
           <div class="breakout-cards">
-            <div class="b-card" *ngFor="let tf of breakoutData.timeframes; let i = index">
-              <div class="b-card-header">
+            <ng-container *ngFor="let tf of breakoutData.timeframes; let i = index">
+              <div class="b-card" *ngIf="tf.trend !== 'NEUTRAL'">
+                <div class="b-card-header">
                 <div class="b-title">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"
-                    [attr.stroke]="tf.isBreakout ? '#10b981' : '#ef4444'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
+                    [attr.stroke]="tf.trend === 'BULLISH' ? '#10b981' : (tf.trend === 'BEARISH' ? '#ef4444' : '#94a3b8')">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -63,124 +55,82 @@
                     <h4>{{ tf.period }}</h4>
                   </div>
                 </div>
-                <div class="badge-no-breakout"
-                  [ngStyle]="{'background': tf.isBreakout ? '#064e3b' : '#7f1d1d', 'color': tf.isBreakout ? '#34d399' : '#fca5a5'}">
-                  <svg *ngIf="!tf.isBreakout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="15" y1="9" x2="9" y2="15" />
-                    <line x1="9" y1="9" x2="15" y2="15" />
+                <div class="badge-no-breakout" [ngStyle]="{
+                    'background': tf.trend === 'BULLISH' ? 'rgba(16, 185, 129, 0.15)' : (tf.trend === 'BEARISH' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.15)'),
+                    'color': tf.trend === 'BULLISH' ? '#10b981' : (tf.trend === 'BEARISH' ? '#ef4444' : '#94a3b8')
+                  }">
+                  <!-- NEUTRAL ICON -->
+                  <svg *ngIf="tf.trend === 'NEUTRAL'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
                   </svg>
-                  <svg *ngIf="tf.isBreakout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 19V5M5 12l7-7 7 7" />
+                  <!-- BULLISH ICON -->
+                  <svg *ngIf="tf.trend === 'BULLISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
                   </svg>
-                  {{ tf.isBreakout ? 'Breakout' : 'No Breakout' }}
+                  <!-- BEARISH ICON -->
+                  <svg *ngIf="tf.trend === 'BEARISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <polyline points="19 12 12 19 5 12"></polyline>
+                  </svg>
+                  {{ tf.trend === 'BULLISH' ? 'Breakout' : (tf.trend === 'BEARISH' ? 'Breakdown' : 'No Breakout') }}
                 </div>
               </div>
 
               <div class="b-card-body">
                 <div class="b-row">
                   <span class="label">Current Price</span>
-                  <span class="val">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
+                  <div class="val-group">
+                    <span class="val">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
+                  </div>
                 </div>
-                <div class="b-row">
-                  <span class="label">Previous High</span>
-                  <span class="val" *ngIf="tf.high">₹{{ tf.high | number:'1.2-2' }}</span>
-                  <span class="val" *ngIf="!tf.high">--</span>
+                <ng-container *ngIf="tf.trend === 'BEARISH'; else showHigh">
+                  <div class="b-row">
+                    <span class="label">Support (Low)</span>
+                    <span class="val" *ngIf="tf.low">₹{{ tf.low | number:'1.2-2' }}</span>
+                    <span class="val" *ngIf="!tf.low">--</span>
+                  </div>
+                </ng-container>
+                <ng-template #showHigh>
+                  <div class="b-row">
+                    <span class="label">Resistance (High)</span>
+                    <span class="val" *ngIf="tf.high">₹{{ tf.high | number:'1.2-2' }}</span>
+                    <span class="val" *ngIf="!tf.high">--</span>
+                  </div>
+                </ng-template>
+
+                <div class="progress-wrapper">
+                  <div class="progress-labels">
+                    <span>Breakout Readiness</span>
+                    <span [ngClass]="tf.trend === 'BEARISH' ? 'text-red' : (tf.trend === 'BULLISH' ? 'text-green' : 'text-blue')">{{ tf.progressPercent | number:'1.0-0' }}%</span>
+                  </div>
+                  <div class="progress-bg">
+                    <div class="progress-fill" [style.width]="tf.progressPercent + '%'" [ngClass]="tf.trend === 'BEARISH' ? 'fill-red' : (tf.trend === 'BULLISH' ? 'fill-green' : 'fill-blue')"></div>
+                  </div>
+                  <div class="progress-ends" style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <span>Low</span>
+                    <span style="font-weight: 700;" [ngStyle]="{'color': tf.trend === 'BEARISH' ? '#ef4444' : (tf.trend === 'BULLISH' ? '#10b981' : '#3b82f6')}">
+                      {{ tf.progressPercent === 0 ? 'AT LOW' : (tf.progressPercent === 100 ? 'AT HIGH' : 'IN RANGE') }}
+                    </span>
+                    <span>High</span>
+                  </div>
                 </div>
-                <div class="b-row status-row">
-                  <span class="label">Status</span>
-                  <span class="val" [ngClass]="tf.isBreakout ? 'text-green' : 'text-red'">{{ tf.statusText }}</span>
-                </div>
+
               </div>
             </div>
+            </ng-container>
           </div>
         </div>
 
 
       </div>
 
-      <!-- RIGHT COLUMN -->
-      <div class="right-col">
-        <!-- Volume Signal Panel -->
-        <div class="panel volume-panel">
-          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="header-left">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-                <path d="M18 20V10M12 20V4M6 20v-6" />
-              </svg>
-              <div>
-                <h3>Volume Signal</h3>
-                <p>Compare current volume with 1 month average</p>
-              </div>
-            </div>
-            
-            <div class="signal-badge-container" *ngIf="breakoutData.volumeStatusText && breakoutData.volumeRatio > 1">
-               <div class="signal-badge" [ngClass]="'vol-' + breakoutData.volumeStatusClass">
-                  <span class="signal-dot"></span>
-                  {{ breakoutData.volumeStatusText }}
-               </div>
-            </div>
-          </div>
 
-          <div class="volume-content">
-            <div class="volume-left">
-              <div class="volume-gauge">
-                <div class="gauge-svg-container"
-                  style="position: relative; width: 100%; display: flex; justify-content: center;">
-                  <svg viewBox="0 0 100 55" class="gauge-svg" style="width: 100%; max-width: 250px; overflow: visible;">
-                    <defs>
-                      <linearGradient id="needleGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stop-color="#f59e0b" />
-                        <stop offset="100%" stop-color="#10b981" />
-                      </linearGradient>
-                      <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#10b981" flood-opacity="0.2" />
-                      </filter>
-                    </defs>
-                    <!-- Full Gradient Arc -->
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#needleGaugeGradient)"
-                      stroke-width="12" stroke-linecap="round" filter="url(#gaugeShadow)" />
-                    <!-- Needle -->
-                    <g [style.transform]="'rotate(' + (breakoutData.volumeRatio >= 5 ? 180 : (breakoutData.volumeRatio / 5) * 180) + 'deg)'"
-                      style="transform-origin: 50px 50px; transition: transform 1s ease-out;">
-                      <line x1="50" y1="50" x2="18" y2="50" stroke="#ffffff" stroke-width="2.5"
-                        stroke-linecap="round" />
-                    </g>
-                    <!-- Center Dot -->
-                    <circle cx="50" cy="50" r="4" fill="#ffffff" />
-                  </svg>
-                </div>
-                <div class="gauge-text">
-                  <h3>{{ breakoutData.volumeRatio | number:'1.2-2' }}x</h3>
-                  <p>Volume Ratio</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="volume-right">
-              <div class="volume-stats">
-                <div class="stat-card">
-
-                  <div>
-                    <h5>1M Avg Volume</h5>
-                    <h3>{{ breakoutData.avgVolume1Month / 1000000 | number:'1.2-2' }}M</h3>
-                  </div>
-                </div>
-
-                <div class="stat-card highlight">
-
-                  <div>
-                    <h5>Current Volume</h5>
-                    <h3>{{ breakoutData.todayVolume / 1000000 | number:'1.2-2' }}M</h3>
-                  </div>
-                </div>
-              </div>
-
-
-            </div>
-          </div>
-        </div>
-      </div>
 
     </div>
   </ng-container>
