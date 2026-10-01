@@ -1,137 +1,153 @@
 <div class="technical-dashboard">
-
-  <!-- Loading State -->
-  <div class="loader" *ngIf="loading">Analyzing technical signals...</div>
-
-  <!-- Error State -->
-  <div class="state-card error-state" *ngIf="!loading && error">
-    <div class="state-icon-wrapper error-icon-bg">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+  <!-- Card Top Header (Matches Cockpit aesthetic) -->
+  <div class="card-top-bar">
+    <div class="card-title-group">
+      <svg class="card-icon text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+        <polyline points="16 7 22 7 22 13"></polyline>
       </svg>
+      <span class="card-title">Breakout Signals</span>
     </div>
-    <h3 class="state-title">Unable to Load Technical Analysis</h3>
-    <p class="state-description">Failed to fetch technical & breakout data for {{symbol}}.</p>
-    <button type="button" class="action-btn" (click)="fetchData(true)">
-      Retry Sync
-    </button>
+
+    <div class="breakout-top-actions" *ngIf="breakoutData && !loading">
+      <span class="breakout-overall-pill" [ngClass]="{
+        'bullish': breakoutData.overallSignal === 'Bullish',
+        'bearish': breakoutData.overallSignal === 'Bearish',
+        'neutral': breakoutData.overallSignal === 'Neutral' || !breakoutData.overallSignal
+      }">
+        <span class="pill-dot"></span>
+        {{ (breakoutData.overallSignal || 'Neutral') | uppercase }}
+      </span>
+    </div>
+
+    <div class="mini-spinner" *ngIf="loading"></div>
   </div>
 
-  <ng-container *ngIf="!loading && !error && breakoutData">
-    <div class="main-grid">
+  <div class="card-inner-body">
+    <!-- Loading Skeleton State -->
+    <div class="breakout-skeleton-grid" *ngIf="loading && !breakoutData">
+      <div class="skeleton-col shimmer"></div>
+      <div class="skeleton-col shimmer"></div>
+      <div class="skeleton-col shimmer"></div>
+    </div>
 
-      <!-- LEFT COLUMN -->
-      <div class="left-col">
-        <!-- Breakout Signals Panel -->
-        <div class="panel breakout-panel" *ngIf="breakoutData.overallSignal && breakoutData.overallSignal !== 'Neutral'">
-          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="header-left">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                <polyline points="16 7 22 7 22 13" />
+    <!-- Error State -->
+    <div class="state-card error-state" *ngIf="!loading && error">
+      <div class="state-icon-wrapper error-icon-bg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="state-text-wrap">
+        <h4 class="state-title">Unable to Load Breakouts</h4>
+        <p class="state-description">Failed to fetch technical signals for {{symbol}}.</p>
+      </div>
+      <button type="button" class="mini-retry-btn" (click)="fetchData(true)">
+        Retry
+      </button>
+    </div>
+
+    <!-- Active Breakout Cards (ONLY shown if breakout/breakdown has occurred) -->
+    <div class="breakout-columns-grid" *ngIf="!loading && !error && breakoutData && getActiveBreakouts().length > 0">
+      <ng-container *ngFor="let tf of getActiveBreakouts(); let i = index">
+        <div class="period-card-col" [ngClass]="'col-' + i">
+          <div class="period-col-header">
+            <span class="period-col-title">{{ tf.period }}</span>
+            <div class="badge-breakout-trend" [ngClass]="{
+              'trend-bullish': tf.trend === 'BULLISH',
+              'trend-bearish': tf.trend === 'BEARISH'
+            }">
+              <!-- BULLISH ICON -->
+              <svg *ngIf="tf.trend === 'BULLISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
               </svg>
-              <div>
-                <h3>Breakout Signals</h3>
-                <p>Check if the stock has broken key resistance levels</p>
-              </div>
+              <!-- BEARISH ICON -->
+              <svg *ngIf="tf.trend === 'BEARISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+              <span>{{ tf.trend === 'BULLISH' ? 'Breakout' : 'Breakdown' }}</span>
             </div>
           </div>
 
-          <div class="breakout-cards">
-            <ng-container *ngFor="let tf of breakoutData.timeframes; let i = index">
-              <div class="b-card" *ngIf="tf.trend !== 'NEUTRAL'">
-                <div class="b-card-header">
-                <div class="b-title">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2"
-                    [attr.stroke]="tf.trend === 'BULLISH' ? '#10b981' : (tf.trend === 'BEARISH' ? '#ef4444' : '#94a3b8')">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <div>
-                    <h4>{{ tf.period }}</h4>
-                  </div>
-                </div>
-                <div class="badge-no-breakout" [ngStyle]="{
-                    'background': tf.trend === 'BULLISH' ? 'rgba(16, 185, 129, 0.15)' : (tf.trend === 'BEARISH' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.15)'),
-                    'color': tf.trend === 'BULLISH' ? '#10b981' : (tf.trend === 'BEARISH' ? '#ef4444' : '#94a3b8')
-                  }">
-                  <!-- NEUTRAL ICON -->
-                  <svg *ngIf="tf.trend === 'NEUTRAL'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                  </svg>
-                  <!-- BULLISH ICON -->
-                  <svg *ngIf="tf.trend === 'BULLISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="19" x2="12" y2="5"></line>
-                    <polyline points="5 12 12 5 19 12"></polyline>
-                  </svg>
-                  <!-- BEARISH ICON -->
-                  <svg *ngIf="tf.trend === 'BEARISH'" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <polyline points="19 12 12 19 5 12"></polyline>
-                  </svg>
-                  {{ tf.trend === 'BULLISH' ? 'Breakout' : (tf.trend === 'BEARISH' ? 'Breakdown' : 'No Breakout') }}
-                </div>
+          <div class="period-card-body">
+            <!-- Price and Support / Resistance Rows -->
+            <div class="b-price-rows">
+              <div class="b-data-row">
+                <span class="b-row-label">Current Price</span>
+                <span class="b-row-val">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
               </div>
-
-              <div class="b-card-body">
-                <div class="b-row">
-                  <span class="label">Current Price</span>
-                  <div class="val-group">
-                    <span class="val">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
-                  </div>
-                </div>
-                <ng-container *ngIf="tf.trend === 'BEARISH'; else showHigh">
-                  <div class="b-row">
-                    <span class="label">Support (Low)</span>
-                    <span class="val" *ngIf="tf.low">₹{{ tf.low | number:'1.2-2' }}</span>
-                    <span class="val" *ngIf="!tf.low">--</span>
-                  </div>
-                </ng-container>
-                <ng-template #showHigh>
-                  <div class="b-row">
-                    <span class="label">Resistance (High)</span>
-                    <span class="val" *ngIf="tf.high">₹{{ tf.high | number:'1.2-2' }}</span>
-                    <span class="val" *ngIf="!tf.high">--</span>
-                  </div>
-                </ng-template>
-
-                <div class="progress-wrapper">
-                  <div class="progress-labels">
-                    <span>Breakout Readiness</span>
-                    <span [ngClass]="tf.trend === 'BEARISH' ? 'text-red' : (tf.trend === 'BULLISH' ? 'text-green' : 'text-blue')">{{ tf.progressPercent | number:'1.0-0' }}%</span>
-                  </div>
-                  <div class="progress-bg">
-                    <div class="progress-fill" [style.width]="tf.progressPercent + '%'" [ngClass]="tf.trend === 'BEARISH' ? 'fill-red' : (tf.trend === 'BULLISH' ? 'fill-green' : 'fill-blue')"></div>
-                  </div>
-                  <div class="progress-ends" style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <span>Low</span>
-                    <span style="font-weight: 700;" [ngStyle]="{'color': tf.trend === 'BEARISH' ? '#ef4444' : (tf.trend === 'BULLISH' ? '#10b981' : '#3b82f6')}">
-                      {{ tf.progressPercent === 0 ? 'AT LOW' : (tf.progressPercent === 100 ? 'AT HIGH' : 'IN RANGE') }}
-                    </span>
-                    <span>High</span>
-                  </div>
-                </div>
-
+              <div class="b-data-row" *ngIf="tf.trend === 'BEARISH'">
+                <span class="b-row-label">Support (Low)</span>
+                <span class="b-row-val val-danger">{{ tf.low ? ('₹' + (tf.low | number:'1.2-2')) : '—' }}</span>
+              </div>
+              <div class="b-data-row" *ngIf="tf.trend === 'BULLISH'">
+                <span class="b-row-label">Resistance (High)</span>
+                <span class="b-row-val val-target">{{ tf.high ? ('₹' + (tf.high | number:'1.2-2')) : '—' }}</span>
               </div>
             </div>
-            </ng-container>
+
+            <!-- Readiness Bar -->
+            <div class="progress-wrapper">
+              <div class="progress-labels">
+                <span class="prog-lbl">Breakout Readiness</span>
+                <span class="prog-val" [ngClass]="{
+                  'text-green': tf.trend === 'BULLISH',
+                  'text-red': tf.trend === 'BEARISH'
+                }">{{ tf.progressPercent | number:'1.0-0' }}%</span>
+              </div>
+              <div class="progress-bg">
+                <div class="progress-fill" [style.width]="tf.progressPercent + '%'" [ngClass]="{
+                  'fill-green': tf.trend === 'BULLISH',
+                  'fill-red': tf.trend === 'BEARISH'
+                }"></div>
+              </div>
+              <div class="progress-ends">
+                <span>Low</span>
+                <span class="range-status" [ngClass]="{
+                  'text-green': tf.trend === 'BULLISH',
+                  'text-red': tf.trend === 'BEARISH'
+                }">
+                  {{ tf.progressPercent === 0 ? 'AT LOW' : (tf.progressPercent >= 100 ? 'AT HIGH' : 'IN RANGE') }}
+                </span>
+                <span>High</span>
+              </div>
+            </div>
           </div>
         </div>
-
-
-      </div>
-
-
-
+      </ng-container>
     </div>
-  </ng-container>
+
+    <!-- When No Active Breakout (Consolidating / Rangebound) -->
+    <div class="no-breakout-state" *ngIf="!loading && !error && breakoutData && getActiveBreakouts().length === 0">
+      <div class="no-bo-content">
+        <div class="no-bo-icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="no-bo-details">
+          <h4 class="no-bo-title">No Active Breakout (In Range)</h4>
+          <p class="no-bo-desc">{{ breakoutData.summaryText || (symbol + ' is currently consolidating between support and resistance levels without any active 1Y, 2Y, or 3Y breakout.') }}</p>
+        </div>
+      </div>
+      <div class="no-bo-range-row" *ngIf="breakoutData.levels.year1High && breakoutData.levels.year1Low">
+        <div class="range-item">
+          <span class="r-lbl">52W Low</span>
+          <span class="r-val text-red">₹{{ breakoutData.levels.year1Low | number:'1.2-2' }}</span>
+        </div>
+        <div class="range-curr-item">
+          <span class="r-lbl">Current Price</span>
+          <span class="r-val text-blue">₹{{ breakoutData.currentPrice | number:'1.2-2' }}</span>
+        </div>
+        <div class="range-item">
+          <span class="r-lbl">52W High</span>
+          <span class="r-val text-green">₹{{ breakoutData.levels.year1High | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

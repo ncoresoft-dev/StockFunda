@@ -1,6 +1,6 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BreakoutEvaluationDto, StockEvaluationService } from '../../services/stock-evaluation.service';
+import { BreakoutEvaluationDto, BreakoutTimeframeDto, StockEvaluationService } from '../../services/stock-evaluation.service';
 
 @Component({
   selector: 'app-stock-technical-analysis',
@@ -13,6 +13,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
   @Input() symbol!: string;
   @Input() exchange: string = 'NSE';
   @Input() refreshTrigger: number = 0;
+  @Output() breakoutStateChange = new EventEmitter<boolean>();
 
   private evalService = inject(StockEvaluationService);
   private cd = inject(ChangeDetectorRef);
@@ -39,7 +40,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
 
   fetchData(refresh = false) {
     if (!this.symbol) return;
-    
+
     this.loading = true;
     this.error = false;
     this.breakoutData = null;
@@ -47,7 +48,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
 
     this.evalService.getBreakoutAnalysis(this.symbol, this.exchange, refresh).subscribe({
       next: (data) => {
-        if (data && data.overallSignal && data.overallSignal !== '') {
+        if (data && (data.timeframes?.length > 0 || data.overallSignal)) {
           this.breakoutData = data;
         } else {
           this.error = true;
@@ -61,5 +62,13 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
         this.cd.detectChanges();
       }
     });
+  }
+
+  /**
+   * Only returns timeframes where an actual breakout or breakdown has occurred.
+   */
+  getActiveBreakouts(): BreakoutTimeframeDto[] {
+    if (!this.breakoutData?.timeframes) return [];
+    return this.breakoutData.timeframes.filter(tf => tf.trend === 'BULLISH' || tf.trend === 'BEARISH');
   }
 }

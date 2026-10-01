@@ -2316,17 +2316,33 @@
   height: auto;
 }
 
-/* Row 3: Volume & Delivery Analysis Full Row */
-.volume-delivery-row {
+/* Row 3: Volume & Breakout Analysis (1-Column by default, 2-Columns when breakout exists) */
+.volume-breakout-row {
   flex: 0 0 auto;
+  min-height: fit-content;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: stretch;
   width: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
-.volume-delivery-row app-stock-volume-delivery-card {
+.volume-breakout-row.has-breakout {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.volume-breakout-row app-stock-volume-delivery-card,
+.volume-breakout-row app-stock-technical-analysis {
   width: 100%;
   height: 100%;
+  min-height: 0;
+}
+
+@media (max-width: 992px) {
+  .volume-breakout-row.has-breakout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 /* Row 4: 2-Column Fundamental Grid (Cash Flow & Borrowings, Balance Sheet & Valuation) */
@@ -2348,11 +2364,6 @@
     grid-template-columns: 1fr;
     gap: 10px;
   }
-}
-
-.technical-full-row {
-  min-height: fit-content;
-  width: 100%;
 }
 
 /* Common Cockpit Card Styling */

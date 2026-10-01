@@ -74,6 +74,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   isLoadingStock = signal<boolean>(false);
   deliveryAnalysisData = signal<any>(null);
   isAboutExpanded = signal<boolean>(false);
+  hasActiveBreakouts = signal<boolean>(false);
 
   // Filter dropdown signals
   selectedOwnershipPeriod = signal<string>('Jun 2026');
@@ -246,6 +247,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.deliveryAnalysisData.set(null);
     this.companyOverview.set(null);
     this.isLogoFailed.set(false);
+    this.hasActiveBreakouts.set(false);
 
     this.shareholdingLoadingState.set('loading');
     this.quartersLoadingState.set('loading');
@@ -897,6 +899,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   setChartType(type: 'candlestick' | 'area'): void {
     this.selectedChartType.set(type);
+  }
+
+  onBreakoutStateChange(hasBreakout: boolean): void {
+    this.hasActiveBreakouts.set(hasBreakout);
   }
 
   openExternalUrl(url?: string): void {

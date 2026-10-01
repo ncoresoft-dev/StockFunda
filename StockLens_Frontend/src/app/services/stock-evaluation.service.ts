@@ -9,6 +9,14 @@ import { StockQuarterlyResultsResponse } from '../models/stock-quarterly-results
 import { StockShareholdingResponse } from '../models/stock-shareholding.model';
 import { BalanceSheetResponseDto } from './stock-balancesheet.service';
 
+export interface BreakoutTimeframeDto {
+  period: string;
+  trend: string;
+  high: number;
+  low: number;
+  progressPercent: number;
+}
+
 export interface BreakoutEvaluationDto {
   summaryText: string;
   overallSignal: string;
@@ -27,13 +35,7 @@ export interface BreakoutEvaluationDto {
     year3High?: number;
     year3Low?: number;
   };
-  timeframes: {
-    period: string;
-    trend: string;
-    high: number;
-    low: number;
-    progressPercent: number;
-  }[];
+  timeframes: BreakoutTimeframeDto[];
   prioritySignals: {
     rank: number;
     level: string;
