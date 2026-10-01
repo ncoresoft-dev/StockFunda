@@ -80,6 +80,15 @@ builder.Services.Configure<BharatStockSettings>(builder.Configuration.GetSection
 builder.Services.AddScoped<IShareholdingProvider, MockShareholdingProvider>();
 builder.Services.AddScoped<IFinancialProvider, MockFinancialProvider>();
 
+builder.Services.AddHttpClient<IDealsProvider, BharatStockDealsProvider>((serviceProvider, client) =>
+{
+    var config = builder.Configuration.GetSection(BharatStockSettings.SectionName).Get<BharatStockSettings>() ?? new BharatStockSettings();
+    var baseUrl = !string.IsNullOrWhiteSpace(config.BaseUrl) ? config.BaseUrl.TrimEnd('/') + "/" : "https://bharatstockapi.com/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds > 0 ? config.TimeoutSeconds : 15);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 // Register Yahoo Finance HTTP Client
 builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.YahooFinanceApi.IYahooFinanceClient, StockLens_Infrastructure.ExternalServices.YahooFinanceApi.YahooFinanceClient>(client =>
 {
@@ -100,6 +109,7 @@ builder.Services.AddScoped<IStockShareholdingRepository, StockShareholdingReposi
 builder.Services.AddScoped<IStockFinancialRepository, StockFinancialRepository>();
 builder.Services.AddScoped<IStockBalanceSheetRepository, StockBalanceSheetRepository>();
 builder.Services.AddScoped<IStockPriceHistoryRepository, StockPriceHistoryRepository>();
+builder.Services.AddScoped<IStockDealsRepository, StockDealsRepository>();
 
 // Register Seeders
 builder.Services.AddTransient<CompanyMasterSeeder>();
@@ -114,6 +124,7 @@ builder.Services.AddScoped<IStockBalanceSheetService, StockBalanceSheetService>(
 builder.Services.AddScoped<IStockPriceHistoryService, StockPriceHistoryService>();
 builder.Services.AddScoped<IStockQuarterlyResultsService, StockQuarterlyResultsService>();
 builder.Services.AddScoped<IStockEvaluationService, StockEvaluationService>();
+builder.Services.AddScoped<IStockDealsService, StockDealsService>();
 
 
 // Register AutoMapper

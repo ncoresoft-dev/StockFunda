@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockLens_Infrastructure.DataContext;
 
@@ -11,9 +12,11 @@ using StockLens_Infrastructure.DataContext;
 namespace StockLens_Infrastructure.Migrations
 {
     [DbContext(typeof(StockLensDataContext))]
-    partial class StockLensDataContextModelSnapshot : ModelSnapshot
+    [Migration("20261001092440_AddStockDeals")]
+    partial class AddStockDeals
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

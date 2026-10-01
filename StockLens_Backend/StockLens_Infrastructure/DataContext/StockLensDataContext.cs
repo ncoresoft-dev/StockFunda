@@ -18,6 +18,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<StockFinancial> StockFinancials => Set<StockFinancial>();
         public DbSet<StockBalanceSheet> StockBalanceSheets => Set<StockBalanceSheet>();
         public DbSet<StockPriceHistory> StockPriceHistories => Set<StockPriceHistory>();
+        public DbSet<StockDeal> StockDeals => Set<StockDeal>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -448,6 +449,31 @@ namespace StockLens_Infrastructure.DataContext
                 entity.HasIndex(p => new { p.StockId, p.Date })
                     .IsUnique()
                     .HasDatabaseName("IX_StockPriceHistories_StockId_Date");
+            });
+
+            // StockDeals configuration
+            modelBuilder.Entity<StockDeal>(entity =>
+            {
+                entity.ToTable("StockDeals");
+                entity.HasKey(d => d.Id);
+
+                entity.Property(d => d.DealCategory).HasMaxLength(50).IsRequired();
+                entity.Property(d => d.ClientName).HasMaxLength(200).IsRequired();
+                entity.Property(d => d.Action).HasMaxLength(50).IsRequired();
+                entity.Property(d => d.AveragePrice).HasColumnType("decimal(18,2)");
+                entity.Property(d => d.TotalValue).HasColumnType("decimal(18,2)");
+                entity.Property(d => d.PersonCategory).HasMaxLength(100);
+                entity.Property(d => d.SharesAfterPct).HasColumnType("decimal(8,2)");
+                entity.Property(d => d.Mode).HasMaxLength(100);
+                entity.Property(d => d.Source).HasMaxLength(100).IsRequired();
+
+                entity.HasOne(d => d.Stock)
+                    .WithMany()
+                    .HasForeignKey(d => d.StockId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(d => new { d.StockId, d.DealCategory, d.DealDate })
+                    .HasDatabaseName("IX_StockDeals_StockId_Category_Date");
             });
         }
     }

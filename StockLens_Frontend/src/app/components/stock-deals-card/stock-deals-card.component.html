@@ -1,0 +1,166 @@
+<div class="deals-dashboard-card-light">
+  <!-- HEADER SECTION -->
+  <div class="card-top-bar">
+    <div class="card-title-group">
+      <div class="card-icon-box bg-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <span class="card-title-text">{{ symbol }} CORPORATE DEALS</span>
+    </div>
+  </div>
+
+  <div class="tabs-wrapper" *ngIf="dealsData && !loading && !error">
+    <div class="tabs-container">
+      <button class="tab-btn" [class.active]="activeTab === 'block'" (click)="setTab('block')">Block Deal</button>
+      <button class="tab-btn" [class.active]="activeTab === 'bulk'" (click)="setTab('bulk')">Bulk Deal</button>
+      <button class="tab-btn" [class.active]="activeTab === 'insider'" (click)="setTab('insider')">Insider Deal</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading deals data...</p>
+  </div>
+
+  <!-- ERROR -->
+  <div *ngIf="error" class="state-card error-state">
+    <div class="state-icon-wrapper error-icon-bg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h3 class="state-title">Unable to Load Deals Data</h3>
+    <p class="state-description">Failed to fetch corporate deals for {{symbol || 'this stock'}}.</p>
+    <button type="button" class="action-btn" (click)="ngOnInit()">
+      Retry Sync
+    </button>
+  </div>
+
+  <div class="card-body" *ngIf="dealsData && !loading && !error">
+      
+      <!-- BULK DEALS -->
+      <ng-container *ngIf="activeTab === 'bulk'">
+        <div class="deals-grid" *ngIf="dealsData.bulkDeals.length > 0; else noBulkDeals">
+          <div class="deal-card" *ngFor="let deal of dealsData.bulkDeals">
+            <div class="deal-card-top">
+              <span class="deal-date">{{ deal.dealDate | date:'dd MMM, yyyy' }}</span>
+              <span class="badge" [ngClass]="deal.action === 'BUY' ? 'badge-buy' : 'badge-sell'">{{ deal.action | uppercase }}</span>
+            </div>
+            <div class="deal-card-mid">
+              <h4 class="deal-client">{{ deal.clientName }}</h4>
+            </div>
+            <div class="deal-card-bot">
+              <div class="deal-stat">
+                <span class="stat-lbl">Qty</span>
+                <span class="stat-val">{{ formatNumber(deal.quantity) }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">Price</span>
+                <span class="stat-val">{{ deal.averagePrice | number:'1.2-2' }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">% Traded</span>
+                <span class="stat-val">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noBulkDeals>
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <div class="empty-state-text">No bulk deals found for this stock.</div>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <!-- BLOCK DEALS -->
+      <ng-container *ngIf="activeTab === 'block'">
+        <div class="deals-grid" *ngIf="dealsData.blockDeals.length > 0; else noBlockDeals">
+          <div class="deal-card" *ngFor="let deal of dealsData.blockDeals">
+            <div class="deal-card-top">
+              <span class="deal-date">{{ deal.dealDate | date:'dd MMM, yyyy' }}</span>
+              <span class="badge" [ngClass]="deal.action === 'BUY' ? 'badge-buy' : 'badge-sell'">{{ deal.action | uppercase }}</span>
+            </div>
+            <div class="deal-card-mid">
+              <h4 class="deal-client">{{ deal.clientName }}</h4>
+            </div>
+            <div class="deal-card-bot">
+              <div class="deal-stat">
+                <span class="stat-lbl">Qty</span>
+                <span class="stat-val">{{ formatNumber(deal.quantity) }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">Price</span>
+                <span class="stat-val">{{ deal.averagePrice | number:'1.2-2' }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">% Traded</span>
+                <span class="stat-val">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noBlockDeals>
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <div class="empty-state-text">No block deals found for this stock.</div>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <!-- INSIDER TRADES -->
+      <ng-container *ngIf="activeTab === 'insider'">
+        <div class="deals-grid" *ngIf="dealsData.insiderTrades.length > 0; else noInsiderTrades">
+          <div class="deal-card" *ngFor="let trade of dealsData.insiderTrades">
+            <div class="deal-card-top">
+              <span class="deal-date">{{ trade.intimationDate | date:'dd MMM, yyyy' }}</span>
+              <span class="badge" [ngClass]="trade.transactionType.includes('ACQUISITION') || trade.transactionType.includes('BUY') ? 'badge-buy' : 'badge-sell'">
+                {{ trade.transactionType.includes('ACQUISITION') ? 'ACQUISITION' : (trade.transactionType.includes('BUY') ? 'BUY' : (trade.transactionType.includes('DISPOSAL') ? 'DISPOSAL' : 'SELL')) }}
+              </span>
+            </div>
+            <div class="deal-card-mid">
+              <h4 class="deal-client">
+                {{ trade.acquirerName }}
+                <span class="promoter-badge" *ngIf="trade.isPromoter">P</span>
+              </h4>
+            </div>
+            <div class="deal-card-bot">
+              <div class="deal-stat">
+                <span class="stat-lbl">Qty</span>
+                <span class="stat-val">{{ formatNumber(trade.quantity) }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">Price</span>
+                <span class="stat-val">{{ (trade.totalValue / (trade.quantity || 1)) | number:'1.2-2' }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">% Traded</span>
+                <span class="stat-val">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noInsiderTrades>
+          <div class="empty-state">
+            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <div class="empty-state-text">No insider trades found for this stock.</div>
+          </div>
+        </ng-template>
+    </ng-container>
+
+  </div>
+</div>

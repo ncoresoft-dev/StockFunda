@@ -21,6 +21,7 @@ import { StockCandlestickChartComponent } from '../stock-candlestick-chart/stock
 import { StockTechnicalAnalysis } from '../stock-technical-analysis/stock-technical-analysis';
 import { StockVolumeDeliveryCardComponent } from '../stock-volume-delivery-card/stock-volume-delivery-card.component';
 import { StockCompanyAboutCardComponent } from '../stock-company-about-card/stock-company-about-card.component';
+import { StockDealsCardComponent } from '../stock-deals-card/stock-deals-card.component';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -35,6 +36,7 @@ export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' 
     StockCandlestickChartComponent,
     StockTechnicalAnalysis,
     StockVolumeDeliveryCardComponent,
+    StockDealsCardComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
