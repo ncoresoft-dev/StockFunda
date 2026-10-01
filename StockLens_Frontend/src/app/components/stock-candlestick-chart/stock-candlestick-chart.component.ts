@@ -33,6 +33,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
   @Input() chartType: 'candlestick' | 'area' = 'candlestick';
   @Input() customHeight: string = '100%';
   @Output() errorOccurred = new EventEmitter<string>();
+  @Output() priceDataLoaded = new EventEmitter<any>();
 
   private priceService = inject(StockPriceHistoryService);
   private cd = inject(ChangeDetectorRef);
@@ -227,6 +228,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           this.patternCountsObj = data.patternCounts || {};
 
           this.loadingState = 'success';
+          this.priceDataLoaded.emit(data.volumeDeliveryAnalysis);
           this.renderChart(data);
           this.cd.detectChanges();
           // Auto-zoom to currently selected period after rendering

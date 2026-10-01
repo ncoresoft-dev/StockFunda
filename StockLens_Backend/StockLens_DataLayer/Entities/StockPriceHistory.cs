@@ -14,6 +14,9 @@ namespace StockLens_DataLayer.Entities
         public decimal Low { get; set; }
         public decimal Close { get; set; }
         public long Volume { get; set; }
+        public decimal? DeliveryPercentage { get; set; }
+        public long? DeliveryVolume { get; set; }
+        public long? TotalTradedVolume { get; set; }
         
         public decimal? Dma50 { get; set; }
         public decimal? Dma200 { get; set; }

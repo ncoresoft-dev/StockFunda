@@ -67,6 +67,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   newsTab = signal<NewsFilterTab>('all');
   activeDetailModal = signal<DetailModalType>(null);
   isLoadingStock = signal<boolean>(false);
+  deliveryAnalysisData = signal<any>(null);
 
   private pricePollingSubscription?: Subscription;
 
@@ -200,6 +201,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     const cleanSymbol = symbol.toUpperCase();
     const cleanExchange = exchange.toUpperCase();
 
+    // Prevent clearing data if the user searches for the exact same stock they are already viewing
+    if (this.selectedSymbol() === cleanSymbol && this.selectedExchange() === cleanExchange) {
+      this.searchQuery.set('');
+      this.searchResults.set([]);
+      return;
+    }
+
     this.isLoadingStock.set(true);
     this.selectedSymbol.set(cleanSymbol);
     this.selectedExchange.set(cleanExchange);
@@ -213,6 +221,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.shareholdingResponse.set(null);
     this.evaluationResponse.set(null);
     this.newsResponse.set(null);
+    this.deliveryAnalysisData.set(null);
 
     this.shareholdingLoadingState.set('loading');
     this.quartersLoadingState.set('loading');
@@ -248,6 +257,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   openDetailModal(modalType: DetailModalType): void {
     this.activeDetailModal.set(modalType);
+  }
+
+  onPriceDataLoaded(analysisData: any): void {
+    this.deliveryAnalysisData.set(analysisData);
   }
 
   closeDetailModal(): void {

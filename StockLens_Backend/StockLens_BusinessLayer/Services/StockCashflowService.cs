@@ -118,17 +118,9 @@ namespace StockLens_BusinessLayer.Services
                     var latestBsDb = dbBs.FirstOrDefault();
                     var prevDb = dbFinancials.Count > 1 ? dbFinancials[1] : null;
 
-                    // If cached entity is missing ratios or 52W high/low/facevalue, sync from IndianAPI
-                    if (cur.Roe == null ||
-                        cur.PeRatio == null ||
-                        cur.FaceValue == null ||
-                        cur.MarketCap == null ||
-                        cur.BookValue == null ||
-                        cur.Week52High == null ||
-                        cur.Week52Low == null ||
-                        cur.Roce == null ||
-                        cur.SectorPe == null ||
-                        dbFinancials.Count < 2)
+                    // If cached entity is missing, sync from IndianAPI (Only check if data is older than 7 days)
+                    var lastSync = cur.LastSyncedAt;
+                    if (dbFinancials.Count < 2 || (DateTime.UtcNow - lastSync).TotalDays > 7)
                     {
                         if (_indianApiClient != null)
                         {

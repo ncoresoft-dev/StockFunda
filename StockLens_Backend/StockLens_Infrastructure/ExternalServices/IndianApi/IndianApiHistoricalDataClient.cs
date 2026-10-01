@@ -113,10 +113,12 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
                                         if (item[1].ValueKind == JsonValueKind.Number)
                                         {
                                             record.Volume = item[1].GetInt64();
+                                            record.TotalTradedVolume = record.Volume;
                                         }
                                         else if (item[1].ValueKind == JsonValueKind.String && long.TryParse(item[1].GetString(), out var vol))
                                         {
                                             record.Volume = vol;
+                                            record.TotalTradedVolume = record.Volume;
                                         }
 
                                         if (item.GetArrayLength() >= 3 && item[2].ValueKind == JsonValueKind.Object)

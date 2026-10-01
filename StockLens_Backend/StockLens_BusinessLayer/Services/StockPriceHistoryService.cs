@@ -133,14 +133,28 @@ namespace StockLens_BusinessLayer.Services
 
                 ParsePeriod(period, out var expectedFromDate, out var expectedDays);
 
-                bool needsRefresh = forceRefresh;
+                bool needsRefresh = false;
+                
+                // If UI sends forceRefresh, we STILL only respect it if data is old or missing
+                if (forceRefresh)
+                {
+                    if (!dbRecords.Any() || (DateTime.UtcNow - dbRecords.Max(p => p.LastSyncedAt)).TotalHours > 12)
+                    {
+                        needsRefresh = true;
+                    }
+                    else
+                    {
+                        _logger.LogInformation("UI requested force refresh, but ignoring it because DB data is fresh (less than 12 hours old).");
+                    }
+                }
+
                 if (!needsRefresh && dbRecords.Any())
                 {
                     // If cached records lack authentic OHLC data (e.g. Open/High/Low were zeroed or identical to Close from older IndianAPI caching), refresh
                     var hasValidOhlc = dbRecords.Any(p => p.High > p.Low && p.Open > 0);
                     var lastSync = dbRecords.Max(p => p.LastSyncedAt);
 
-                    if (!hasValidOhlc && dbRecords.Count > 10)
+                    if (!hasValidOhlc && dbRecords.Count > 10 && (DateTime.UtcNow - lastSync).TotalHours > 12)
                     {
                         _logger.LogInformation("Cached price history for {Symbol} lacks OHLC variance. Forcing refresh from Yahoo Finance.", stock.Symbol);
                         needsRefresh = true;
@@ -150,14 +164,27 @@ namespace StockLens_BusinessLayer.Services
                     {
                         needsRefresh = true;
                     }
-                    // Force refresh if we don't have enough data for the requested period
+                    // Force refresh if we don't have enough data for the requested period, but ONLY if 12 hours have passed
                     else
                     {
                         var recordsInPeriod = dbRecords.Count(p => p.Date >= expectedFromDate);
                         if (recordsInPeriod < expectedDays * 0.8)
                         {
-                            _logger.LogInformation("Cached data for {Symbol} doesn't cover requested period {Period}. Forcing refresh.", stock.Symbol, period);
-                            needsRefresh = true;
+                            if ((DateTime.UtcNow - lastSync).TotalHours > 12)
+                            {
+                                _logger.LogInformation("Cached data for {Symbol} doesn't cover requested period {Period}. Forcing refresh.", stock.Symbol, period);
+                                needsRefresh = true;
+                            }
+                        }
+                        else if (dbRecords.Count > 0 && dbRecords.OrderByDescending(r => r.Date).Take(10).All(r => r.DeliveryPercentage == null && r.Date > new DateTime(2023, 1, 1)))
+                        {
+                            // Only refresh if recent data is missing delivery metrics, avoiding infinite loops for old nulls
+                            var lastDeliverySync = dbRecords.Max(p => p.LastSyncedAt);
+                            if ((DateTime.UtcNow - lastDeliverySync).TotalHours > 12)
+                            {
+                                _logger.LogInformation("Cached data for {Symbol} lacks recent delivery metrics. Forcing refresh.", stock.Symbol);
+                                needsRefresh = true;
+                            }
                         }
                     }
                 }
@@ -179,6 +206,32 @@ namespace StockLens_BusinessLayer.Services
                         if (rawPrices != null && rawPrices.Count > 0)
                         {
                             source = "YahooFinance";
+                            
+                            // Merge delivery data from Indian API
+                            try
+                            {
+                                var indianPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: "1yr", exchange: stock.Exchange, filter: "price", cancellationToken: cancellationToken);
+                                if (indianPrices != null && indianPrices.Count > 0)
+                                {
+                                    var indianDict = indianPrices.Where(d => d.ResolvedDate.HasValue).ToDictionary(d => d.ResolvedDate!.Value.Date);
+                                    foreach (var r in rawPrices)
+                                    {
+                                        if (r.ResolvedDate.HasValue && indianDict.TryGetValue(r.ResolvedDate.Value.Date, out var ind))
+                                        {
+                                            r.DeliveryPercentage = ind.DeliveryPercentage;
+                                            r.DeliveryVolume = ind.DeliveryVolume;
+                                            if (ind.Volume.HasValue && ind.Volume.Value > 0)
+                                            {
+                                                r.TotalTradedVolume = ind.Volume; // Store Indian API volume separately for Delivery Metrics
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception indEx)
+                            {
+                                _logger.LogWarning(indEx, "Failed to merge delivery data from IndianAPI for {Symbol}", stock.Symbol);
+                            }
                         }
                     }
                     catch (Exception yfEx)
@@ -188,7 +241,8 @@ namespace StockLens_BusinessLayer.Services
 
                     if (rawPrices == null || rawPrices.Count == 0)
                     {
-                        _logger.LogInformation("Yahoo Finance returned no prices for {Symbol}. Attempting fallback to IndianAPI.", stock.Symbol);
+                        _logger.LogInformation("Yahoo Finance returned no prices for {Symbol}. Fallback to IndianAPI is commented out.", stock.Symbol);
+                        /*
                         try
                         {
                             rawPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: period, exchange: stock.Exchange, filter: filter, cancellationToken: cancellationToken);
@@ -201,6 +255,7 @@ namespace StockLens_BusinessLayer.Services
                         {
                             _logger.LogWarning(apiEx, "Failed to fetch from IndianAPI fallback for {Symbol}", stock.Symbol);
                         }
+                        */
                     }
 
                     if (rawPrices != null && rawPrices.Count > 0)
@@ -251,6 +306,9 @@ namespace StockLens_BusinessLayer.Services
                                 Volume = r.Volume ?? 0,
                                 Dma50 = r.Dma50,
                                 Dma200 = r.Dma200,
+                                DeliveryPercentage = r.DeliveryPercentage,
+                                DeliveryVolume = r.DeliveryVolume,
+                                TotalTradedVolume = r.TotalTradedVolume,
                                 Source = source,
                                 LastSyncedAt = DateTime.UtcNow,
                                 CreatedAt = DateTime.UtcNow,
@@ -301,6 +359,8 @@ namespace StockLens_BusinessLayer.Services
                 result.Volumes.Add(record.Volume);
                 result.Dma50.Add(record.Dma50);
                 result.Dma200.Add(record.Dma200);
+                result.DeliveryPercentages.Add(record.DeliveryPercentage);
+                result.DeliveryVolumes.Add(record.DeliveryVolume);
             }
 
             // Process patterns on the most recent 500 bars to avoid scanning 10 years of data
@@ -348,6 +408,55 @@ namespace StockLens_BusinessLayer.Services
                     result.PatternCounts[pat.PatternName] = 1;
             }
 
+            // Calculate Volume Delivery Analysis directly in the main response
+            var analysisRecords = sortedDbRecords
+                .Where(r => r.TotalTradedVolume.HasValue && r.TotalTradedVolume.Value > 0 && r.DeliveryVolume.HasValue)
+                .OrderByDescending(r => r.Date)
+                .ToList();
+
+            if (analysisRecords.Count > 0)
+            {
+                var analysis = new VolumeDeliveryAnalysisDto
+                {
+                    Symbol = stock.Symbol,
+                    CompanyName = stock.Symbol, // Using symbol as fallback
+                    Exchange = stock.Exchange,
+                    AsOfDate = analysisRecords[0].Date.ToString("yyyy-MM-dd")
+                };
+
+                VolumeDeliveryPeriodDto CalculateDbPeriodStats(List<StockPriceHistory> slice)
+                {
+                    if (slice.Count == 0) return new VolumeDeliveryPeriodDto();
+                    long totalTraded = 0;
+                    long totalDelivered = 0;
+
+                    foreach (var r in slice)
+                    {
+                        totalTraded += r.TotalTradedVolume!.Value;
+                        totalDelivered += r.DeliveryVolume!.Value;
+                    }
+
+                    var count = slice.Count;
+                    var avgTraded = totalTraded / count;
+                    var avgDelivered = totalDelivered / count;
+                    var deliveryPct = totalTraded > 0 ? Math.Round(((decimal)totalDelivered / totalTraded) * 100m, 2) : 0m;
+
+                    return new VolumeDeliveryPeriodDto
+                    {
+                        TradedVolume = avgTraded,
+                        DeliveryVolume = avgDelivered,
+                        DeliveryPercentage = deliveryPct,
+                        FormattedTradedVolume = FormatVolume(avgTraded),
+                        FormattedDeliveryVolume = FormatVolume(avgDelivered)
+                    };
+                }
+
+                analysis.Day = CalculateDbPeriodStats(analysisRecords.Take(1).ToList());
+                analysis.Week = CalculateDbPeriodStats(analysisRecords.Take(5).ToList());
+                analysis.Month = CalculateDbPeriodStats(analysisRecords.Take(22).ToList());
+
+                result.VolumeDeliveryAnalysis = analysis;
+            }
 
             return result;
         }
@@ -1078,156 +1187,7 @@ namespace StockLens_BusinessLayer.Services
             }
         }
 
-        public async Task<VolumeDeliveryAnalysisDto> GetVolumeDeliveryAnalysisAsync(string symbol, string? exchange = null, CancellationToken cancellationToken = default)
-        {
-            var cleanSymbol = (symbol ?? "").Trim().ToUpperInvariant();
-            var cleanExchange = string.IsNullOrWhiteSpace(exchange) ? "NSE" : exchange.Trim().ToUpperInvariant();
 
-            var company = await _companyRepository.GetCompanyBySymbolAsync(cleanSymbol);
-            var companyName = company?.CompanyName ?? cleanSymbol;
-
-            var analysis = new VolumeDeliveryAnalysisDto
-            {
-                Symbol = cleanSymbol,
-                CompanyName = companyName,
-                Exchange = cleanExchange,
-                AsOfDate = DateTime.UtcNow.ToString("yyyy-MM-dd")
-            };
-
-            // 1. Try to fetch historical data from Indian API with delivery data
-            List<IndianApiPriceRecord>? rawPrices = null;
-            try
-            {
-                rawPrices = await _apiClient.GetHistoricalPricesAsync(cleanSymbol, period: "1yr", exchange: cleanExchange, filter: "price", cancellationToken: cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to fetch delivery from Indian API for {Symbol}", cleanSymbol);
-            }
-
-            // 2. If Indian API has valid volume records
-            var validRecords = rawPrices?
-                .Where(r => r.ResolvedDate.HasValue && (r.Volume ?? 0) > 0)
-                .OrderByDescending(r => r.ResolvedDate!.Value)
-                .ToList();
-
-            if (validRecords != null && validRecords.Count > 0)
-            {
-                analysis.AsOfDate = validRecords[0].ResolvedDate!.Value.ToString("yyyy-MM-dd");
-
-                VolumeDeliveryPeriodDto CalculatePeriodStats(List<IndianApiPriceRecord> slice)
-                {
-                    if (slice.Count == 0) return new VolumeDeliveryPeriodDto();
-
-                    long totalTraded = 0;
-                    long totalDelivered = 0;
-
-                    foreach (var r in slice)
-                    {
-                        var vol = r.Volume ?? 0;
-                        totalTraded += vol;
-
-                        if (r.DeliveryPercentage.HasValue && r.DeliveryPercentage.Value > 0)
-                        {
-                            totalDelivered += (long)Math.Round(vol * (r.DeliveryPercentage.Value / 100m));
-                        }
-                        else if (r.DeliveryVolume.HasValue && r.DeliveryVolume.Value > 0)
-                        {
-                            totalDelivered += r.DeliveryVolume.Value;
-                        }
-                        else
-                        {
-                            totalDelivered += (long)Math.Round(vol * 0.58m);
-                        }
-                    }
-
-                    var count = slice.Count;
-                    var avgTraded = totalTraded / count;
-                    var avgDelivered = totalDelivered / count;
-                    var deliveryPct = totalTraded > 0 ? Math.Round(((decimal)totalDelivered / totalTraded) * 100m, 2) : 0m;
-
-                    return new VolumeDeliveryPeriodDto
-                    {
-                        TradedVolume = avgTraded,
-                        DeliveryVolume = avgDelivered,
-                        DeliveryPercentage = deliveryPct,
-                        FormattedTradedVolume = FormatVolume(avgTraded),
-                        FormattedDeliveryVolume = FormatVolume(avgDelivered)
-                    };
-                }
-
-                // Day (Latest 1 session)
-                var latest = validRecords.Take(1).ToList();
-                if (latest.Count > 0)
-                {
-                    var dayVol = latest[0].Volume ?? 0;
-                    var dayDelPct = latest[0].DeliveryPercentage ?? 69.54m;
-                    var dayDelVol = latest[0].DeliveryVolume ?? (long)Math.Round(dayVol * (dayDelPct / 100m));
-
-                    analysis.Day = new VolumeDeliveryPeriodDto
-                    {
-                        TradedVolume = dayVol,
-                        DeliveryVolume = dayDelVol,
-                        DeliveryPercentage = Math.Round(dayDelPct, 2),
-                        FormattedTradedVolume = FormatVolume(dayVol),
-                        FormattedDeliveryVolume = FormatVolume(dayDelVol)
-                    };
-                }
-
-                // Week (Last 5 sessions)
-                analysis.Week = CalculatePeriodStats(validRecords.Take(5).ToList());
-
-                // Month (Last 22 sessions)
-                analysis.Month = CalculatePeriodStats(validRecords.Take(22).ToList());
-
-                return analysis;
-            }
-
-            // 3. Fallback from DB records if Indian API is unavailable
-            var stock = await _stockRepository.GetOrCreateStockAsync(cleanSymbol, cleanExchange, cancellationToken: cancellationToken);
-            var dbRecords = await _priceHistoryRepository.GetByStockIdAsync(stock.Id, cancellationToken);
-            var sortedDb = dbRecords.Where(r => r.Volume > 0).OrderByDescending(r => r.Date).ToList();
-
-            if (sortedDb.Count > 0)
-            {
-                analysis.AsOfDate = sortedDb[0].Date.ToString("yyyy-MM-dd");
-
-                VolumeDeliveryPeriodDto CalculateDbPeriodStats(List<StockPriceHistory> slice, decimal defaultRatio)
-                {
-                    if (slice.Count == 0) return new VolumeDeliveryPeriodDto();
-                    long totalTraded = slice.Sum(r => r.Volume);
-                    long totalDelivered = (long)Math.Round(totalTraded * defaultRatio);
-                    var count = slice.Count;
-                    var avgTraded = totalTraded / count;
-                    var avgDelivered = totalDelivered / count;
-
-                    return new VolumeDeliveryPeriodDto
-                    {
-                        TradedVolume = avgTraded,
-                        DeliveryVolume = avgDelivered,
-                        DeliveryPercentage = Math.Round(defaultRatio * 100m, 2),
-                        FormattedTradedVolume = FormatVolume(avgTraded),
-                        FormattedDeliveryVolume = FormatVolume(avgDelivered)
-                    };
-                }
-
-                var dayVol = sortedDb[0].Volume;
-                var dayDelVol = (long)Math.Round(dayVol * 0.6954m);
-                analysis.Day = new VolumeDeliveryPeriodDto
-                {
-                    TradedVolume = dayVol,
-                    DeliveryVolume = dayDelVol,
-                    DeliveryPercentage = 69.54m,
-                    FormattedTradedVolume = FormatVolume(dayVol),
-                    FormattedDeliveryVolume = FormatVolume(dayDelVol)
-                };
-
-                analysis.Week = CalculateDbPeriodStats(sortedDb.Take(5).ToList(), 0.6317m);
-                analysis.Month = CalculateDbPeriodStats(sortedDb.Take(22).ToList(), 0.6539m);
-            }
-
-            return analysis;
-        }
 
         private static string FormatVolume(long volume)
         {

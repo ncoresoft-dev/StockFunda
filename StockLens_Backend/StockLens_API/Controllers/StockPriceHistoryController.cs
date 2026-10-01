@@ -64,31 +64,6 @@ namespace StockLens_API.Controllers
             }
         }
 
-        [HttpGet("delivery-analysis")]
-        [ProducesResponseType(typeof(VolumeDeliveryAnalysisDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(500)]
-        public async Task<IActionResult> GetVolumeDeliveryAnalysis(
-            [FromQuery] string symbol,
-            [FromQuery] string? exchange = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(symbol))
-            {
-                return BadRequest(new { message = "Symbol query parameter is required." });
-            }
-
-            try
-            {
-                var result = await _priceHistoryService.GetVolumeDeliveryAnalysisAsync(symbol, exchange, cancellationToken);
-                return Ok(result);
-            }
-            catch (System.Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving delivery analysis.", detail = ex.Message });
-            }
-        }
-
         [HttpGet("{stockId}/prices")]
         [ProducesResponseType(typeof(PriceHistoryResponseDto), 200)]
         [ProducesResponseType(404)]

@@ -353,6 +353,7 @@
         <div class="chart-canvas-wrapper" style="position: relative;">
           <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
             [period]="candlestickPeriod()" [chartType]="selectedChartType()"
+            (priceDataLoaded)="onPriceDataLoaded($event)"
             customHeight="100%"></app-stock-candlestick-chart>
         </div>
       </div>
@@ -365,7 +366,7 @@
       <!-- Left Column: Volume Delivery Analysis Card -->
       <div class="split-col-left">
         <app-stock-volume-delivery-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-          [companyName]="getCompanyName()">
+          [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()">
         </app-stock-volume-delivery-card>
       </div>
 

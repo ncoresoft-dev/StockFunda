@@ -16,6 +16,7 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi.Models
 
         public decimal? DeliveryPercentage { get; set; }
         public long? DeliveryVolume { get; set; }
+        public long? TotalTradedVolume { get; set; }
 
         public DateTime? ResolvedDate
         {

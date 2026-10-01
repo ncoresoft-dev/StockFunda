@@ -14,11 +14,10 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   @Input({ required: true }) symbol: string = 'RELIANCE';
   @Input() exchange: string = 'NSE';
   @Input() companyName: string = '';
-
-  private readonly deliveryService = inject(StockVolumeDeliveryService);
+  @Input() analysisData: VolumeDeliveryAnalysisResponse | null = null;
 
   deliveryData = signal<VolumeDeliveryAnalysisResponse | null>(null);
-  isLoading = signal<boolean>(false);
+  isLoading = computed(() => !this.deliveryData());
   errorMessage = signal<string | null>(null);
 
   // Computed max volume for responsive X-axis scale
@@ -58,34 +57,12 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   });
 
   ngOnInit(): void {
-    this.loadDeliveryData();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['symbol'] || changes['exchange']) {
-      this.loadDeliveryData();
+    if (changes['analysisData']) {
+      this.deliveryData.set(this.analysisData);
     }
-  }
-
-  loadDeliveryData(): void {
-    if (!this.symbol) return;
-
-    this.deliveryData.set(null);
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-
-    this.deliveryService.getDeliveryAnalysis(this.symbol, this.exchange).subscribe({
-      next: (data) => {
-        this.deliveryData.set(data);
-        this.isLoading.set(false);
-      },
-      error: (err) => {
-        console.warn('Could not fetch delivery analysis from API, using fallback calculations:', err);
-        // Graceful fallback data calculation
-        this.deliveryData.set(this.getFallbackData());
-        this.isLoading.set(false);
-      }
-    });
   }
 
   getBarWidthPct(val: number): number {

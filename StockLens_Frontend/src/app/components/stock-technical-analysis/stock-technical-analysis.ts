@@ -27,12 +27,12 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['symbol'] && changes['symbol'].currentValue !== changes['symbol'].previousValue) {
+    if (changes['symbol'] && !changes['symbol'].isFirstChange() && changes['symbol'].currentValue !== changes['symbol'].previousValue) {
       if (changes['symbol'].currentValue) {
         this.fetchData();
       }
     }
-    if (changes['refreshTrigger'] && changes['refreshTrigger'].currentValue !== changes['refreshTrigger'].previousValue) {
+    else if (changes['refreshTrigger'] && !changes['refreshTrigger'].isFirstChange() && changes['refreshTrigger'].currentValue !== changes['refreshTrigger'].previousValue) {
       this.fetchData(true);
     }
   }

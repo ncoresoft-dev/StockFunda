@@ -92,10 +92,7 @@ namespace StockLens_BusinessLayer.Services
                 var existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12);
 
                 var isStale = existingQuarters.Count == 0 ||
-                              existingQuarters.All(q => (DateTime.UtcNow - q.LastSyncedAt).TotalHours > 24) ||
-                              existingQuarters.Any(q => q.Depreciation == null && q.Revenue.HasValue) ||
-                              existingQuarters.Any(q => q.Interest == null && q.Revenue.HasValue) ||
-                              existingQuarters.Any(q => q.Tax == null && (q.ProfitBeforeTax.HasValue || q.Revenue.HasValue)) ||
+                              existingQuarters.Max(q => q.LastSyncedAt) < DateTime.UtcNow.AddDays(-7) ||
                               existingQuarters.GroupBy(q => q.PeriodEndDate.HasValue ? q.PeriodEndDate.Value.ToString("yyyy-MM") : q.FiscalYear).Any(g => g.Count() > 1);
 
                 if (forceRefresh || isStale)
