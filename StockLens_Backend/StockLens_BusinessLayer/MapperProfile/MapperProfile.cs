@@ -15,6 +15,10 @@ namespace StockLens_BusinessLayer.MapperProfile
 
             CreateMap<Stock, StockDto>();
             CreateMap<Company, CompanyDto>();
+            CreateMap<Company, CompanyOverviewDto>()
+                .ForMember(dest => dest.KeyPoints, opt => opt.Ignore())
+                .ForMember(dest => dest.KeyExecutives, opt => opt.Ignore())
+                .ForMember(dest => dest.Source, opt => opt.Ignore());
 
             CreateMap<IndianApiStandardArticle, StockNews>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())

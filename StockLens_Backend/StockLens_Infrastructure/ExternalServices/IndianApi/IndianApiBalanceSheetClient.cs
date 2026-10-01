@@ -203,6 +203,33 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
                     dto.SectorName = indName;
                 }
 
+                if (TryGetPropertyString(scopes, new[] { "about", "description", "businessSummary", "longBusinessSummary", "companyDescription", "overview", "synopsis", "profile" }, out var aboutText))
+                {
+                    dto.About = aboutText;
+                }
+
+                if (TryGetPropertyString(scopes, new[] { "website", "websiteUrl", "url", "companyWebsite" }, out var webUrl))
+                {
+                    dto.WebsiteUrl = webUrl;
+                }
+
+                // Extract any key points array if available
+                foreach (var s in scopes)
+                {
+                    if (s.TryGetProperty("keyPoints", out var kpArr) && kpArr.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var kp in kpArr.EnumerateArray())
+                        {
+                            var kpStr = kp.GetString();
+                            if (!string.IsNullOrWhiteSpace(kpStr))
+                            {
+                                dto.KeyPoints.Add(kpStr.Trim());
+                            }
+                        }
+                        if (dto.KeyPoints.Count > 0) break;
+                    }
+                }
+
                 // 1. Current Price
                 if (target.TryGetProperty("currentPrice", out var cpProp) || target.TryGetProperty("current_price", out cpProp))
                 {

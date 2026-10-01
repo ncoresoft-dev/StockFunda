@@ -40,8 +40,26 @@ namespace StockLens_Infrastructure.DataContext
                 entity.Property(c => c.Industry)
                     .HasMaxLength(100);
 
+                entity.Property(c => c.Sector)
+                    .HasMaxLength(100);
+
                 entity.Property(c => c.LogoUrl)
                     .HasMaxLength(1000);
+
+                entity.Property(c => c.WebsiteUrl)
+                    .HasMaxLength(500);
+
+                entity.Property(c => c.About)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(c => c.KeyPointsJson)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(c => c.BseCode)
+                    .HasMaxLength(50);
+
+                entity.Property(c => c.NseCode)
+                    .HasMaxLength(50);
 
                 entity.HasIndex(c => c.Symbol)
                     .IsUnique()

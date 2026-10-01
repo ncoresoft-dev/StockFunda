@@ -24,6 +24,20 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         public int Year { get; set; }
     }
 
+    public class YahooCompanyProfileDto
+    {
+        public string? Symbol { get; set; }
+        public string? CompanyName { get; set; }
+        public string? LongBusinessSummary { get; set; }
+        public string? Website { get; set; }
+        public string? Industry { get; set; }
+        public string? Sector { get; set; }
+        public long? FullTimeEmployees { get; set; }
+        public string? City { get; set; }
+        public string? Country { get; set; }
+        public System.Collections.Generic.List<string> KeyExecutives { get; set; } = new();
+    }
+
     public interface IYahooFinanceClient
     {
         /// <summary>
@@ -33,6 +47,7 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         /// <param name="exchange">The exchange (e.g. NSE or BSE)</param>
         /// <returns>A tuple containing the company name and industry</returns>
         Task<(string? CompanyName, string? Industry)> GetCompanyDetailsAsync(string symbol, string exchange, CancellationToken cancellationToken = default);
+        Task<YahooCompanyProfileDto?> GetCompanyProfileAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.Models.IndianApiPriceRecord>> GetHistoricalPricesAsync(string symbol, string exchange, CancellationToken cancellationToken = default);
         Task<YahooLiveQuoteDto?> GetLiveQuoteAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>> GetQuarterlyIncomeStatementsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);

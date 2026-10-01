@@ -41,5 +41,35 @@ namespace StockLens_Infrastructure.Repositories
             return await _context.CompanyMaster
                 .FirstOrDefaultAsync(c => c.Symbol.ToLower() == symbol.ToLower());
         }
+
+        public async Task<Company> SaveOrUpdateCompanyAsync(Company company)
+        {
+            var existing = await _context.CompanyMaster
+                .FirstOrDefaultAsync(c => c.Symbol.ToLower() == company.Symbol.ToLower());
+
+            if (existing == null)
+            {
+                company.CreatedAt = System.DateTime.UtcNow;
+                company.UpdatedAt = System.DateTime.UtcNow;
+                _context.CompanyMaster.Add(company);
+                await _context.SaveChangesAsync();
+                return company;
+            }
+
+            if (!string.IsNullOrWhiteSpace(company.CompanyName)) existing.CompanyName = company.CompanyName;
+            if (!string.IsNullOrWhiteSpace(company.Industry)) existing.Industry = company.Industry;
+            if (!string.IsNullOrWhiteSpace(company.Sector)) existing.Sector = company.Sector;
+            if (!string.IsNullOrWhiteSpace(company.LogoUrl)) existing.LogoUrl = company.LogoUrl;
+            if (!string.IsNullOrWhiteSpace(company.WebsiteUrl)) existing.WebsiteUrl = company.WebsiteUrl;
+            if (!string.IsNullOrWhiteSpace(company.About)) existing.About = company.About;
+            if (!string.IsNullOrWhiteSpace(company.KeyPointsJson)) existing.KeyPointsJson = company.KeyPointsJson;
+            if (company.EmployeesCount.HasValue) existing.EmployeesCount = company.EmployeesCount;
+            if (!string.IsNullOrWhiteSpace(company.BseCode)) existing.BseCode = company.BseCode;
+            if (!string.IsNullOrWhiteSpace(company.NseCode)) existing.NseCode = company.NseCode;
+            existing.UpdatedAt = System.DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return existing;
+        }
     }
 }

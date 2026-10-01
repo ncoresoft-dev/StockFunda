@@ -504,8 +504,16 @@ namespace StockLens_BusinessLayer.Services
         {
             var result = new BalanceSheetResponseDto { Symbol = stock.Symbol };
 
-            // Construct Response DTO from dbRecords sorted chronologically for UI
-            var sortedDbRecords = dbRecords.OrderBy(b => b.PeriodEndDate).ToList();
+            // Construct Response DTO from unique dbRecords sorted chronologically for UI
+            var sortedDbRecords = dbRecords
+                .Where(b => !string.IsNullOrWhiteSpace(b.FiscalYear))
+                .GroupBy(b => b.FiscalYear)
+                .Select(g => g.OrderByDescending(x => string.Equals(x.ConsolidationType, "consolidated", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                              .ThenByDescending(x => x.UpdatedAt)
+                              .First())
+                .OrderBy(b => b.PeriodEndDate ?? DateTime.MinValue)
+                .ToList();
+
             result.Periods = sortedDbRecords.Select(b => b.FiscalYear).ToList();
 
             result.LineItems = new List<BalanceSheetLineItemDto>

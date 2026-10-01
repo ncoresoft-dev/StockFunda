@@ -78,6 +78,94 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             return (null, null);
         }
 
+        public async Task<YahooCompanyProfileDto?> GetCompanyProfileAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+
+            try
+            {
+                var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
+                var cleanSymbol = symbol.Trim().ToUpperInvariant();
+                var searchSymbol = cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO") ? cleanSymbol : $"{cleanSymbol}{suffix}";
+
+                await EnsureCrumbAsync(cancellationToken);
+
+                var endpoint = !string.IsNullOrWhiteSpace(_cachedCrumb)
+                    ? $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=assetProfile,summaryProfile,quoteType&crumb={Uri.EscapeDataString(_cachedCrumb)}"
+                    : $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=assetProfile,summaryProfile,quoteType";
+
+                _logger.LogInformation("Fetching company profile & about from Yahoo Finance API for {Symbol}", searchSymbol);
+
+                using var req = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                if (!string.IsNullOrWhiteSpace(_cachedCookie))
+                {
+                    req.Headers.Add("Cookie", _cachedCookie);
+                }
+
+                var response = await _httpClient.SendAsync(req, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Yahoo Finance API profile returned status {StatusCode} for {Symbol}", response.StatusCode, searchSymbol);
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("quoteSummary", out var quoteSummary) &&
+                    quoteSummary.TryGetProperty("result", out var resultArr) &&
+                    resultArr.ValueKind == JsonValueKind.Array &&
+                    resultArr.GetArrayLength() > 0)
+                {
+                    var root = resultArr[0];
+                    var profile = new YahooCompanyProfileDto { Symbol = cleanSymbol };
+
+                    if (root.TryGetProperty("quoteType", out var qtObj))
+                    {
+                        if (qtObj.TryGetProperty("longName", out var ln)) profile.CompanyName = ln.GetString();
+                        else if (qtObj.TryGetProperty("shortName", out var sn)) profile.CompanyName = sn.GetString();
+                    }
+
+                    if (root.TryGetProperty("assetProfile", out var apObj))
+                    {
+                        if (apObj.TryGetProperty("longBusinessSummary", out var lbs)) profile.LongBusinessSummary = lbs.GetString();
+                        if (apObj.TryGetProperty("website", out var web)) profile.Website = web.GetString();
+                        if (apObj.TryGetProperty("industry", out var ind)) profile.Industry = ind.GetString();
+                        if (apObj.TryGetProperty("sector", out var sec)) profile.Sector = sec.GetString();
+                        if (apObj.TryGetProperty("fullTimeEmployees", out var fte) && fte.TryGetInt64(out var empCount)) profile.FullTimeEmployees = empCount;
+                        if (apObj.TryGetProperty("city", out var city)) profile.City = city.GetString();
+                        if (apObj.TryGetProperty("country", out var country)) profile.Country = country.GetString();
+
+                        if (apObj.TryGetProperty("companyOfficers", out var officersArr) && officersArr.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var off in officersArr.EnumerateArray())
+                            {
+                                if (off.TryGetProperty("name", out var oName))
+                                {
+                                    var title = off.TryGetProperty("title", out var oTitle) ? $" ({oTitle.GetString()})" : "";
+                                    profile.KeyExecutives.Add($"{oName.GetString()}{title}");
+                                }
+                            }
+                        }
+                    }
+
+                    if (string.IsNullOrWhiteSpace(profile.LongBusinessSummary) && root.TryGetProperty("summaryProfile", out var spObj))
+                    {
+                        if (spObj.TryGetProperty("longBusinessSummary", out var lbs2)) profile.LongBusinessSummary = lbs2.GetString();
+                        if (string.IsNullOrWhiteSpace(profile.Website) && spObj.TryGetProperty("website", out var web2)) profile.Website = web2.GetString();
+                    }
+
+                    return profile;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching company profile from Yahoo Finance API for {Symbol}", symbol);
+            }
+
+            return null;
+        }
+
         public async Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.Models.IndianApiPriceRecord>> GetHistoricalPricesAsync(string symbol, string exchange, CancellationToken cancellationToken = default)
         {
             var records = new System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.Models.IndianApiPriceRecord>();

@@ -22,6 +22,9 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
         public decimal? BookValue { get; set; }
         public decimal? SectorPe { get; set; }
         public string? SectorName { get; set; }
+        public string? About { get; set; }
+        public string? WebsiteUrl { get; set; }
+        public List<string> KeyPoints { get; set; } = new();
         public List<IndianApiFinancialPeriodDto> Financials { get; set; } = new();
         public List<IndianApiPeerDto> Peers { get; set; } = new();
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockLens_Infrastructure.DataContext;
 
@@ -11,9 +12,11 @@ using StockLens_Infrastructure.DataContext;
 namespace StockLens_Infrastructure.Migrations
 {
     [DbContext(typeof(StockLensDataContext))]
-    partial class StockLensDataContextModelSnapshot : ModelSnapshot
+    [Migration("20260930053953_AddedCompanyDetailsFields")]
+    partial class AddedCompanyDetailsFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -508,12 +511,6 @@ namespace StockLens_Infrastructure.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("DeliveryPercentage")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long?>("DeliveryVolume")
-                        .HasColumnType("bigint");
-
                     b.Property<decimal?>("Dma200")
                         .HasColumnType("decimal(18,2)");
 
@@ -542,9 +539,6 @@ namespace StockLens_Infrastructure.Migrations
 
                     b.Property<int>("StockId")
                         .HasColumnType("int");
-
-                    b.Property<long?>("TotalTradedVolume")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");

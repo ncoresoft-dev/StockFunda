@@ -8,7 +8,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0.85rem 1rem 0.85rem;
   background: rgba(15, 21, 34, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
@@ -16,34 +15,51 @@
   color: #f1f5f9;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ==========================================================================
-   1. TOP TITLE BADGE
+   1. TOP SECTION HEADER (Identical to other cockpit sections)
    ========================================================================== */
-.volume-header-row {
+.card-top-bar {
+  min-height: 34px;
+  height: auto;
+  padding: 4px 0.65rem;
+  background: rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
-.volume-title-badge {
-  display: inline-block;
-  padding: 0.28rem 0.65rem;
-  background: rgba(255, 255, 255, 0.05);
+.card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.card-icon {
+  width: 14px;
+  height: 14px;
+  color: #38bdf8;
+}
+
+.card-icon.text-cyan {
+  color: #38bdf8;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 800;
   color: #cbd5e1;
-  font-size: 0.74rem;
-  font-weight: 700;
   letter-spacing: 0.04em;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
   text-transform: uppercase;
 }
 
 .mini-spinner {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(56, 189, 248, 0.2);
   border-top-color: #38bdf8;
   border-radius: 50%;
@@ -56,28 +72,243 @@
   }
 }
 
-/* Skeleton Loading State */
-.volume-skeleton-wrapper {
+/* ==========================================================================
+   CARD INNER BODY (Compact, high-density, no dead space)
+   ========================================================================== */
+.card-inner-body {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  padding: 0.5rem 0;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   2. MAIN 3-COLUMN CONTENT GRID (Day | Week | 1 Month)
+   ========================================================================== */
+.delivery-columns-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  overflow: hidden;
   flex: 1;
 }
 
-.skeleton-bar-row {
-  height: 24px;
-  width: 100%;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
+.period-card-col {
+  padding: 0.7rem 0.8rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: background 0.2s ease;
 }
 
-.skeleton-stats-box {
-  height: 65px;
+.period-card-col:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.period-col-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.period-col-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: -0.01em;
+}
+
+.period-card-body {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+/* Vertical Tube Cylinder - UNIFIED HIGH-TECH ACCENT COLOR ACROSS ALL 3 COLUMNS */
+.tube-container {
+  width: 26px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.tube-track {
   width: 100%;
-  border-radius: 8px;
-  margin-top: auto;
-  background: rgba(255, 255, 255, 0.03);
+  height: 100%;
+  background: #1a2333;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tube-fill {
+  width: 100%;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(180deg, #38bdf8 0%, #2563eb 100%);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stats Info Stack */
+.stats-info-stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.pct-headline-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pct-multiplier-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pct-huge-val {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.pct-sub-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1.2;
+}
+
+.pct-sub-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pct-dot-sep {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pts-diff-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.pts-diff-text.pts-up {
+  color: #00dc82;
+}
+
+.pts-diff-text.pts-down {
+  color: #f87171;
+}
+
+.horizontal-rule {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0.6rem 0;
+  width: 100%;
+}
+
+.volume-data-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.v-data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.v-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.dot-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-delivery {
+  background: #38bdf8;
+  box-shadow: 0 0 4px rgba(56, 189, 248, 0.7);
+}
+
+.dot-traded {
+  background: #64748b;
+}
+
+.v-row-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.vol-ratio-tag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.vol-ratio-tag.trend-up {
+  color: #00dc82;
+}
+
+.vol-ratio-tag.trend-down {
+  color: #f87171;
+}
+
+.v-row-val {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #f8fafc;
+  padding-left: 11px;
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   LOADING SKELETON STATE
+   ========================================================================== */
+.delivery-skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+  flex: 1;
+}
+
+.skeleton-col {
+  height: 140px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .shimmer {
@@ -93,243 +324,4 @@
   100% {
     background-position: -200% 0;
   }
-}
-
-/* ==========================================================================
-   2. MAIN HORIZONTAL BAR CHART AREA
-   ========================================================================== */
-.chart-section {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 165px;
-  margin-bottom: 0.85rem;
-}
-
-/* Grid Lines Layer */
-.grid-lines-layer {
-  position: absolute;
-  top: 0;
-  left: 70px;
-  right: 25px;
-  bottom: 42px;
-  pointer-events: none;
-}
-
-.grid-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
-  transform: translateX(-50%);
-}
-
-/* Chart Rows Stack */
-.chart-rows-stack {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-  margin-bottom: 0.4rem;
-}
-
-.chart-row {
-  display: flex;
-  align-items: center;
-  height: 24px;
-}
-
-.row-label {
-  width: 70px;
-  flex-shrink: 0;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #94a3b8;
-}
-
-.bar-track-area {
-  position: relative;
-  flex: 1;
-  height: 14px;
-  margin-right: 25px;
-}
-
-/* Background Bar: Traded Volume (NSE+BSE) */
-.bar-traded {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: rgba(56, 189, 248, 0.22);
-  border-radius: 9999px;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-/* Foreground Bar: Combined Delivery Volume */
-.bar-delivery {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: #0076fe;
-  border-radius: 9999px;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  box-shadow: 0 1px 6px rgba(0, 118, 254, 0.35);
-  z-index: 2;
-}
-
-/* Labels on the Bars */
-.bar-val-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  white-space: nowrap;
-  user-select: none;
-}
-
-/* Traded Volume Outer Label (White) */
-.outer-label {
-  position: absolute;
-  right: -6px;
-  transform: translateX(100%);
-  color: #f1f5f9;
-  padding-left: 6px;
-  background: transparent;
-}
-
-/* Delivery Volume Label (Bright Cyan - Seamless overlay without dark cut box) */
-.delivery-label {
-  position: absolute;
-  right: -4px;
-  transform: translateX(100%);
-  color: #38bdf8;
-  font-weight: 800;
-  font-size: 0.78rem;
-  background: transparent;
-  padding: 0 4px;
-  white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-  z-index: 4;
-}
-
-/* X-Axis Scale Ruler */
-.x-axis-ruler {
-  position: relative;
-  height: 18px;
-  margin-left: 70px;
-  margin-right: 25px;
-  margin-top: 0.4rem;
-}
-
-.axis-tick-item {
-  position: absolute;
-  transform: translateX(-50%);
-  top: 0;
-}
-
-.tick-label {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.axis-title-center {
-  text-align: center;
-  font-size: 0.72rem;
-  color: #94a3b8;
-  font-weight: 600;
-  margin-top: -2px;
-  margin-bottom: 0.5rem;
-}
-
-/* Chart Legend */
-.chart-legend-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1.5rem;
-  padding-top: 0.2rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.legend-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.dot-delivery {
-  background: #0076fe;
-}
-
-.dot-traded {
-  background: rgba(56, 189, 248, 0.4);
-}
-
-.legend-text {
-  font-size: 0.74rem;
-  color: #cbd5e1;
-  font-weight: 600;
-}
-
-/* ==========================================================================
-   3. BOTTOM DELIVERY VOLUME % STATS BOX
-   ========================================================================== */
-.delivery-stats-card {
-  margin-top: auto;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-}
-
-.stats-card-title {
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: #cbd5e1;
-  margin-bottom: 0.65rem;
-  text-transform: uppercase;
-}
-
-.stats-columns-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-}
-
-.stat-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.stat-col-lbl {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.stat-col-val {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #f8fafc;
-  letter-spacing: -0.01em;
 }

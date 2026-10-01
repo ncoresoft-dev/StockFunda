@@ -1,0 +1,133 @@
+<div class="company-about-card">
+  <!-- Loading Skeleton -->
+  @if (isLoading() && !companyOverview()) {
+  <div class="skeleton-wrapper">
+    <div class="skeleton-header shimmer"></div>
+    <div class="skeleton-line shimmer full"></div>
+    <div class="skeleton-line shimmer three-quarter"></div>
+    <div class="skeleton-line shimmer half"></div>
+  </div>
+  }
+
+  <!-- Error State -->
+  @if (hasError() && !companyOverview()) {
+  <div class="error-box">
+    <span class="error-msg">{{ errorMessage() }}</span>
+    <button type="button" class="retry-btn" (click)="fetchCompanyOverview(true)">Retry</button>
+  </div>
+  }
+
+  <!-- Main Content Display -->
+  @if (companyOverview(); as data) {
+  <!-- ========================================================================= -->
+  <!-- 1. ABOUT COMPANY BLOCK                                                    -->
+  <!-- ========================================================================= -->
+  <div class="card-section-block about-block">
+    <div class="section-top-header">
+      <div class="header-title-group">
+        @if (data.logoUrl) {
+        <div class="about-company-logo-badge">
+          <img [src]="data.logoUrl" [alt]="data.companyName + ' Logo'" class="about-logo-img"
+            (error)="$any($event.target).parentElement.style.display='none'" />
+        </div>
+        } @else {
+        <svg class="header-icon text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 21h18"></path>
+          <path d="M5 21V7l8-4v18"></path>
+          <path d="M19 21V11l-6-4"></path>
+          <path d="M9 9v.01"></path>
+          <path d="M9 13v.01"></path>
+          <path d="M9 17v.01"></path>
+        </svg>
+        }
+        <span class="section-title-text">ABOUT {{ data.companyName ? data.companyName.toUpperCase() : 'COMPANY'
+          }}</span>
+      </div>
+
+      <div class="header-actions-group">
+        <span class="source-badge" [title]="'Data Source: ' + data.source">
+          <span class="source-dot"></span>
+          {{ data.source === 'Hybrid' ? 'HYBRID (INDIAN API + YAHOO)' : (data.source | uppercase) }}
+        </span>
+        @if (isLoading()) {
+        <div class="mini-spinner"></div>
+        }
+      </div>
+    </div>
+
+    <div class="about-text-wrapper">
+      <p class="about-paragraph">
+        {{ getTruncatedAbout(data.about) }}
+      </p>
+      @if (data.about && data.about.length > 600) {
+      <button type="button" class="read-more-btn" (click)="toggleExpand()">
+        <span>[{{ isExpanded() ? 'Show less' : 'Read more' }}]</span>
+        <svg class="expand-icon" [class.rotated]="isExpanded()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5">
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+      }
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 2. CORPORATE PROFILE BLOCK                                                -->
+  <!-- ========================================================================= -->
+  <div class="card-section-block profile-block">
+    <div class="section-top-header profile-header-bar">
+      <div class="header-title-group">
+        <svg class="header-icon text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span class="section-title-text">CORPORATE PROFILE</span>
+      </div>
+
+      @if (data.websiteUrl) {
+      <button type="button" class="official-website-btn" (click)="openWebsite(data.websiteUrl)"
+        title="Visit official company website">
+        <span>OFFICIAL WEBSITE</span>
+        <svg class="ext-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </button>
+      }
+    </div>
+
+    <div class="profile-details-grid">
+      <!-- Sector -->
+      <div class="profile-row">
+        <span class="profile-field-label">Sector</span>
+        <span class="profile-field-value text-indigo-light">{{ getSector(data) }}</span>
+      </div>
+
+      <!-- Industry -->
+      <div class="profile-row">
+        <span class="profile-field-label">Industry</span>
+        <span class="profile-field-value text-cyan-light">{{ getIndustry(data) }}</span>
+      </div>
+
+      <!-- Founded -->
+      <div class="profile-row">
+        <span class="profile-field-label">Founded</span>
+        <span class="profile-field-value">{{ getFounded(data) }}</span>
+      </div>
+
+      <!-- Employees -->
+      <div class="profile-row">
+        <span class="profile-field-label">Employees</span>
+        <span class="profile-field-value">{{ formatProfileEmployees(data) }}</span>
+      </div>
+
+      <!-- HQ -->
+      <div class="profile-row">
+        <span class="profile-field-label">HQ</span>
+        <span class="profile-field-value">{{ getHeadquarters(data) }}</span>
+      </div>
+    </div>
+  </div>
+  }
+</div>

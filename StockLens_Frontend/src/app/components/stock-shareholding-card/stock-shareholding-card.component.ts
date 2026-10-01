@@ -49,7 +49,7 @@ export class StockShareholdingCardComponent {
   formatPp(val: number | null | undefined): string {
     if (val === null || val === undefined) return '—';
     const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(2)} pp`;
+    return `${sign}${val.toFixed(2)}%`;
   }
 
   formatHolding(val: number | null | undefined): string {
