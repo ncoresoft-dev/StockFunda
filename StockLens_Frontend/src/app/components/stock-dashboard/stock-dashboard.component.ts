@@ -1047,7 +1047,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     if (!this.shouldShowReadMore() || this.isAboutExpanded()) {
       return full;
     }
-    const limit = 1500;
+    const limit = 600;
     const truncated = full.substring(0, limit);
     const lastSpace = truncated.lastIndexOf(' ');
     return (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated).trim();
@@ -1196,6 +1196,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     netProfitQoQ: { text: string, isPositive: boolean };
     netProfitYoY: { text: string, isPositive: boolean };
     operatingProfit: string;
+    operatingProfitQoQ: { text: string, isPositive: boolean };
+    operatingProfitYoY: { text: string, isPositive: boolean };
     opMargin: string;
     eps: string;
     epsQoQ: { text: string, isPositive: boolean };
@@ -1231,6 +1233,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     const netProfitYoY = formatGrowth(q?.yoYGrowth?.netProfitGrowthPercent, 'YoY');
 
     const operatingProfit = sum?.operatingProfit !== null && sum?.operatingProfit !== undefined ? this.formatCrores(sum.operatingProfit) : '—';
+    const operatingProfitQoQ = formatGrowth(q?.qoQGrowth?.operatingProfitGrowthPercent, 'QoQ');
+    const operatingProfitYoY = formatGrowth(q?.yoYGrowth?.operatingProfitGrowthPercent, 'YoY');
     const opMargin = sum?.opmPercentage !== null && sum?.opmPercentage !== undefined ? `Margin: ${sum.opmPercentage.toFixed(1)}%` : 'Margin: —';
 
     const eps = sum?.eps !== null && sum?.eps !== undefined ? `₹${sum.eps.toFixed(2)}` : '—';
@@ -1254,6 +1258,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       netProfitQoQ,
       netProfitYoY,
       operatingProfit,
+      operatingProfitQoQ,
+      operatingProfitYoY,
       opMargin,
       eps,
       epsQoQ,
@@ -1326,12 +1332,38 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return '—';
   }
 
+  getRoeYoY(): number | null | undefined {
+    return this.cashflowResponse()?.ratios?.roeYoY;
+  }
+
+  getRoeTooltip(): string {
+    const r = this.cashflowResponse()?.ratios;
+    if (!r || r.roeYoY === null || r.roeYoY === undefined) return '';
+    let tip = `YoY Growth: ${r.roeYoY >= 0 ? '+' : ''}${r.roeYoY.toFixed(1)}%`;
+    if (r.roeChange !== null && r.roeChange !== undefined) tip += ` (${r.roeChange >= 0 ? '+' : ''}${r.roeChange.toFixed(2)}% pts)`;
+    if (r.roePrevYear !== null && r.roePrevYear !== undefined) tip += ` vs Prev Year: ${r.roePrevYear.toFixed(1)}%`;
+    return tip;
+  }
+
   getRoceFormatted(): string {
     const roce = this.cashflowResponse()?.ratios?.roce;
     if (roce !== null && roce !== undefined && !isNaN(roce)) {
       return this.formatNumber(roce, 1) + '%';
     }
     return '—';
+  }
+
+  getRoceYoY(): number | null | undefined {
+    return this.cashflowResponse()?.ratios?.roceYoY;
+  }
+
+  getRoceTooltip(): string {
+    const r = this.cashflowResponse()?.ratios;
+    if (!r || r.roceYoY === null || r.roceYoY === undefined) return '';
+    let tip = `YoY Growth: ${r.roceYoY >= 0 ? '+' : ''}${r.roceYoY.toFixed(1)}%`;
+    if (r.roceChange !== null && r.roceChange !== undefined) tip += ` (${r.roceChange >= 0 ? '+' : ''}${r.roceChange.toFixed(2)}% pts)`;
+    if (r.rocePrevYear !== null && r.rocePrevYear !== undefined) tip += ` vs Prev Year: ${r.rocePrevYear.toFixed(1)}%`;
+    return tip;
   }
 
   getSharesCountFormatted(): string {

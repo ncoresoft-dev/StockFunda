@@ -254,6 +254,36 @@
 .high52-value { color: #4ade80; }
 .low52-value { color: #fb923c; }
 
+.ratio-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ratio-trend-pill.trend-up {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.ratio-trend-pill.trend-down {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.prev-year-text {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  opacity: 0.85;
+}
+
 .facevalue-value { color: #38bdf8; }
 .totalequity-value { color: #f472b6; }
 .bookvalue-value { color: #2dd4bf; }

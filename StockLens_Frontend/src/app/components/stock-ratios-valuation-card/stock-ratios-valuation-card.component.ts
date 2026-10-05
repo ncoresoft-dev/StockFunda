@@ -66,6 +66,28 @@ export class StockRatiosValuationCardComponent {
     return `${value.toFixed(2)}x`;
   }
 
+  getRoeTooltip(): string {
+    const yoy = this.ratios?.roeYoY;
+    const prev = this.ratios?.roePrevYear;
+    const chg = this.ratios?.roeChange;
+    if (yoy === null || yoy === undefined) return '';
+    let tip = `YoY Growth: ${yoy >= 0 ? '+' : ''}${yoy.toFixed(1)}%`;
+    if (chg !== null && chg !== undefined) tip += ` (${chg >= 0 ? '+' : ''}${chg.toFixed(2)}% pts)`;
+    if (prev !== null && prev !== undefined) tip += ` vs Prev Year: ${this.formatPercentage(prev)}`;
+    return tip;
+  }
+
+  getRoceTooltip(): string {
+    const yoy = this.ratios?.roceYoY;
+    const prev = this.ratios?.rocePrevYear;
+    const chg = this.ratios?.roceChange;
+    if (yoy === null || yoy === undefined) return '';
+    let tip = `YoY Growth: ${yoy >= 0 ? '+' : ''}${yoy.toFixed(1)}%`;
+    if (chg !== null && chg !== undefined) tip += ` (${chg >= 0 ? '+' : ''}${chg.toFixed(2)}% pts)`;
+    if (prev !== null && prev !== undefined) tip += ` vs Prev Year: ${this.formatPercentage(prev)}`;
+    return tip;
+  }
+
   getRoeProgress(roe: number | null | undefined): number {
     if (!roe || roe <= 0) return 4;
     const pct = Math.round((roe / 25.0) * 100);

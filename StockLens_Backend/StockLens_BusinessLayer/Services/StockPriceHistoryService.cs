@@ -356,6 +356,10 @@ namespace StockLens_BusinessLayer.Services
                 result.Highs.Add(record.High > 0 ? record.High : Math.Max(record.Open, record.Close));
                 result.Lows.Add(record.Low > 0 ? record.Low : Math.Min(record.Open, record.Close));
                 result.ClosePrices.Add(record.Close);
+                // var effectiveVolume = (record.TotalTradedVolume.HasValue && record.TotalTradedVolume.Value > 0)
+                //     ? record.TotalTradedVolume.Value
+                //     : record.Volume;
+                //result.Volumes.Add(effectiveVolume);
                 result.Volumes.Add(record.Volume);
                 result.Dma50.Add(record.Dma50);
                 result.Dma200.Add(record.Dma200);

@@ -21,7 +21,13 @@ namespace StockLens_BusinessLayer.DTOs
     public class StockRatiosDto
     {
         public decimal? Roe { get; set; }
+        public decimal? RoeYoY { get; set; }
+        public decimal? RoeChange { get; set; }
+        public decimal? RoePrevYear { get; set; }
         public decimal? Roce { get; set; }
+        public decimal? RoceYoY { get; set; }
+        public decimal? RoceChange { get; set; }
+        public decimal? RocePrevYear { get; set; }
         public decimal? PeRatio { get; set; }
         public decimal? TtmEps { get; set; }
         public decimal? PbRatio { get; set; }

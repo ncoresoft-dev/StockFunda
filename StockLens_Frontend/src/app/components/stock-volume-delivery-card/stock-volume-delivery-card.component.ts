@@ -28,12 +28,16 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     if (this.analysisData) {
       this.deliveryData.set(this.analysisData);
+    } else {
+      this.loadDeliveryData();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['analysisData']) {
+    if (changes['analysisData'] && this.analysisData) {
       this.deliveryData.set(this.analysisData);
+    } else if (changes['symbol'] && this.symbol && !this.analysisData) {
+      this.loadDeliveryData();
     }
   }
 
@@ -42,7 +46,49 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
     return `${name} Day VOLUME ANALYSIS`;
   }
 
-  getDayVsWeekTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+  getMaxTradedVolume(): number {
+    const d = this.deliveryData();
+    if (!d) return 1;
+    const v1 = d.day?.tradedVolume || 0;
+    const v2 = d.week?.tradedVolume || 0;
+    const v3 = d.month?.tradedVolume || 0;
+    return Math.max(v1, v2, v3, 1);
+  }
+
+  getTradedBarHeightPct(tradedVol?: number): number {
+    if (!tradedVol || tradedVol <= 0) return 60;
+    const max = this.getMaxTradedVolume();
+    const minHeight = 65;
+    const ratio = Math.min(1, Math.max(0, tradedVol / max));
+    return Math.round(minHeight + (100 - minHeight) * ratio);
+  }
+
+  getDayTradedVsWeekTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+    const d = this.deliveryData();
+    if (!d?.day?.tradedVolume || !d?.week?.tradedVolume) return null;
+
+    const dayVol = d.day.tradedVolume;
+    const weekVol = d.week.tradedVolume;
+    if (weekVol <= 0 || dayVol <= 0) return null;
+
+    const isHigher = dayVol >= weekVol;
+    const mult = isHigher ? (dayVol / weekVol) : (weekVol / dayVol);
+    const multStr = mult.toFixed(2) + 'x';
+    const arrow = isHigher ? '▲' : '▼';
+    const tag = isHigher ? 'higher' : 'lower';
+
+    const dayFmt = d.day.formattedTradedVolume || this.formatVolume(dayVol);
+    const weekFmt = d.week.formattedTradedVolume || this.formatVolume(weekVol);
+
+    return {
+      multiplier: +mult.toFixed(2),
+      isHigher,
+      multiplierText: `${arrow} ${multStr}`,
+      tooltip: `Traded Volume: ${arrow} ${multStr} ${tag} vs week avg (${dayFmt} vs ${weekFmt})`
+    };
+  }
+
+  getDayDeliveryVsWeekTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
     const d = this.deliveryData();
     if (!d?.day || !d?.week) return null;
 
@@ -63,15 +109,19 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
     return {
       multiplier: +mult.toFixed(2),
       isHigher,
-      multiplierText: `${arrow} ${multStr} vs week avg`,
-      tooltip: `${arrow} ${multStr} ${tag} vs week avg (${dayFmt} vs ${weekFmt})`
+      multiplierText: `${arrow} ${multStr}`,
+      tooltip: `Delivery Volume: ${arrow} ${multStr} ${tag} vs week avg (${dayFmt} vs ${weekFmt})`
     };
+  }
+
+  getDayVsWeekTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+    return this.getDayDeliveryVsWeekTrend();
   }
 
   getDayVsWeekPtsDiff(): { diff: number; text: string; isPositive: boolean } | null {
     const d = this.deliveryData();
     if (d?.day?.deliveryPercentage === undefined || d?.day?.deliveryPercentage === null ||
-        d?.week?.deliveryPercentage === undefined || d?.week?.deliveryPercentage === null) {
+      d?.week?.deliveryPercentage === undefined || d?.week?.deliveryPercentage === null) {
       return null;
     }
 
@@ -84,7 +134,32 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
     };
   }
 
-  getWeekVsMonthTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+  getWeekTradedVsMonthTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+    const d = this.deliveryData();
+    if (!d?.week?.tradedVolume || !d?.month?.tradedVolume) return null;
+
+    const weekVol = d.week.tradedVolume;
+    const monthVol = d.month.tradedVolume;
+    if (monthVol <= 0 || weekVol <= 0) return null;
+
+    const isHigher = weekVol >= monthVol;
+    const mult = isHigher ? (weekVol / monthVol) : (monthVol / weekVol);
+    const multStr = mult.toFixed(2) + 'x';
+    const arrow = isHigher ? '▲' : '▼';
+    const tag = isHigher ? 'higher' : 'lower';
+
+    const weekFmt = d.week.formattedTradedVolume || this.formatVolume(weekVol);
+    const monthFmt = d.month.formattedTradedVolume || this.formatVolume(monthVol);
+
+    return {
+      multiplier: +mult.toFixed(2),
+      isHigher,
+      multiplierText: `${arrow} ${multStr}`,
+      tooltip: `Traded Volume: ${arrow} ${multStr} ${tag} vs month avg (${weekFmt} vs ${monthFmt})`
+    };
+  }
+
+  getWeekDeliveryVsMonthTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
     const d = this.deliveryData();
     if (!d?.week || !d?.month) return null;
 
@@ -105,15 +180,19 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
     return {
       multiplier: +mult.toFixed(2),
       isHigher,
-      multiplierText: `${arrow} ${multStr} vs month avg`,
-      tooltip: `${arrow} ${multStr} ${tag} vs month avg (${weekFmt} vs ${monthFmt})`
+      multiplierText: `${arrow} ${multStr}`,
+      tooltip: `Delivery Volume: ${arrow} ${multStr} ${tag} vs month avg (${weekFmt} vs ${monthFmt})`
     };
+  }
+
+  getWeekVsMonthTrend(): { multiplier: number; isHigher: boolean; multiplierText: string; tooltip: string } | null {
+    return this.getWeekDeliveryVsMonthTrend();
   }
 
   getWeekVsMonthPtsDiff(): { diff: number; text: string; isPositive: boolean } | null {
     const d = this.deliveryData();
     if (d?.week?.deliveryPercentage === undefined || d?.week?.deliveryPercentage === null ||
-        d?.month?.deliveryPercentage === undefined || d?.month?.deliveryPercentage === null) {
+      d?.month?.deliveryPercentage === undefined || d?.month?.deliveryPercentage === null) {
       return null;
     }
 
@@ -146,10 +225,10 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   formatVolume(val?: number): string {
     if (val === null || val === undefined || isNaN(val)) return '0';
     if (val >= 10000000) {
-      return (val / 1000000).toFixed(1) + 'M';
+      return (val / 1000000).toFixed(2) + 'M';
     }
     if (val >= 1000000) {
-      return (val / 1000000).toFixed(1) + 'M';
+      return (val / 1000000).toFixed(2) + 'M';
     }
     if (val >= 1000) {
       return (val / 1000).toFixed(1) + 'K';
@@ -167,22 +246,22 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
         tradedVolume: 4100000,
         deliveryVolume: 2800000,
         deliveryPercentage: 69.54,
-        formattedTradedVolume: '4.1M',
-        formattedDeliveryVolume: '2.8M'
+        formattedTradedVolume: '4.10M',
+        formattedDeliveryVolume: '2.80M'
       },
       week: {
         tradedVolume: 3900000,
         deliveryVolume: 2000000,
         deliveryPercentage: 50.34,
-        formattedTradedVolume: '3.9M',
-        formattedDeliveryVolume: '2.0M'
+        formattedTradedVolume: '3.90M',
+        formattedDeliveryVolume: '2.00M'
       },
       month: {
         tradedVolume: 4400000,
         deliveryVolume: 1900000,
         deliveryPercentage: 42.66,
-        formattedTradedVolume: '4.4M',
-        formattedDeliveryVolume: '1.9M'
+        formattedTradedVolume: '4.40M',
+        formattedDeliveryVolume: '1.90M'
       }
     };
   }

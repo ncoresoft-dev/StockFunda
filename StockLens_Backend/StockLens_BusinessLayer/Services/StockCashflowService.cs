@@ -243,10 +243,31 @@ namespace StockLens_BusinessLayer.Services
                         _logger.LogWarning(ex, "Failed to persist updated ratios to DB for {Symbol}", cleanSymbol);
                     }
 
+                    decimal? prevRoe = prevDb?.Roe;
+                    if (!prevRoe.HasValue && prevDb?.NetProfit.HasValue == true && (prevDb.TotalEquity.HasValue && prevDb.TotalEquity.Value > 0))
+                    {
+                        prevRoe = Math.Round((prevDb.NetProfit.Value / prevDb.TotalEquity.Value) * 100m, 2);
+                    }
+
+                    decimal? prevRoce = prevDb?.Roce;
+                    if (!prevRoce.HasValue && prevDb != null)
+                    {
+                        decimal? prevEbit = prevDb.ProfitBeforeTax.HasValue ? (prevDb.ProfitBeforeTax.Value + (prevDb.Interest ?? 0)) : (prevDb.OperatingProfit.HasValue ? prevDb.OperatingProfit.Value + (prevDb.OtherIncome ?? 0) : null);
+                        decimal? prevCapEmp = prevDb.TotalEquity.HasValue ? (prevDb.TotalEquity.Value + (latestBsDb?.Borrowings ?? 0)) : null;
+                        if (prevEbit.HasValue && prevCapEmp.HasValue && prevCapEmp.Value > 0)
+                            prevRoce = Math.Round((prevEbit.Value / prevCapEmp.Value) * 100m, 2);
+                    }
+
                     return new StockRatiosDto
                     {
                         Roe = cur.Roe,
+                        RoeYoY = CalculatePercentageGrowth(cur.Roe, prevRoe),
+                        RoeChange = (cur.Roe.HasValue && prevRoe.HasValue) ? Math.Round(cur.Roe.Value - prevRoe.Value, 2) : null,
+                        RoePrevYear = prevRoe,
                         Roce = cur.Roce,
+                        RoceYoY = CalculatePercentageGrowth(cur.Roce, prevRoce),
+                        RoceChange = (cur.Roce.HasValue && prevRoce.HasValue) ? Math.Round(cur.Roce.Value - prevRoce.Value, 2) : null,
+                        RocePrevYear = prevRoce,
                         PeRatio = cur.PeRatio,
                         TtmEps = cur.TtmEps,
                         PbRatio = cur.PbRatio,
@@ -422,10 +443,36 @@ namespace StockLens_BusinessLayer.Services
                             }
                         }
 
+                        var annualPeriods = indianData.Financials
+                            .Where(f => string.Equals(f.PeriodType, "annual", StringComparison.OrdinalIgnoreCase))
+                            .OrderByDescending(f => f.PeriodEndDate ?? DateTime.MinValue)
+                            .ToList();
+                        var prevAnnual = annualPeriods.Count > 1 ? annualPeriods[1] : null;
+
+                        decimal? prevRoeInd = null;
+                        if (prevAnnual?.NetProfit.HasValue == true && prevAnnual.TotalEquity.HasValue && prevAnnual.TotalEquity.Value > 0)
+                        {
+                            prevRoeInd = Math.Round((prevAnnual.NetProfit.Value / prevAnnual.TotalEquity.Value) * 100m, 2);
+                        }
+
+                        decimal? prevRoceInd = null;
+                        if (prevAnnual != null)
+                        {
+                            decimal? ebit = prevAnnual.ProfitBeforeTax.HasValue ? (prevAnnual.ProfitBeforeTax.Value + (prevAnnual.Interest ?? 0)) : (prevAnnual.OperatingProfit.HasValue ? prevAnnual.OperatingProfit.Value + (prevAnnual.OtherIncome ?? 0) : null);
+                            decimal? capEmp = prevAnnual.TotalEquity.HasValue ? (prevAnnual.TotalEquity.Value + (latestBsDb?.Borrowings ?? prevAnnual.TotalDebt ?? 0)) : null;
+                            if (ebit.HasValue && capEmp.HasValue && capEmp.Value > 0) prevRoceInd = Math.Round((ebit.Value / capEmp.Value) * 100m, 2);
+                        }
+
                         return new StockRatiosDto
                         {
                             Roe = indianData.Roe,
+                            RoeYoY = CalculatePercentageGrowth(indianData.Roe, prevRoeInd),
+                            RoeChange = (indianData.Roe.HasValue && prevRoeInd.HasValue) ? Math.Round(indianData.Roe.Value - prevRoeInd.Value, 2) : null,
+                            RoePrevYear = prevRoeInd,
                             Roce = indianData.Roce,
+                            RoceYoY = CalculatePercentageGrowth(indianData.Roce, prevRoceInd),
+                            RoceChange = (indianData.Roce.HasValue && prevRoceInd.HasValue) ? Math.Round(indianData.Roce.Value - prevRoceInd.Value, 2) : null,
+                            RocePrevYear = prevRoceInd,
                             PeRatio = computedPe,
                             TtmEps = indianData.TtmEps,
                             PbRatio = computedPb,
@@ -1753,10 +1800,31 @@ namespace StockLens_BusinessLayer.Services
                 }
             }
 
+            decimal? prevRoe = previous?.Roe;
+            if (!prevRoe.HasValue && previous?.NetProfit.HasValue == true && previous.TotalEquity.HasValue && previous.TotalEquity.Value > 0)
+            {
+                prevRoe = Math.Round((previous.NetProfit.Value / previous.TotalEquity.Value) * 100m, 2);
+            }
+
+            decimal? prevRoce = previous?.Roce;
+            if (!prevRoce.HasValue && previous != null)
+            {
+                decimal? prevEbit = previous.ProfitBeforeTax.HasValue ? (previous.ProfitBeforeTax.Value + (previous.Interest ?? 0)) : (previous.OperatingProfit.HasValue ? previous.OperatingProfit.Value + (previous.OtherIncome ?? 0) : null);
+                decimal? prevCapEmp = previous.TotalEquity.HasValue ? (previous.TotalEquity.Value + (latestBs?.Borrowings ?? 0)) : null;
+                if (prevEbit.HasValue && prevCapEmp.HasValue && prevCapEmp.Value > 0)
+                    prevRoce = Math.Round((prevEbit.Value / prevCapEmp.Value) * 100m, 2);
+            }
+
             var ratiosDto = new StockRatiosDto
             {
                 Roe = roe,
+                RoeYoY = CalculatePercentageGrowth(roe, prevRoe),
+                RoeChange = (roe.HasValue && prevRoe.HasValue) ? Math.Round(roe.Value - prevRoe.Value, 2) : null,
+                RoePrevYear = prevRoe,
                 Roce = roce,
+                RoceYoY = CalculatePercentageGrowth(roce, prevRoce),
+                RoceChange = (roce.HasValue && prevRoce.HasValue) ? Math.Round(roce.Value - prevRoce.Value, 2) : null,
+                RocePrevYear = prevRoce,
                 PeRatio = peRatio,
                 TtmEps = current.TtmEps,
                 PbRatio = pbRatio,

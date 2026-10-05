@@ -91,9 +91,8 @@ namespace StockLens_BusinessLayer.Services
             {
                 var existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12);
 
-                var isStale = existingQuarters.Count == 0 ||
-                              existingQuarters.Max(q => q.LastSyncedAt) < DateTime.UtcNow.AddDays(-7) ||
-                              existingQuarters.GroupBy(q => q.PeriodEndDate.HasValue ? q.PeriodEndDate.Value.ToString("yyyy-MM") : q.FiscalYear).Any(g => g.Count() > 1);
+                var isStale = existingQuarters.Count == 0 || existingQuarters.Max(q => q.LastSyncedAt) < DateTime.UtcNow.AddDays(-7);
+
 
                 if (forceRefresh || isStale)
                 {

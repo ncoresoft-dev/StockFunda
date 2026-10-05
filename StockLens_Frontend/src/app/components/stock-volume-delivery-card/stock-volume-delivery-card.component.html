@@ -1,5 +1,5 @@
 <div class="volume-delivery-container">
-  <!-- 1. Top Section Header (Identical structure and typography to Latest News & Cockpit Cards) -->
+  <!-- 1. Top Section Header -->
   <div class="card-top-bar">
     <div class="card-title-group">
       <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -8,6 +8,18 @@
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
       <span class="card-title">{{ getDisplayTitle() }}</span>
+    </div>
+
+    <!-- Quick Legend -->
+    <div class="header-legend">
+      <span class="legend-item">
+        <span class="legend-dot dot-traded"></span>
+        <span class="legend-text">Traded Vol</span>
+      </span>
+      <span class="legend-item">
+        <span class="legend-dot dot-delivery"></span>
+        <span class="legend-text">Delivery Vol</span>
+      </span>
     </div>
 
     @if (isLoading()) {
@@ -28,165 +40,233 @@
     <!-- 2. Main 3-Column Content Grid (Day | Week | 1 Month) -->
     @if (deliveryData(); as data) {
     <div class="delivery-columns-grid">
-      <!-- Column 1: Day -->
+
+      <!-- ================= Column 1: Day ================= -->
       <div class="period-card-col col-day">
         <div class="period-col-header">
           <span class="period-col-title">Day</span>
+          @if (getDayTradedVsWeekTrend(); as trend) {
+          <span class="vol-period-badge" [class.badge-up]="trend.isHigher" [class.badge-down]="!trend.isHigher"
+            [title]="trend.tooltip">
+            Vol {{ trend.multiplierText }}
+          </span>
+          }
         </div>
 
         <div class="period-card-body">
-          <!-- Vertical Tube Cylinder -->
-          <div class="tube-container">
-            <div class="tube-track">
-              <div class="tube-fill" [style.height.%]="data.day.deliveryPercentage"></div>
+          <!-- Dual-Layer Vertical Volume Cylinder (Pillar = Traded Volume, Filled Core = Delivery Volume) -->
+          <div class="tube-container"
+            [title]="'Traded: ' + (data.day.formattedTradedVolume || formatVolume(data.day.tradedVolume)) + ' | Delivery: ' + (data.day.formattedDeliveryVolume || formatVolume(data.day.deliveryVolume)) + ' (' + (data.day.deliveryPercentage | number:'1.1-2') + '%)'">
+            <div class="tube-track" [style.height.%]="getTradedBarHeightPct(data.day.tradedVolume)">
+              <!-- Intraday / Speculative Vol Portion (Top) -->
+              <div class="tube-intraday-bg"></div>
+              <!-- Delivery Volume Fill (Bottom portion of Traded Vol) -->
+              <div class="tube-fill-delivery" [style.height.%]="data.day.deliveryPercentage">
+                <div class="delivery-meniscus"></div>
+              </div>
+              <div class="tube-cap-marker" title="Total Traded Volume"></div>
             </div>
+            <span class="tube-axis-label">VOL</span>
           </div>
 
           <!-- Right Info Stack -->
           <div class="stats-info-stack">
-            <div class="pct-headline-box">
-              <span class="pct-huge-val">{{ data.day.deliveryPercentage ? (data.day.deliveryPercentage | number:'1.2-2') + '%' : '—' }}</span>
-              <div class="pct-sub-label-row">
-                <span class="pct-sub-label">Delivery %</span>
+            <!-- 1. PRIMARY HERO: Traded Volume -->
+            <div class="metric-block primary-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-traded"></span>
+                <span class="metric-label">TRADED VOL</span>
+              </div>
+              <div class="hero-val-row">
+                <span class="hero-volume-val">{{ data.day.formattedTradedVolume || formatVolume(data.day.tradedVolume)
+                  }}</span>
+              </div>
+            </div>
+
+            <!-- 2. SUB-PRIMARY: Delivery Volume -->
+            <div class="metric-block delivery-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-delivery"></span>
+                <span class="metric-label">DELIVERY VOL</span>
+                @if (getDayDeliveryVsWeekTrend(); as delTrend) {
+                <span class="del-ratio-tag" [class.trend-up]="delTrend.isHigher" [class.trend-down]="!delTrend.isHigher"
+                  [title]="delTrend.tooltip">
+                  {{ delTrend.multiplierText }}
+                </span>
+                }
+              </div>
+              <div class="delivery-val-row">
+                <span class="delivery-volume-val">{{ data.day.formattedDeliveryVolume ||
+                  formatVolume(data.day.deliveryVolume) }}</span>
+              </div>
+            </div>
+
+            <!-- 3. Delivery % -->
+            <div class="metric-block pct-block">
+              <div class="metric-meta-row">
+                <span class="metric-label">DELIVERY %</span>
                 @if (getDayVsWeekPtsDiff(); as pts) {
-                <span class="pct-dot-sep">·</span>
-                <span class="pts-diff-text" [class.pts-up]="pts.isPositive" [class.pts-down]="!pts.isPositive" [title]="pts.text + ' vs week avg'">
+                <span class="del-ratio-tag" [class.trend-up]="pts.isPositive" [class.trend-down]="!pts.isPositive"
+                  [title]="pts.text + ' vs week avg'">
                   {{ pts.text }}
                 </span>
                 }
               </div>
-            </div>
-
-            <div class="horizontal-rule"></div>
-
-            <div class="volume-data-rows">
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-delivery"></span>
-                  <span class="v-row-label">Delivery Volume</span>
-                  @if (getDayVsWeekTrend(); as trend) {
-                  <span class="vol-ratio-tag" [class.trend-up]="trend.isHigher" [class.trend-down]="!trend.isHigher" [title]="trend.tooltip">
-                    {{ trend.multiplierText }}
-                  </span>
-                  }
-                </div>
-                <span class="v-row-val">{{ data.day.formattedDeliveryVolume || formatVolume(data.day.deliveryVolume) }}</span>
-              </div>
-
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-traded"></span>
-                  <span class="v-row-label">Traded Volume</span>
-                </div>
-                <span class="v-row-val">{{ data.day.formattedTradedVolume || formatVolume(data.day.tradedVolume) }}</span>
+              <div class="pct-val-row">
+                <span class="pct-volume-val">{{ data.day.deliveryPercentage ? (data.day.deliveryPercentage |
+                  number:'1.2-2') + '%' : '—' }}</span>
               </div>
             </div>
+
           </div>
         </div>
       </div>
 
-      <!-- Column 2: Week -->
+      <!-- ================= Column 2: Week ================= -->
       <div class="period-card-col col-week">
         <div class="period-col-header">
           <span class="period-col-title">Week</span>
+          @if (getWeekTradedVsMonthTrend(); as trend) {
+          <span class="vol-period-badge" [class.badge-up]="trend.isHigher" [class.badge-down]="!trend.isHigher"
+            [title]="trend.tooltip">
+            Vol {{ trend.multiplierText }}
+          </span>
+          }
         </div>
 
         <div class="period-card-body">
-          <!-- Vertical Tube Cylinder -->
-          <div class="tube-container">
-            <div class="tube-track">
-              <div class="tube-fill" [style.height.%]="data.week.deliveryPercentage"></div>
+          <!-- Dual-Layer Vertical Volume Cylinder (Pillar = Traded Volume, Filled Core = Delivery Volume) -->
+          <div class="tube-container"
+            [title]="'Traded: ' + (data.week.formattedTradedVolume || formatVolume(data.week.tradedVolume)) + ' | Delivery: ' + (data.week.formattedDeliveryVolume || formatVolume(data.week.deliveryVolume)) + ' (' + (data.week.deliveryPercentage | number:'1.1-2') + '%)'">
+            <div class="tube-track" [style.height.%]="getTradedBarHeightPct(data.week.tradedVolume)">
+              <!-- Intraday / Speculative Vol Portion (Top) -->
+              <div class="tube-intraday-bg"></div>
+              <!-- Delivery Volume Fill (Bottom portion of Traded Vol) -->
+              <div class="tube-fill-delivery" [style.height.%]="data.week.deliveryPercentage">
+                <div class="delivery-meniscus"></div>
+              </div>
+              <div class="tube-cap-marker" title="Avg Traded Volume"></div>
             </div>
+            <span class="tube-axis-label">VOL</span>
           </div>
 
           <!-- Right Info Stack -->
           <div class="stats-info-stack">
-            <div class="pct-headline-box">
-              <span class="pct-huge-val">{{ data.week.deliveryPercentage ? (data.week.deliveryPercentage | number:'1.2-2') + '%' : '—' }}</span>
-              <div class="pct-sub-label-row">
-                <span class="pct-sub-label">Delivery %</span>
+            <!-- 1. PRIMARY HERO: Traded Volume -->
+            <div class="metric-block primary-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-traded"></span>
+                <span class="metric-label">AVG TRADED / DAY</span>
+              </div>
+              <div class="hero-val-row">
+                <span class="hero-volume-val">{{ data.week.formattedTradedVolume || formatVolume(data.week.tradedVolume)
+                  }}</span>
+              </div>
+            </div>
+
+            <!-- 2. SUB-PRIMARY: Delivery Volume -->
+            <div class="metric-block delivery-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-delivery"></span>
+                <span class="metric-label">AVG DELIVERY / DAY</span>
+                @if (getWeekDeliveryVsMonthTrend(); as delTrend) {
+                <span class="del-ratio-tag" [class.trend-up]="delTrend.isHigher" [class.trend-down]="!delTrend.isHigher"
+                  [title]="delTrend.tooltip">
+                  {{ delTrend.multiplierText }}
+                </span>
+                }
+              </div>
+              <div class="delivery-val-row">
+                <span class="delivery-volume-val">{{ data.week.formattedDeliveryVolume ||
+                  formatVolume(data.week.deliveryVolume) }}</span>
+              </div>
+            </div>
+
+            <!-- 3. Delivery % -->
+            <div class="metric-block pct-block">
+              <div class="metric-meta-row">
+                <span class="metric-label">DELIVERY %</span>
                 @if (getWeekVsMonthPtsDiff(); as pts) {
-                <span class="pct-dot-sep">·</span>
-                <span class="pts-diff-text" [class.pts-up]="pts.isPositive" [class.pts-down]="!pts.isPositive" [title]="pts.text + ' vs month avg'">
+                <span class="del-ratio-tag" [class.trend-up]="pts.isPositive" [class.trend-down]="!pts.isPositive"
+                  [title]="pts.text + ' vs month avg'">
                   {{ pts.text }}
                 </span>
                 }
               </div>
-            </div>
-
-            <div class="horizontal-rule"></div>
-
-            <div class="volume-data-rows">
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-delivery"></span>
-                  <span class="v-row-label">Avg Delivery / Day</span>
-                  @if (getWeekVsMonthTrend(); as trend) {
-                  <span class="vol-ratio-tag" [class.trend-up]="trend.isHigher" [class.trend-down]="!trend.isHigher" [title]="trend.tooltip">
-                    {{ trend.multiplierText }}
-                  </span>
-                  }
-                </div>
-                <span class="v-row-val">{{ data.week.formattedDeliveryVolume || formatVolume(data.week.deliveryVolume) }}</span>
-              </div>
-
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-traded"></span>
-                  <span class="v-row-label">Avg Traded / Day</span>
-                </div>
-                <span class="v-row-val">{{ data.week.formattedTradedVolume || formatVolume(data.week.tradedVolume) }}</span>
+              <div class="pct-val-row">
+                <span class="pct-volume-val">{{ data.week.deliveryPercentage ? (data.week.deliveryPercentage |
+                  number:'1.2-2') + '%' : '—' }}</span>
               </div>
             </div>
+
           </div>
         </div>
       </div>
 
-      <!-- Column 3: 1 Month -->
+      <!-- ================= Column 3: 1 Month ================= -->
       <div class="period-card-col col-month">
         <div class="period-col-header">
           <span class="period-col-title">1 Month</span>
+          <span class="period-baseline-badge">30D Avg</span>
         </div>
 
         <div class="period-card-body">
-          <!-- Vertical Tube Cylinder -->
-          <div class="tube-container">
-            <div class="tube-track">
-              <div class="tube-fill" [style.height.%]="data.month.deliveryPercentage"></div>
+          <!-- Dual-Layer Vertical Volume Cylinder (Pillar = Traded Volume, Filled Core = Delivery Volume) -->
+          <div class="tube-container"
+            [title]="'Traded: ' + (data.month.formattedTradedVolume || formatVolume(data.month.tradedVolume)) + ' | Delivery: ' + (data.month.formattedDeliveryVolume || formatVolume(data.month.deliveryVolume)) + ' (' + (data.month.deliveryPercentage | number:'1.1-2') + '%)'">
+            <div class="tube-track" [style.height.%]="getTradedBarHeightPct(data.month.tradedVolume)">
+              <!-- Intraday / Speculative Vol Portion (Top) -->
+              <div class="tube-intraday-bg"></div>
+              <!-- Delivery Volume Fill (Bottom portion of Traded Vol) -->
+              <div class="tube-fill-delivery" [style.height.%]="data.month.deliveryPercentage">
+                <div class="delivery-meniscus"></div>
+              </div>
+              <div class="tube-cap-marker" title="Avg Traded Volume"></div>
             </div>
+            <span class="tube-axis-label">VOL</span>
           </div>
 
           <!-- Right Info Stack -->
           <div class="stats-info-stack">
-            <div class="pct-headline-box">
-              <span class="pct-huge-val">{{ data.month.deliveryPercentage ? (data.month.deliveryPercentage | number:'1.2-2') + '%' : '—' }}</span>
-              <div class="pct-sub-label-row">
-                <span class="pct-sub-label">Delivery %</span>
+            <!-- 1. PRIMARY HERO: Traded Volume -->
+            <div class="metric-block primary-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-traded"></span>
+                <span class="metric-label">AVG TRADED / DAY</span>
+              </div>
+              <div class="hero-val-row">
+                <span class="hero-volume-val">{{ data.month.formattedTradedVolume ||
+                  formatVolume(data.month.tradedVolume) }}</span>
               </div>
             </div>
 
-            <div class="horizontal-rule"></div>
-
-            <div class="volume-data-rows">
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-delivery"></span>
-                  <span class="v-row-label">Avg Delivery / Day</span>
-                </div>
-                <span class="v-row-val">{{ data.month.formattedDeliveryVolume || formatVolume(data.month.deliveryVolume) }}</span>
+            <!-- 2. SUB-PRIMARY: Delivery Volume -->
+            <div class="metric-block delivery-block">
+              <div class="metric-meta-row">
+                <span class="dot-indicator dot-delivery"></span>
+                <span class="metric-label">AVG DELIVERY / DAY</span>
               </div>
-
-              <div class="v-data-row">
-                <div class="v-row-meta">
-                  <span class="dot-indicator dot-traded"></span>
-                  <span class="v-row-label">Avg Traded / Day</span>
-                </div>
-                <span class="v-row-val">{{ data.month.formattedTradedVolume || formatVolume(data.month.tradedVolume) }}</span>
+              <div class="delivery-val-row">
+                <span class="delivery-volume-val">{{ data.month.formattedDeliveryVolume ||
+                  formatVolume(data.month.deliveryVolume) }}</span>
               </div>
             </div>
+
+            <!-- 3. Delivery % -->
+            <div class="metric-block pct-block">
+              <div class="metric-meta-row">
+                <span class="metric-label">DELIVERY %</span>
+              </div>
+              <div class="pct-val-row">
+                <span class="pct-volume-val">{{ data.month.deliveryPercentage ? (data.month.deliveryPercentage |
+                  number:'1.2-2') + '%' : '—' }}</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
+
     </div>
     }
   </div>

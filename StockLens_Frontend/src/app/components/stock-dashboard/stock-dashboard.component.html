@@ -18,7 +18,7 @@
             <path d="M18 9l-5 5-4-4-6 6" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
         </div>
-        <span class="brand-title">Stock<span class="brand-highlight">Funda</span></span>
+        <span class="brand-title">Stock<span class="brand-highlight">Lens</span></span>
       </div>
     </div>
 
@@ -278,15 +278,9 @@
             <div class="ownership-4quad-grid">
               <!-- Promoter -->
               <div class="owner-pill-box">
-                <div class="pill-icon-circle bg-emerald-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-                <div class="pill-data-col">
-                  <span class="pill-label">Promoter</span>
-                  <span class="pill-val">{{ getOwnershipBreakdown().promoter }}</span>
+                <span class="pill-label"><span class="dot dot-emerald"></span>Promoter</span>
+                <div class="pill-val">{{ getOwnershipBreakdown().promoter }}</div>
+                <div class="pill-delta-row">
                   <span class="pill-delta" [class.positive]="getOwnershipBreakdown().promoterIsPos"
                     [class.negative]="!getOwnershipBreakdown().promoterIsPos">{{ getOwnershipBreakdown().promoterPp
                     }}</span>
@@ -295,15 +289,9 @@
 
               <!-- FII / FPI -->
               <div class="owner-pill-box">
-                <div class="pill-icon-circle bg-blue-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                  </svg>
-                </div>
-                <div class="pill-data-col">
-                  <span class="pill-label">FII / FPI</span>
-                  <span class="pill-val">{{ getOwnershipBreakdown().fii }}</span>
+                <span class="pill-label"><span class="dot dot-cyan"></span>FII / FPI</span>
+                <div class="pill-val">{{ getOwnershipBreakdown().fii }}</div>
+                <div class="pill-delta-row">
                   <span class="pill-delta" [class.positive]="getOwnershipBreakdown().fiiIsPos"
                     [class.negative]="!getOwnershipBreakdown().fiiIsPos">{{ getOwnershipBreakdown().fiiPp }}</span>
                 </div>
@@ -311,15 +299,9 @@
 
               <!-- DII -->
               <div class="owner-pill-box">
-                <div class="pill-icon-circle bg-purple-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <circle cx="12" cy="12" r="4"></circle>
-                  </svg>
-                </div>
-                <div class="pill-data-col">
-                  <span class="pill-label">DII</span>
-                  <span class="pill-val">{{ getOwnershipBreakdown().dii }}</span>
+                <span class="pill-label"><span class="dot dot-purple"></span>DII</span>
+                <div class="pill-val">{{ getOwnershipBreakdown().dii }}</div>
+                <div class="pill-delta-row">
                   <span class="pill-delta" [class.positive]="getOwnershipBreakdown().diiIsPos"
                     [class.negative]="!getOwnershipBreakdown().diiIsPos">{{ getOwnershipBreakdown().diiPp }}</span>
                 </div>
@@ -327,15 +309,9 @@
 
               <!-- Public -->
               <div class="owner-pill-box">
-                <div class="pill-icon-circle bg-amber-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-                <div class="pill-data-col">
-                  <span class="pill-label">Public</span>
-                  <span class="pill-val">{{ getOwnershipBreakdown().public }}</span>
+                <span class="pill-label"><span class="dot dot-amber"></span>Public</span>
+                <div class="pill-val">{{ getOwnershipBreakdown().public }}</div>
+                <div class="pill-delta-row">
                   <span class="pill-delta" [class.positive]="getOwnershipBreakdown().publicIsPos"
                     [class.negative]="!getOwnershipBreakdown().publicIsPos">{{ getOwnershipBreakdown().publicPp
                     }}</span>
@@ -396,139 +372,93 @@
           </div>
 
           <div class="financials-card-body">
-            <!-- Row 1: 3 boxes (33.3% width each, 50% height) -->
-            <div class="fin-flex-row fin-row-3col">
+            <!-- Row 1: 3 Hero Boxes (Revenue, Operating Profit, Net Profit) -->
+            <div class="fin-row-3col">
               <!-- 1. Revenue / Sales -->
               <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Revenue / Sales</span>
-                  <svg class="fin-trend-icon" [class.positive]="getQuarterlyFinancialsData().salesQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                </div>
+                <span class="fin-lbl"><span class="dot dot-cyan"></span>Revenue</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().sales }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().salesQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().salesQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().salesQoQ.text }}
+                  </span>
                 </div>
               </div>
 
               <!-- 2. Operating Profit -->
               <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Operating Profit</span>
-                  <svg class="fin-trend-icon" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                </div>
+                <span class="fin-lbl"><span class="dot dot-emerald"></span>Operating Profit</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().operatingProfit }}</div>
                 <div class="fin-deltas-row">
+                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().operatingProfitQoQ.isPositive"
+                    [class.negative]="!getQuarterlyFinancialsData().operatingProfitQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().operatingProfitQoQ.text }}
+                  </span>
                   <span class="fin-margin">{{ getQuarterlyFinancialsData().opMargin }}</span>
                 </div>
               </div>
 
               <!-- 3. Net Profit (PAT) -->
               <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Net Profit (PAT)</span>
-                  <svg class="fin-trend-icon" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                </div>
+                <span class="fin-lbl"><span class="dot dot-indigo"></span>Net Profit (PAT)</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().netProfit }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().netProfitQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().netProfitQoQ.text }}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <!-- Row 2: 4 boxes (25% width each, 50% height) -->
-            <div class="fin-flex-row fin-row-4col">
+            <!-- Row 2: 2x2 Grid (EPS, Interest, Tax, Depreciation) -->
+            <div class="fin-2x2-grid">
               <!-- 4. EPS -->
-              <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">EPS</span>
-                  <svg class="fin-trend-icon" [class.positive]="getQuarterlyFinancialsData().epsQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2">
-                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                    <polyline points="17 6 23 6 23 12"></polyline>
-                  </svg>
-                </div>
+              <div class="fin-sub-box">
+                <span class="fin-lbl"><span class="dot dot-emerald"></span>EPS</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().eps }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().epsQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().epsQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().epsQoQ.text }}
+                  </span>
                 </div>
               </div>
 
               <!-- 5. Interest -->
-              <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Interest</span>
-                  <svg class="fin-stat-icon text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                </div>
+              <div class="fin-sub-box">
+                <span class="fin-lbl"><span class="dot dot-amber"></span>Interest</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().interest }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().interestQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().interestQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().interestQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().interestQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().interestQoQ.text }}
+                  </span>
                 </div>
               </div>
 
               <!-- 6. Tax -->
-              <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Tax</span>
-                  <svg class="fin-stat-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <path d="M3 21h18"></path>
-                    <path d="M5 21V7l8-4v18"></path>
-                    <path d="M19 21V11l-6-4"></path>
-                  </svg>
-                </div>
+              <div class="fin-sub-box">
+                <span class="fin-lbl"><span class="dot dot-cyan"></span>Tax</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().tax }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().taxQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().taxQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().taxQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().taxQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().taxQoQ.text }}
+                  </span>
                 </div>
               </div>
 
               <!-- 7. Depreciation -->
-              <div class="fin-metric-box">
-                <div class="fin-top-row">
-                  <span class="fin-lbl">Depreciation</span>
-                  <svg class="fin-stat-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
-                </div>
+              <div class="fin-sub-box">
+                <span class="fin-lbl"><span class="dot dot-purple"></span>Depreciation</span>
                 <div class="fin-val">{{ getQuarterlyFinancialsData().depreciation }}</div>
                 <div class="fin-deltas-row">
                   <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().depreciationQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().depreciationQoQ.isPositive">{{
-                    getQuarterlyFinancialsData().depreciationQoQ.text }}</span>
+                    [class.negative]="!getQuarterlyFinancialsData().depreciationQoQ.isPositive">
+                    {{ getQuarterlyFinancialsData().depreciationQoQ.text }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -598,7 +528,14 @@
                 </svg>
               </div>
               <div class="lq-metric-info">
-                <span class="lq-metric-label">ROE</span>
+                <div class="lq-metric-label-row">
+                  <span class="lq-metric-label">ROE</span>
+                  @if (getRoeYoY(); as roeY) {
+                    <span class="lq-delta-tag" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
+                      {{ getArrow(roeY) }} {{ formatPercent(roeY) }}
+                    </span>
+                  }
+                </div>
                 <span class="lq-metric-value">{{ getRoeFormatted() }}</span>
               </div>
             </div>
@@ -613,7 +550,14 @@
                 </svg>
               </div>
               <div class="lq-metric-info">
-                <span class="lq-metric-label">ROCE</span>
+                <div class="lq-metric-label-row">
+                  <span class="lq-metric-label">ROCE</span>
+                  @if (getRoceYoY(); as roceY) {
+                    <span class="lq-delta-tag" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
+                      {{ getArrow(roceY) }} {{ formatPercent(roceY) }}
+                    </span>
+                  }
+                </div>
                 <span class="lq-metric-value">{{ getRoceFormatted() }}</span>
               </div>
             </div>
@@ -835,8 +779,7 @@
         [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()">
       </app-stock-volume-delivery-card>
       <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-        [refreshTrigger]="technicalRefreshTrigger()"
-        (breakoutStateChange)="onBreakoutStateChange($event)"
+        [refreshTrigger]="technicalRefreshTrigger()" (breakoutStateChange)="onBreakoutStateChange($event)"
         [style.display]="hasActiveBreakouts() ? 'block' : 'none'">
       </app-stock-technical-analysis>
     </div>
@@ -1009,51 +952,68 @@
           </div>
         </div>
 
-        <div class="card-inner-content split-content-col">
+        <div class="card-inner-content bs-card-content">
           <!-- BALANCE SHEET ESSENTIALS -->
-          <div class="sub-section">
+          <div class="sub-section bs-section-block">
             <span class="sub-section-heading">BALANCE SHEET ESSENTIALS</span>
-            <div class="cflow-list">
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">Fixed Assets / Total</span></div>
-                <span class="cf-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
+            <div class="bs-feature-banner">
+              <div class="bs-feature-left">
+                <div class="bs-feature-icon-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                      d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                    </path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                </div>
+                <div class="bs-feature-text">
+                  <span class="bs-feature-title">Fixed Assets / Total</span>
+                  <span class="bs-feature-desc">Tangible &amp; Capital Asset Base</span>
+                </div>
               </div>
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">Book Value per Share</span></div>
-                <span class="cf-val">{{ formatCurrency(cashflowResponse()?.ratios?.bookValue) }}</span>
+              <div class="bs-feature-right">
+                <span class="bs-feature-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
               </div>
             </div>
           </div>
 
           <!-- VALUATION MULTIPLES & 5Y TRENDS -->
-          <div class="sub-section">
+          <div class="sub-section bs-section-block">
             <span class="sub-section-heading">VALUATION MULTIPLES &amp; 5Y TRENDS</span>
-            <div class="cflow-list">
-              <!-- 1. P/E vs Sector P/E -->
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">P/E vs Sector P/E</span></div>
-                <span class="cf-val"><b>{{ formatRatio(cashflowResponse()?.ratios?.peRatio) }}</b> / {{
-                  formatRatio(cashflowResponse()?.ratios?.sectorPe) }}</span>
+            <div class="bs-duo-grid">
+              <!-- PEG Ratio -->
+              <div class="quad-box bs-stat-card">
+                <div class="quad-label-row">
+                  <span class="quad-label"><span class="dot dot-indigo"></span>PEG Ratio</span>
+                  <span class="mini-delta neutral">Valuation</span>
+                </div>
+                <div class="bs-stat-main">
+                  <span class="quad-value text-accent">{{ getPegRatio() !== null && getPegRatio() !== undefined ?
+                    (getPegRatio() + 'x') : '—' }}</span>
+                </div>
+                <div class="bs-stat-footnote">
+                  <span class="bs-sub-tag">P/E to Growth</span>
+                </div>
               </div>
 
-              <!-- 2. Dedicated PEG Ratio -->
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">PEG Ratio</span></div>
-                <span class="cf-val text-accent">
-                  <b>{{ getPegRatio() !== null && getPegRatio() !== undefined ? (getPegRatio() + 'x') : '—' }}</b>
-                </span>
-              </div>
-
-              <!-- 3. P/B Ratio -->
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">Price to Book (P/B)</span></div>
-                <span class="cf-val text-purple">{{ formatRatio(cashflowResponse()?.ratios?.pbRatio) }}x</span>
-              </div>
-
-              <!-- 4. 5Y Asset Growth -->
-              <div class="cflow-item">
-                <div class="cf-left"><span class="cf-name">5Y Asset Growth</span></div>
-                <span class="cf-val text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage) }}</span>
+              <!-- 5Y Asset Growth -->
+              <div class="quad-box bs-stat-card">
+                <div class="quad-label-row">
+                  <span class="quad-label"><span class="dot dot-emerald"></span>5Y Asset Growth</span>
+                  @if (assetsResponse()?.assetGrowthPercentage; as g) {
+                  <span class="delta-tag" [ngClass]="getChangeClass(g)">
+                    {{ getArrow(g) }} {{ formatPercent(g) }}
+                  </span>
+                  }
+                </div>
+                <div class="bs-stat-main">
+                  <span class="quad-value text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage)
+                    }}</span>
+                </div>
+                <div class="bs-stat-footnote">
+                  <span class="bs-sub-tag">5-Year Trend</span>
+                </div>
               </div>
             </div>
           </div>

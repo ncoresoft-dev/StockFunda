@@ -19,7 +19,7 @@
 }
 
 /* ==========================================================================
-   1. TOP SECTION HEADER (Identical to other cockpit sections)
+   1. TOP SECTION HEADER
    ========================================================================== */
 .card-top-bar {
   min-height: 34px;
@@ -31,6 +31,7 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  gap: 0.5rem;
 }
 
 .card-title-group {
@@ -55,6 +56,36 @@
   color: #cbd5e1;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.legend-text {
+  font-size: 0.66rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .mini-spinner {
@@ -73,7 +104,7 @@
 }
 
 /* ==========================================================================
-   CARD INNER BODY (Compact, high-density, no dead space)
+   CARD INNER BODY
    ========================================================================== */
 .card-inner-body {
   flex: 1;
@@ -98,7 +129,7 @@
 }
 
 .period-card-col {
-  padding: 0.7rem 0.8rem 0.65rem;
+  padding: 0.65rem 0.75rem 0.6rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -110,142 +141,166 @@
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.period-card-col:hover {
+  background: rgba(30, 41, 59, 0.2);
+}
+
 .period-col-header {
   display: flex;
   align-items: center;
-  margin-bottom: 0.35rem;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
 }
 
 .period-col-title {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: #94a3b8;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.vol-period-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.vol-period-badge.badge-up {
+  background: rgba(0, 220, 130, 0.12);
+  color: #00dc82;
+  border: 1px solid rgba(0, 220, 130, 0.25);
+}
+
+.vol-period-badge.badge-down {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.period-baseline-badge {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .period-card-body {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0.75rem;
   flex: 1;
 }
 
-/* Vertical Tube Cylinder - UNIFIED HIGH-TECH ACCENT COLOR ACROSS ALL 3 COLUMNS */
+/* ==========================================================================
+   VERTICAL VOLUME CYLINDER / PILLAR (Dual-Layer: Traded + Delivery)
+   ========================================================================== */
 .tube-container {
-  width: 26px;
-  height: 96px;
+  width: 24px;
+  min-height: 104px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  cursor: help;
 }
 
 .tube-track {
   width: 100%;
-  height: 100%;
-  background: #1a2333;
   border-radius: 5px;
-  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
+  background: rgba(15, 23, 42, 0.65);
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.tube-fill {
+/* Intraday / Speculative Vol Portion (Top) */
+.tube-intraday-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Delivery Volume Fill (Bottom portion of Traded Vol) */
+.tube-fill-delivery {
   width: 100%;
+  position: relative;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
   border-radius: 0 0 4px 4px;
-  background: linear-gradient(180deg, #38bdf8 0%, #2563eb 100%);
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
   transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
 }
 
-/* Stats Info Stack */
+/* Glowing meniscus line at delivery percentage cutoff */
+.delivery-meniscus {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e0f2fe;
+  box-shadow: 0 0 6px #38bdf8, 0 0 10px #38bdf8;
+  z-index: 3;
+}
+
+/* Top cap marker for traded volume */
+.tube-cap-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 4;
+}
+
+.tube-axis-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   STATS INFO STACK
+   ========================================================================== */
 .stats-info-stack {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   min-width: 0;
+  gap: 0.35rem;
 }
 
-.pct-headline-box {
+.metric-block {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
 }
 
-.pct-multiplier-row {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.pct-huge-val {
-  font-size: 1.55rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.pct-sub-label-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  line-height: 1.2;
-}
-
-.pct-sub-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.pct-dot-sep {
-  color: #64748b;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.pts-diff-text {
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.pts-diff-text.pts-up {
-  color: #00dc82;
-}
-
-.pts-diff-text.pts-down {
-  color: #f87171;
-}
-
-.horizontal-rule {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.07);
-  margin: 0.6rem 0;
-  width: 100%;
-}
-
-.volume-data-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.v-data-row {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.v-row-meta {
+.metric-meta-row {
   display: flex;
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
+  margin-bottom: 2px;
 }
 
 .dot-indicator {
@@ -255,43 +310,93 @@
   flex-shrink: 0;
 }
 
+.dot-traded {
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.7);
+}
+
 .dot-delivery {
   background: #38bdf8;
-  box-shadow: 0 0 4px rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
 }
 
-.dot-traded {
-  background: #64748b;
-}
-
-.v-row-label {
-  font-size: 0.72rem;
+.metric-label {
+  font-size: 0.67rem;
+  font-weight: 600;
   color: #94a3b8;
-  font-weight: 500;
-  white-space: nowrap;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-.vol-ratio-tag {
-  font-size: 0.76rem;
+/* 1. PRIMARY HERO: Traded Volume */
+.hero-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.hero-volume-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-feature-settings: 'tnum';
+}
+
+/* 2. SUB-PRIMARY: Delivery Volume */
+.delivery-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.delivery-volume-val {
+  font-size: 1.02rem;
   font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+}
+
+.del-ratio-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 3px;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
-.vol-ratio-tag.trend-up {
+.del-ratio-tag.trend-up {
   color: #00dc82;
+  background: rgba(0, 220, 130, 0.1);
 }
 
-.vol-ratio-tag.trend-down {
+.del-ratio-tag.trend-down {
   color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
 }
 
-.v-row-val {
-  font-size: 0.86rem;
+.dot-pct {
+  background: #38bdf8;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.6);
+}
+
+/* 3. Delivery % */
+.pct-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.pct-volume-val {
+  font-size: 1.02rem;
   font-weight: 700;
-  color: #f8fafc;
-  padding-left: 11px;
-  line-height: 1.2;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
 }
 
 /* ==========================================================================
@@ -321,7 +426,26 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 768px) {
+  .delivery-columns-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .period-card-col:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .tube-container {
+    min-height: 90px;
   }
 }

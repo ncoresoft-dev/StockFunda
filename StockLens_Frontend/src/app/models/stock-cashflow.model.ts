@@ -19,7 +19,13 @@ export interface CashflowYoYChange {
 
 export interface StockRatios {
   roe?: number | null;
+  roeYoY?: number | null;
+  roeChange?: number | null;
+  roePrevYear?: number | null;
   roce?: number | null;
+  roceYoY?: number | null;
+  roceChange?: number | null;
+  rocePrevYear?: number | null;
   peRatio?: number | null;
   ttmEps?: number | null;
   pbRatio?: number | null;

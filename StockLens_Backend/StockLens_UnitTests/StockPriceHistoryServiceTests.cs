@@ -62,6 +62,8 @@ namespace StockLens_UnitTests
             {
                 new IndianApiPriceRecord { DateString = "2026-09-01", Open = 2950m, High = 3010m, Low = 2940m, Close = 3000m, Volume = 5000000 },
                 new IndianApiPriceRecord { DateString = "2026-09-02", Open = 3005m, High = 3050m, Low = 2990m, Close = 3040m, Volume = 6000000 }
+                // new IndianApiPriceRecord { DateString = d1, Open = 2950m, High = 3010m, Low = 2940m, Close = 3000m, Volume = 5000000 },
+                // new IndianApiPriceRecord { DateString = d2, Open = 3005m, High = 3050m, Low = 2990m, Close = 3040m, Volume = 6000000 }
             };
 
             _mockYahooClient.Setup(y => y.GetHistoricalPricesAsync(symbol, "NSE", It.IsAny<CancellationToken>()))

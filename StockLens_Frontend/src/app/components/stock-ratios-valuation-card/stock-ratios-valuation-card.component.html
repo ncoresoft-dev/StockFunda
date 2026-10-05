@@ -76,10 +76,19 @@
           <span class="holding-value roe-value">
             {{ ratios?.roe !== null && ratios?.roe !== undefined ? formatPercentage(ratios?.roe) : '—' }}
           </span>
+          @if (ratios?.roeYoY !== null && ratios?.roeYoY !== undefined) {
+            <span class="ratio-trend-pill" [class.trend-up]="(ratios?.roeYoY ?? 0) >= 0" [class.trend-down]="(ratios?.roeYoY ?? 0) < 0"
+                  [title]="getRoeTooltip()">
+              {{ (ratios?.roeYoY ?? 0) >= 0 ? '▲ +' : '▼ ' }}{{ ratios?.roeYoY | number:'1.1-1' }}%
+            </span>
+          }
         </div>
 
         <div class="card-formula-row">
           <span class="sub-metric">Return on Equity</span>
+          @if (ratios?.roePrevYear !== null && ratios?.roePrevYear !== undefined) {
+            <span class="prev-year-text" [title]="getRoeTooltip()">Prev FY: {{ formatPercentage(ratios?.roePrevYear) }}</span>
+          }
         </div>
 
         <div class="mini-progress-track">
@@ -103,10 +112,19 @@
           <span class="holding-value roce-value">
             {{ ratios?.roce !== null && ratios?.roce !== undefined ? formatPercentage(ratios?.roce) : '—' }}
           </span>
+          @if (ratios?.roceYoY !== null && ratios?.roceYoY !== undefined) {
+            <span class="ratio-trend-pill" [class.trend-up]="(ratios?.roceYoY ?? 0) >= 0" [class.trend-down]="(ratios?.roceYoY ?? 0) < 0"
+                  [title]="getRoceTooltip()">
+              {{ (ratios?.roceYoY ?? 0) >= 0 ? '▲ +' : '▼ ' }}{{ ratios?.roceYoY | number:'1.1-1' }}%
+            </span>
+          }
         </div>
 
         <div class="card-formula-row">
           <span class="sub-metric">Return on Capital</span>
+          @if (ratios?.rocePrevYear !== null && ratios?.rocePrevYear !== undefined) {
+            <span class="prev-year-text" [title]="getRoceTooltip()">Prev FY: {{ formatPercentage(ratios?.rocePrevYear) }}</span>
+          }
         </div>
 
         <div class="mini-progress-track">
