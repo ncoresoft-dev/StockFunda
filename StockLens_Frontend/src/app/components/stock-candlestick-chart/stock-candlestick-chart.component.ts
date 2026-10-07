@@ -266,14 +266,20 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
     return false;
   }
 
+  isSeriesActive(seriesName: string): boolean {
+    return !!this.activeSeriesState[seriesName];
+  }
+
   toggleSeries(seriesName: string): void {
     this.activeSeriesState[seriesName] = !this.activeSeriesState[seriesName];
+    this.activeSeriesState = { ...this.activeSeriesState };
     if (this.chart && this.chart.series) {
       const s = this.chart.series.find((x: any) => x.name === seriesName);
       if (s) {
         s.setVisible(this.activeSeriesState[seriesName], true);
       }
     }
+    this.cd.detectChanges();
   }
 
   togglePattern(patternName: string) {

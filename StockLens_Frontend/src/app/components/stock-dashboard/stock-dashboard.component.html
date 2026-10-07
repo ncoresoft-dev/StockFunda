@@ -29,8 +29,7 @@
         </svg>
         <input type="text" class="search-input" placeholder="Search company (e.g. RELIANCE, TCS, etc...)"
           [value]="searchQuery()" (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()"
-          autocomplete="off" />
-        <span class="search-shortcut-badge">Ctrl + K</span>
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
 
         <!-- Autocomplete Menu -->
         @if (searchResults().length > 0 || isSearching()) {
@@ -729,26 +728,22 @@
           <!-- Candlestick Series Checkboxes -->
           <div class="chart-checkbox-group">
             <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
-              <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.activeSeriesState['50 DMA'] !== false">
-                @if (candleComp.activeSeriesState['50 DMA'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
+              <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.isSeriesActive('50 DMA')">
+                <svg *ngIf="candleComp.isSeriesActive('50 DMA')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                }
               </span>
               <span class="cb-label">50 DMA</span>
             </label>
 
             <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('200 DMA')" title="Toggle 200 DMA Line">
               <span class="custom-checkbox cb-dma200"
-                [class.checked]="candleComp.activeSeriesState['200 DMA'] !== false">
-                @if (candleComp.activeSeriesState['200 DMA'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
+                [class.checked]="candleComp.isSeriesActive('200 DMA')">
+                <svg *ngIf="candleComp.isSeriesActive('200 DMA')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                }
               </span>
               <span class="cb-label">200 DMA</span>
             </label>
@@ -756,13 +751,11 @@
             <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
               title="Toggle Volume Histogram">
               <span class="custom-checkbox cb-volume"
-                [class.checked]="candleComp.activeSeriesState['Volume'] !== false">
-                @if (candleComp.activeSeriesState['Volume'] !== false) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
+                [class.checked]="candleComp.isSeriesActive('Volume')">
+                <svg *ngIf="candleComp.isSeriesActive('Volume')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
                   stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                }
               </span>
               <span class="cb-label">Volume</span>
             </label>

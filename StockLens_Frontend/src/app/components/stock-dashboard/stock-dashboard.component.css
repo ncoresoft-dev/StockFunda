@@ -136,6 +136,7 @@
    1. TOP GLOBAL APPLICATION NAVBAR
    ========================================================================== */
 .cockpit-header {
+  position: relative;
   flex-shrink: 0;
   height: 48px;
   min-height: 48px;
@@ -146,7 +147,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  z-index: 50;
+  z-index: 1000;
 }
 
 .header-left {
@@ -196,11 +197,14 @@
 .header-center {
   flex: 1;
   max-width: 440px;
+  position: relative;
+  z-index: 1001;
 }
 
 .search-input-wrapper {
   position: relative;
   width: 100%;
+  z-index: 1001;
 }
 
 .search-icon {
@@ -220,7 +224,7 @@
   background: #0d121d;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  padding: 0 4.5rem 0 2.4rem;
+  padding: 0 1rem 0 2.4rem;
   font-size: 0.82rem;
   color: #f8fafc;
   outline: none;
@@ -258,15 +262,15 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #0f141c;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
   list-style: none;
   padding: 0.35rem;
   margin: 0;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
-  z-index: 100;
-  max-height: 220px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 99999;
+  max-height: 260px;
   overflow-y: auto;
 }
 
@@ -3662,6 +3666,8 @@
 .custom-checkbox svg {
   width: 10px;
   height: 10px;
+  stroke: #ffffff;
+  display: block;
 }
 
 /* 1. Price on NSE: Indigo */
@@ -3698,10 +3704,10 @@
 
 /* 4. Volume: Soft Blue */
 .custom-checkbox.cb-volume.checked {
-  background: #93c5fd;
-  border-color: #93c5fd;
-  color: #1e3a8a;
-  box-shadow: 0 0 6px rgba(147, 197, 253, 0.4);
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
 }
 
 .cb-label {
@@ -6222,8 +6228,40 @@
 
 :host-context(.light-theme) .custom-checkbox,
 :host-context([data-theme="light"]) .custom-checkbox {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+:host-context(.light-theme) .custom-checkbox:not(.checked),
+:host-context([data-theme="light"]) .custom-checkbox:not(.checked) {
   background: #f8fafc !important;
   border-color: #cbd5e1 !important;
+}
+
+:host-context(.light-theme) .custom-checkbox.cb-dma50.checked,
+:host-context([data-theme="light"]) .custom-checkbox.cb-dma50.checked {
+  background: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #ffffff !important;
+}
+
+:host-context(.light-theme) .custom-checkbox.cb-dma200.checked,
+:host-context([data-theme="light"]) .custom-checkbox.cb-dma200.checked {
+  background: #9333ea !important;
+  border-color: #9333ea !important;
+  color: #ffffff !important;
+}
+
+:host-context(.light-theme) .custom-checkbox.cb-volume.checked,
+:host-context([data-theme="light"]) .custom-checkbox.cb-volume.checked {
+  background: #0284c7 !important;
+  border-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+:host-context(.light-theme) .custom-checkbox svg,
+:host-context([data-theme="light"]) .custom-checkbox svg {
+  stroke: #ffffff !important;
 }
 
 :host-context(.light-theme) .chart-timeframe-pills,
@@ -6635,21 +6673,52 @@
 
 :host-context(.light-theme) .score-circle-box,
 :host-context([data-theme="light"]) .score-circle-box {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:host-context(.light-theme) .score-radial-wrap,
+:host-context([data-theme="light"]) .score-radial-wrap {
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  border: 3px solid #0284c7 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15) !important;
+}
+
+:host-context(.light-theme) .badge-success .score-radial-wrap,
+:host-context([data-theme="light"]) .badge-success .score-radial-wrap {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 12px rgba(22, 163, 74, 0.2) !important;
+}
+
+:host-context(.light-theme) .badge-good .score-radial-wrap,
+:host-context([data-theme="light"]) .badge-good .score-radial-wrap {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.2) !important;
+}
+
+:host-context(.light-theme) .badge-warning .score-radial-wrap,
+:host-context([data-theme="light"]) .badge-warning .score-radial-wrap {
+  border-color: #d97706 !important;
+  box-shadow: 0 0 12px rgba(217, 119, 6, 0.2) !important;
+}
+
+:host-context(.light-theme) .badge-danger .score-radial-wrap,
+:host-context([data-theme="light"]) .badge-danger .score-radial-wrap {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.2) !important;
 }
 
 :host-context(.light-theme) .radial-number,
 :host-context([data-theme="light"]) .radial-number {
   color: #0f172a !important;
-  font-weight: 800 !important;
+  font-weight: 900 !important;
 }
 
 :host-context(.light-theme) .radial-sub,
 :host-context([data-theme="light"]) .radial-sub {
   color: #64748b !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 
 :host-context(.light-theme) .score-verdict-label,
@@ -6671,10 +6740,119 @@
 
 :host-context(.light-theme) .score-micro-tag,
 :host-context([data-theme="light"]) .score-micro-tag {
-  background: #f1f5f9 !important;
+  background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
   color: #475569 !important;
   font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Pros and Cons Boxes in Light Theme */
+:host-context(.light-theme) .pros-box,
+:host-context([data-theme="light"]) .pros-box {
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+:host-context(.light-theme) .cons-box,
+:host-context([data-theme="light"]) .cons-box {
+  background: #fffbeb !important;
+  border: 1px solid #fde68a !important;
+}
+
+:host-context(.light-theme) .pros-box .pros-cons-header,
+:host-context([data-theme="light"]) .pros-box .pros-cons-header {
+  color: #16a34a !important;
+  font-weight: 800 !important;
+}
+
+:host-context(.light-theme) .cons-box .pros-cons-header,
+:host-context([data-theme="light"]) .cons-box .pros-cons-header {
+  color: #d97706 !important;
+  font-weight: 800 !important;
+}
+
+:host-context(.light-theme) .pro-item,
+:host-context([data-theme="light"]) .pro-item,
+:host-context(.light-theme) .con-item,
+:host-context([data-theme="light"]) .con-item {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+:host-context(.light-theme) .bullet-pro,
+:host-context([data-theme="light"]) .bullet-pro {
+  color: #16a34a !important;
+}
+
+:host-context(.light-theme) .bullet-con,
+:host-context([data-theme="light"]) .bullet-con {
+  color: #d97706 !important;
+}
+
+:host-context(.light-theme) .empty-msg,
+:host-context([data-theme="light"]) .empty-msg {
+  color: #64748b !important;
+}
+
+/* Modal Footer in Light Theme */
+:host-context(.light-theme) .eval-modal-footer,
+:host-context([data-theme="light"]) .eval-modal-footer {
+  background: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+:host-context(.light-theme) .eval-disclaimer,
+:host-context([data-theme="light"]) .eval-disclaimer {
+  color: #64748b !important;
+}
+
+:host-context(.light-theme) .eval-done-btn,
+:host-context([data-theme="light"]) .eval-done-btn {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+}
+
+:host-context(.light-theme) .eval-done-btn:hover,
+:host-context([data-theme="light"]) .eval-done-btn:hover {
+  background: #0369a1 !important;
+}
+
+/* About Company Modal in Light Theme */
+:host-context(.light-theme) .about-chip,
+:host-context([data-theme="light"]) .about-chip {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+:host-context(.light-theme) .chip-lbl,
+:host-context([data-theme="light"]) .chip-lbl {
+  color: #64748b !important;
+}
+
+:host-context(.light-theme) .about-modal-heading,
+:host-context([data-theme="light"]) .about-modal-heading {
+  color: #0f172a !important;
+}
+
+:host-context(.light-theme) .about-modal-full-text,
+:host-context([data-theme="light"]) .about-modal-full-text {
+  color: #334155 !important;
+}
+
+:host-context(.light-theme) .official-website-btn,
+:host-context([data-theme="light"]) .official-website-btn {
+  background: #e0f2fe !important;
+  border: 1px solid #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+:host-context(.light-theme) .official-website-btn:hover,
+:host-context([data-theme="light"]) .official-website-btn:hover {
+  background: #0284c7 !important;
+  color: #ffffff !important;
 }
 
 :host-context(.light-theme) .eval-pillar-card,

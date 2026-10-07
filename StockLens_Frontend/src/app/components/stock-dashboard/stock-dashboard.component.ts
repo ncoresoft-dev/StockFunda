@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of, timer } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
 import { StockNewsService } from '../../services/stock-news.service';
 import { StockCompanyService } from '../../services/stock-company.service';
 import { StockShareholdingService } from '../../services/stock-shareholding.service';
@@ -302,17 +302,35 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   setupSearch(): void {
     this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(250),
+      debounceTime(200),
       distinctUntilChanged(),
       switchMap((query) => {
-        if (!query.trim() || query.trim().length < 2) {
+        const clean = query.trim();
+        if (!clean || clean.length < 2) {
           this.searchResults.set([]);
           this.isSearching.set(false);
           return of([]);
         }
         this.isSearching.set(true);
-        return this.newsService.searchCompanies(query).pipe(
-          catchError(() => of([]))
+
+        const localMatches: Company[] = this.availableStocks()
+          .filter(s => s.symbol.toLowerCase().includes(clean.toLowerCase()) || (s.companyName && s.companyName.toLowerCase().includes(clean.toLowerCase())))
+          .map(s => ({
+            id: s.id,
+            symbol: s.symbol,
+            companyName: s.companyName || s.symbol,
+            industry: s.industry || '',
+            exchange: s.exchange || 'NSE'
+          } as Company));
+
+        return this.newsService.searchCompanies(clean).pipe(
+          map(apiResults => {
+            if (apiResults && apiResults.length > 0) {
+              return apiResults;
+            }
+            return localMatches;
+          }),
+          catchError(() => of(localMatches))
         );
       })
     ).subscribe((results) => {
