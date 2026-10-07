@@ -855,6 +855,42 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return null;
   }
 
+  getBorrowingsYoY(): number | null {
+    const bs = this.assetsResponse();
+    if (!bs || !bs.lineItems || bs.lineItems.length === 0) return null;
+    const item = bs.lineItems.find(i => i.name && i.name.toLowerCase() === 'borrowings');
+    if (!item || !item.values || item.values.length < 2) return null;
+
+    const periods = bs.periods || [];
+    const paired: { period: string, val: number }[] = [];
+    for (let i = 0; i < item.values.length; i++) {
+      const v = item.values[i];
+      const p = periods[i] || `P${i}`;
+      if (v !== null && v !== undefined && !isNaN(v)) {
+        const existingIdx = paired.findIndex(x => x.period === p);
+        if (existingIdx >= 0) {
+          paired[existingIdx].val = v;
+        } else {
+          paired.push({ period: p, val: v });
+        }
+      }
+    }
+
+    if (paired.length >= 2) {
+      const latest = paired[paired.length - 1].val;
+      const prev = paired[paired.length - 2].val;
+      if (prev !== 0) {
+        return +(((latest - prev) / Math.abs(prev)) * 100).toFixed(1);
+      } else if (latest > 0) {
+        return 100;
+      } else {
+        return 0;
+      }
+    }
+
+    return null;
+  }
+
   getLatestLongTermBorrowings(): number | null {
     const bs = this.assetsResponse();
     if (bs && bs.lineItems && bs.lineItems.length > 0) {

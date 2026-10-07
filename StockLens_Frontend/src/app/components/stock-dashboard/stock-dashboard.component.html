@@ -815,7 +815,10 @@
             
             <!-- SECTION A: CASH FLOW STATEMENTS -->
             <div class="sub-section">
-              <span class="sub-section-heading">CASH FLOW STATEMENTS</span>
+              <div class="sub-section-heading">
+                <span>CASH FLOW STATEMENTS</span>
+                <span class="sub-heading-pill">Annual</span>
+              </div>
               <div class="cflow-list">
                 <!-- FCF -->
                 <div class="cflow-item">
@@ -857,12 +860,15 @@
 
             <!-- SECTION B: BORROWINGS & LIABILITIES -->
             <div class="sub-section">
-              <span class="sub-section-heading">BORROWINGS &amp; LIABILITIES</span>
+              <div class="sub-section-heading">
+                <span>BORROWINGS &amp; LIABILITIES</span>
+                <span class="sub-heading-pill">Balance Sheet</span>
+              </div>
               <div class="cflow-list">
                 <!-- Long term borrowing -->
                 <div class="cflow-item">
                   <div class="cf-left">
-                    <span class="cf-name">Long term borrowing</span>
+                    <span class="cf-name">Long Term Borrowing</span>
                     @if (getLongTermBorrowingsYoY() !== null) {
                     <span class="mini-delta" [ngClass]="getInvertedChangeClass(getLongTermBorrowingsYoY())">
                       YoY: {{ formatPercent(getLongTermBorrowingsYoY()) }}
@@ -875,7 +881,7 @@
                 <!-- Short term borrowing -->
                 <div class="cflow-item">
                   <div class="cf-left">
-                    <span class="cf-name">Short term borrowing</span>
+                    <span class="cf-name">Short Term Borrowing</span>
                     @if (getShortTermBorrowingsYoY() !== null) {
                     <span class="mini-delta" [ngClass]="getInvertedChangeClass(getShortTermBorrowingsYoY())">
                       YoY: {{ formatPercent(getShortTermBorrowingsYoY()) }}
@@ -889,54 +895,54 @@
 
             <!-- SECTION C: EFFICIENCY RATIOS -->
             <div class="sub-section">
-              <span class="sub-section-heading">EFFICIENCY RATIOS</span>
-              <div class="efficiency-trio-grid">
+              <div class="sub-section-heading">
+                <span>EFFICIENCY RATIOS</span>
+                <span class="sub-heading-pill">Working Capital</span>
+              </div>
+              <div class="cflow-list efficiency-list">
                 <!-- Debtor Days -->
-                <div class="quad-box">
-                  <div class="quad-label-row">
-                    <span class="quad-label"><span class="dot dot-amber"></span>Debtor Days</span>
-                  </div>
-                  <div class="quad-bottom-row">
-                    <span class="quad-value">{{ cashflowResponse()?.ratios?.debtorDays != null ?
-                      cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
+                <div class="cflow-item efficiency-item">
+                  <div class="cf-left">
+                    <span class="dot dot-amber"></span>
+                    <span class="cf-name">Debtor Days</span>
                     @if (cashflowResponse()?.ratios?.debtorDaysYoY; as g) {
-                    <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
+                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
                       {{ getArrow(g) }} {{ formatPercent(g) }}
                     </span>
                     }
                   </div>
+                  <span class="cf-val text-amber">{{ cashflowResponse()?.ratios?.debtorDays != null ?
+                    cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
                 </div>
 
                 <!-- Inventory Days -->
-                <div class="quad-box">
-                  <div class="quad-label-row">
-                    <span class="quad-label"><span class="dot dot-emerald"></span>Inventory Days</span>
-                  </div>
-                  <div class="quad-bottom-row">
-                    <span class="quad-value">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
-                      cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
+                <div class="cflow-item efficiency-item">
+                  <div class="cf-left">
+                    <span class="dot dot-emerald"></span>
+                    <span class="cf-name">Inventory Days</span>
                     @if (cashflowResponse()?.ratios?.inventoryDaysYoY; as g) {
-                    <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
+                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
                       {{ getArrow(g) }} {{ formatPercent(g) }}
                     </span>
                     }
                   </div>
+                  <span class="cf-val text-emerald">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
+                    cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
                 </div>
 
                 <!-- Payable Days -->
-                <div class="quad-box">
-                  <div class="quad-label-row">
-                    <span class="quad-label"><span class="dot dot-cyan"></span>Payable Days</span>
-                  </div>
-                  <div class="quad-bottom-row">
-                    <span class="quad-value">{{ cashflowResponse()?.ratios?.payableDays != null ?
-                      cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
+                <div class="cflow-item efficiency-item">
+                  <div class="cf-left">
+                    <span class="dot dot-cyan"></span>
+                    <span class="cf-name">Payable Days</span>
                     @if (cashflowResponse()?.ratios?.payableDaysYoY; as g) {
-                    <span class="delta-tag" [ngClass]="getChangeClass(g)">
+                    <span class="mini-delta" [ngClass]="getChangeClass(g)">
                       {{ getArrow(g) }} {{ formatPercent(g) }}
                     </span>
                     }
                   </div>
+                  <span class="cf-val text-cyan">{{ cashflowResponse()?.ratios?.payableDays != null ?
+                    cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
                 </div>
               </div>
             </div>
