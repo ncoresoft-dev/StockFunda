@@ -329,3 +329,47 @@
 .retry-btn:hover {
   background: rgba(239, 68, 68, 0.35);
 }
+
+:host-context([data-theme="light"]) .read-more-btn {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+:host-context(.light-theme) .read-more-btn:hover,
+:host-context([data-theme="light"]) .read-more-btn:hover {
+  color: #0369a1 !important;
+}
+
+:host-context(.light-theme) .official-website-btn,
+:host-context([data-theme="light"]) .official-website-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+:host-context(.light-theme) .official-website-btn:hover,
+:host-context([data-theme="light"]) .official-website-btn:hover {
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.15) !important;
+}
+
+:host-context(.light-theme) .profile-details-grid,
+:host-context([data-theme="light"]) .profile-details-grid {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+:host-context(.light-theme) .profile-field-label,
+:host-context([data-theme="light"]) .profile-field-label {
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+:host-context(.light-theme) .profile-field-value,
+:host-context([data-theme="light"]) .profile-field-value {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}

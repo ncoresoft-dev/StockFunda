@@ -292,4 +292,127 @@
   animation: pulseBlinkSell 1.5s infinite ease-in-out;
 }
 
-/* Table Styles */
+/* Static Top-Right OHLC Legend */
+.static-legend {
+  position: absolute;
+  top: 16px;
+  right: 90px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+
+.legend-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.legend-ohlc-label {
+  color: #cbd5e1;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: color 0.2s ease;
+}
+
+.legend-ohlc-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+
+.legend-ohlc-val.is-up {
+  color: #34d399;
+}
+
+.legend-ohlc-val.is-down {
+  color: #f87171;
+}
+
+.legend-vol-label {
+  color: #38bdf8;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.legend-vol-val {
+  font-weight: 700;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES (via class or host-context)
+   ========================================================================== */
+.light-mode .legend-ohlc-label,
+:host-context(.light-theme) .legend-ohlc-label,
+:host-context([data-theme="light"]) .legend-ohlc-label {
+  color: #475569 !important;
+}
+
+.light-mode .legend-ohlc-val.is-up,
+:host-context(.light-theme) .legend-ohlc-val.is-up,
+:host-context([data-theme="light"]) .legend-ohlc-val.is-up {
+  color: #16a34a !important;
+}
+
+.light-mode .legend-ohlc-val.is-down,
+:host-context(.light-theme) .legend-ohlc-val.is-down,
+:host-context([data-theme="light"]) .legend-ohlc-val.is-down {
+  color: #dc2626 !important;
+}
+
+.light-mode .legend-vol-label,
+:host-context(.light-theme) .legend-vol-label,
+:host-context([data-theme="light"]) .legend-vol-label {
+  color: #0284c7 !important;
+}
+
+.light-mode .legend-vol-val,
+:host-context(.light-theme) .legend-vol-val,
+:host-context([data-theme="light"]) .legend-vol-val {
+  color: #1e293b !important;
+}
+
+.light-mode .state-card,
+:host-context(.light-theme) .state-card,
+:host-context([data-theme="light"]) .state-card {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.light-mode .state-title,
+:host-context(.light-theme) .state-title,
+:host-context([data-theme="light"]) .state-title {
+  color: #0f172a;
+}
+
+.light-mode .state-description,
+:host-context(.light-theme) .state-description,
+:host-context([data-theme="light"]) .state-description {
+  color: #64748b;
+}
+
+.light-mode .skeleton-chart,
+:host-context(.light-theme) .skeleton-chart,
+:host-context([data-theme="light"]) .skeleton-chart {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.light-mode .loader-title,
+:host-context(.light-theme) .loader-title,
+:host-context([data-theme="light"]) .loader-title {
+  color: #0f172a;
+}
+
+.light-mode .loader-subtitle,
+:host-context(.light-theme) .loader-subtitle,
+:host-context([data-theme="light"]) .loader-subtitle {
+  color: #64748b;
+}

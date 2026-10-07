@@ -1,4 +1,4 @@
-<div class="deals-dashboard-card-light">
+<div class="deals-dashboard-card-light" [class.light-mode]="isLightTheme">
   <!-- HEADER SECTION -->
   <div class="card-top-bar">
     <div class="card-title-group">
@@ -8,6 +8,7 @@
         </svg>
       </div>
       <span class="card-title-text">{{ symbol }} CORPORATE DEALS</span>
+      <span class="exchange-badge-tag">NSE + BSE</span>
     </div>
   </div>
 

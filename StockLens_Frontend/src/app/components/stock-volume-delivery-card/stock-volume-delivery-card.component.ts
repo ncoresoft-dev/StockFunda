@@ -17,6 +17,7 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   @Input() exchange: string = 'NSE';
   @Input() companyName: string = '';
   @Input() analysisData: VolumeDeliveryAnalysisResponse | null = null;
+  @Input() isLightTheme: boolean = false;
 
   private readonly deliveryService = inject(StockVolumeDeliveryService);
 

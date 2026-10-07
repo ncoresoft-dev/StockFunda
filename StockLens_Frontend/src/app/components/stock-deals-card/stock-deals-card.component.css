@@ -50,6 +50,21 @@
   text-transform: uppercase;
 }
 
+.exchange-badge-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-left: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 .tabs-wrapper {
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   background-color: transparent;
@@ -101,11 +116,10 @@
 /* Card Grid Layout */
 .deals-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  /* Forced 4 cards per row */
-  gap: 16px;
-  max-height: 620px;
-  /* Limits to approximately 3 rows before scrolling */
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  max-height: 440px;
+  /* Limits before scrolling */
   overflow-y: auto;
   padding-right: 4px;
   /* Space for scrollbar */
@@ -113,7 +127,7 @@
 
 /* Custom Scrollbar for Deals Grid */
 .deals-grid::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .deals-grid::-webkit-scrollbar-track {
@@ -130,47 +144,39 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 768px) {
-  .deals-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .deals-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .deal-card {
   background-color: #1f2937;
   /* Card inner dark background */
   border-radius: 8px;
-  padding: 20px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
+  transition: all 0.15s ease;
+  min-width: 0;
 }
 
 .deal-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .deal-date {
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 500;
   color: #9ca3af;
   /* Light gray text for date */
 }
 
 .badge {
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .badge-buy {
@@ -185,18 +191,18 @@
 
 .deal-card-mid {
   flex-grow: 1;
-  margin-bottom: 24px;
+  margin-bottom: 8px;
 }
 
 .deal-client {
   margin: 0;
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #e2e8f0;
-  line-height: 1.4;
+  line-height: 1.35;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -204,26 +210,29 @@
 .deal-card-bot {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
 }
 
 .deal-stat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 
 .stat-lbl {
-  font-size: 12px;
+  font-size: 10px;
   color: #9ca3af;
   /* Gray labels */
 }
 
 .stat-val {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: #e2e8f0;
   /* Dimmed white values */
+  white-space: nowrap;
 }
 
 .empty-state {
@@ -336,4 +345,172 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+.light-mode.deals-dashboard-card-light,
+:host-context(.light-theme) .deals-dashboard-card-light,
+:host-context([data-theme="light"]) .deals-dashboard-card-light {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-mode .card-title-text,
+:host-context(.light-theme) .card-title-text,
+:host-context([data-theme="light"]) .card-title-text {
+  color: #0f172a !important;
+}
+
+.light-mode .exchange-badge-tag,
+:host-context(.light-theme) .exchange-badge-tag,
+:host-context([data-theme="light"]) .exchange-badge-tag {
+  background: #e0f2fe !important;
+  border: 1px solid #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+.light-mode .tabs-wrapper,
+:host-context(.light-theme) .tabs-wrapper,
+:host-context([data-theme="light"]) .tabs-wrapper {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .tab-btn,
+:host-context(.light-theme) .tab-btn,
+:host-context([data-theme="light"]) .tab-btn {
+  color: #64748b !important;
+}
+
+.light-mode .tab-btn:hover,
+:host-context(.light-theme) .tab-btn:hover,
+:host-context([data-theme="light"]) .tab-btn:hover {
+  color: #0f172a !important;
+}
+
+.light-mode .tab-btn.active,
+:host-context(.light-theme) .tab-btn.active,
+:host-context([data-theme="light"]) .tab-btn.active {
+  color: #0284c7 !important;
+}
+
+.light-mode .tab-btn.active::after,
+:host-context(.light-theme) .tab-btn.active::after,
+:host-context([data-theme="light"]) .tab-btn.active::after {
+  background-color: #0284c7 !important;
+}
+
+.light-mode .deal-card,
+:host-context(.light-theme) .deal-card,
+:host-context([data-theme="light"]) .deal-card {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .deal-card:hover,
+:host-context(.light-theme) .deal-card:hover,
+:host-context([data-theme="light"]) .deal-card:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .deal-date,
+:host-context(.light-theme) .deal-date,
+:host-context([data-theme="light"]) .deal-date {
+  color: #64748b !important;
+}
+
+.light-mode .deal-client,
+:host-context(.light-theme) .deal-client,
+:host-context([data-theme="light"]) .deal-client {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .badge-buy,
+:host-context(.light-theme) .badge-buy,
+:host-context([data-theme="light"]) .badge-buy {
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+}
+
+.light-mode .badge-sell,
+:host-context(.light-theme) .badge-sell,
+:host-context([data-theme="light"]) .badge-sell {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.light-mode .promoter-badge,
+:host-context(.light-theme) .promoter-badge,
+:host-context([data-theme="light"]) .promoter-badge {
+  background: #ede9fe !important;
+  color: #7c3aed !important;
+  border: 1px solid #ddd6fe !important;
+  font-weight: 700 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  font-size: 10px !important;
+  margin-left: 5px !important;
+  display: inline-block !important;
+}
+
+.light-mode .stat-lbl,
+:host-context(.light-theme) .stat-lbl,
+:host-context([data-theme="light"]) .stat-lbl {
+  color: #64748b !important;
+  font-weight: 700 !important;
+}
+
+.light-mode .stat-val,
+:host-context(.light-theme) .stat-val,
+:host-context([data-theme="light"]) .stat-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .deals-grid::-webkit-scrollbar-track,
+:host-context(.light-theme) .deals-grid::-webkit-scrollbar-track,
+:host-context([data-theme="light"]) .deals-grid::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+}
+
+.light-mode .deals-grid::-webkit-scrollbar-thumb,
+:host-context(.light-theme) .deals-grid::-webkit-scrollbar-thumb,
+:host-context([data-theme="light"]) .deals-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+.light-mode .deals-grid::-webkit-scrollbar-thumb:hover,
+:host-context(.light-theme) .deals-grid::-webkit-scrollbar-thumb:hover,
+:host-context([data-theme="light"]) .deals-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+.light-mode .state-title,
+:host-context(.light-theme) .state-title,
+:host-context([data-theme="light"]) .state-title {
+  color: #0f172a !important;
+}
+
+.light-mode .state-description,
+:host-context(.light-theme) .state-description,
+:host-context([data-theme="light"]) .state-description {
+  color: #64748b !important;
+}
+
+.light-mode .empty-state,
+:host-context(.light-theme) .empty-state,
+:host-context([data-theme="light"]) .empty-state {
+  background: #f8fafc !important;
+  border: 1px dashed #cbd5e1 !important;
+}
+
+.light-mode .empty-state-text,
+:host-context(.light-theme) .empty-state-text,
+:host-context([data-theme="light"]) .empty-state-text {
+  color: #64748b !important;
 }

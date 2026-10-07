@@ -463,3 +463,196 @@
     min-height: 90px;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+.light-mode.volume-delivery-container,
+:host-context(.light-theme) .volume-delivery-container,
+:host-context([data-theme="light"]) .volume-delivery-container {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-mode .card-top-bar,
+:host-context(.light-theme) .card-top-bar,
+:host-context([data-theme="light"]) .card-top-bar {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .card-title,
+:host-context(.light-theme) .card-title,
+:host-context([data-theme="light"]) .card-title {
+  color: #0f172a !important;
+}
+
+.light-mode .card-icon,
+:host-context(.light-theme) .card-icon,
+:host-context([data-theme="light"]) .card-icon {
+  color: #0284c7 !important;
+}
+
+.light-mode .exchange-badge,
+:host-context(.light-theme) .exchange-badge,
+:host-context([data-theme="light"]) .exchange-badge {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+.light-mode .legend-text,
+:host-context(.light-theme) .legend-text,
+:host-context([data-theme="light"]) .legend-text {
+  color: #64748b !important;
+}
+
+.light-mode .delivery-columns-grid,
+:host-context(.light-theme) .delivery-columns-grid,
+:host-context([data-theme="light"]) .delivery-columns-grid {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .period-card-col,
+:host-context(.light-theme) .period-card-col,
+:host-context([data-theme="light"]) .period-card-col {
+  background: #ffffff;
+}
+
+.light-mode .period-card-col:hover,
+:host-context(.light-theme) .period-card-col:hover,
+:host-context([data-theme="light"]) .period-card-col:hover {
+  background: #f8fafc !important;
+}
+
+.light-mode .period-card-col:not(:last-child),
+:host-context(.light-theme) .period-card-col:not(:last-child),
+:host-context([data-theme="light"]) .period-card-col:not(:last-child) {
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .period-col-title,
+:host-context(.light-theme) .period-col-title,
+:host-context([data-theme="light"]) .period-col-title {
+  color: #1e293b !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .period-baseline-badge,
+:host-context(.light-theme) .period-baseline-badge,
+:host-context([data-theme="light"]) .period-baseline-badge {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.light-mode .vol-period-badge.badge-up,
+:host-context(.light-theme) .vol-period-badge.badge-up,
+:host-context([data-theme="light"]) .vol-period-badge.badge-up {
+  background: #dcfce7 !important;
+  color: #16a34a !important;
+  border: 1px solid #bbf7d0 !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .vol-period-badge.badge-down,
+:host-context(.light-theme) .vol-period-badge.badge-down,
+:host-context([data-theme="light"]) .vol-period-badge.badge-down {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .del-ratio-tag.trend-up,
+:host-context(.light-theme) .del-ratio-tag.trend-up,
+:host-context([data-theme="light"]) .del-ratio-tag.trend-up {
+  background: #dcfce7 !important;
+  color: #16a34a !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .del-ratio-tag.trend-down,
+:host-context(.light-theme) .del-ratio-tag.trend-down,
+:host-context([data-theme="light"]) .del-ratio-tag.trend-down {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .deliv-row-label,
+:host-context(.light-theme) .deliv-row-label,
+.light-mode .metric-label,
+:host-context(.light-theme) .metric-label,
+:host-context([data-theme="light"]) .metric-label {
+  color: #475569 !important;
+  font-weight: 700 !important;
+}
+
+.light-mode .deliv-row-val,
+:host-context(.light-theme) .deliv-row-val,
+.light-mode .hero-volume-val,
+:host-context(.light-theme) .hero-volume-val,
+:host-context([data-theme="light"]) .hero-volume-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .delivery-volume-val,
+:host-context(.light-theme) .delivery-volume-val,
+:host-context([data-theme="light"]) .delivery-volume-val {
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+
+.light-mode .pct-volume-val,
+:host-context(.light-theme) .pct-volume-val,
+:host-context([data-theme="light"]) .pct-volume-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .delivery-stat-block,
+:host-context(.light-theme) .delivery-stat-block,
+:host-context([data-theme="light"]) .delivery-stat-block {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-mode .tube-track,
+:host-context(.light-theme) .tube-track,
+:host-context([data-theme="light"]) .tube-track {
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-mode .tube-outer-track,
+:host-context(.light-theme) .tube-outer-track,
+:host-context([data-theme="light"]) .tube-outer-track {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .tube-axis-label,
+:host-context(.light-theme) .tube-axis-label,
+:host-context([data-theme="light"]) .tube-axis-label {
+  color: #475569 !important;
+  font-weight: 800 !important;
+}
+
+.light-mode .tube-tick-line,
+:host-context(.light-theme) .tube-tick-line,
+:host-context([data-theme="light"]) .tube-tick-line {
+  background: rgba(0, 0, 0, 0.12) !important;
+}
+
+.light-mode .skeleton-col,
+:host-context(.light-theme) .skeleton-col,
+:host-context([data-theme="light"]) .skeleton-col {
+  background: #f1f5f9 !important;
+}

@@ -13,6 +13,7 @@ import { StockDealsSummary } from '../../models/stock-deals.model';
 export class StockDealsCardComponent implements OnInit, OnChanges {
   @Input() symbol!: string;
   @Input() stockId?: number;
+  @Input() isLightTheme: boolean = false;
 
   private dealsService = inject(StockDealsService);
   private cdr = inject(ChangeDetectorRef); // Added ChangeDetectorRef

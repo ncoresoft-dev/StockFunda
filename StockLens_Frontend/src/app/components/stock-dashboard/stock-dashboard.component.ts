@@ -27,6 +27,7 @@ import { StockPeerComparisonCardComponent } from '../stock-peer-comparison-card/
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
+export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | 'chart' | 'volume' | 'cashflow' | 'balancesheet' | 'deals' | 'peers';
 
 @Component({
   selector: 'app-stock-dashboard',
@@ -81,6 +82,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   deliveryAnalysisData = signal<any>(null);
   isAboutExpanded = signal<boolean>(false);
   hasActiveBreakouts = signal<boolean>(false);
+  isLightTheme = signal<boolean>(true);
+  selectedFinancialTab = signal<'cashflow' | 'balancesheet'>('cashflow');
 
   // Filter dropdown signals
   selectedOwnershipPeriod = signal<string>('Jun 2026');
@@ -130,6 +133,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   evaluationResponse = signal<StockHealthScoreResponse | null>(null);
   isEvaluationRefreshing = signal<boolean>(false);
   isEvaluationModalOpen = signal<boolean>(false);
+  isAboutModalOpen = signal<boolean>(false);
 
   // Peers State
   companyPeers = signal<import('../../models/peer.model').Peer[]>([]);
@@ -139,6 +143,79 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   // Company Overview & Logo State
   companyOverview = signal<CompanyOverview | null>(null);
   isLogoFailed = signal<boolean>(false);
+
+  // Screener-style Overview Navigation Tabs State & ScrollSpy Engine
+  activeOverviewTab = signal<OverviewTabType>('overview');
+  private isManualScrolling = false;
+  private scrollTimeout?: any;
+
+  setActiveOverviewTab(tab: OverviewTabType): void {
+    this.scrollToSection(tab);
+  }
+
+  scrollToSection(sectionId: OverviewTabType): void {
+    this.activeOverviewTab.set(sectionId);
+    this.isManualScrolling = true;
+    if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+
+    const el = document.getElementById('section-' + sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    this.scrollTimeout = setTimeout(() => {
+      this.isManualScrolling = false;
+    }, 800);
+  }
+
+  onCockpitScroll(event: Event): void {
+    if (this.isManualScrolling) return;
+
+    const container = event.target as HTMLElement;
+    if (!container) return;
+
+    const sections: OverviewTabType[] = [
+      'overview',
+      'news',
+      'quarters',
+      'ownership',
+      'chart',
+      'volume',
+      'cashflow',
+      'balancesheet',
+      'deals',
+      'peers'
+    ];
+
+    const containerRect = container.getBoundingClientRect();
+    let detectedSection: OverviewTabType = 'overview';
+
+    // 1. Check if user is scrolled near the bottom of the scroll container
+    const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 80;
+    
+    // 2. Check if Peer Comparison section is prominently visible on screen
+    const peersEl = document.getElementById('section-peers');
+    const isPeersVisible = peersEl ? (peersEl.getBoundingClientRect().top - containerRect.top <= containerRect.height * 0.6) : false;
+
+    if (isAtBottom && isPeersVisible) {
+      detectedSection = 'peers';
+    } else {
+      for (const id of sections) {
+        const el = document.getElementById('section-' + id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const offsetFromContainerTop = rect.top - containerRect.top;
+          if (offsetFromContainerTop <= 160) {
+            detectedSection = id;
+          }
+        }
+      }
+    }
+
+    if (this.activeOverviewTab() !== detectedSection) {
+      this.activeOverviewTab.set(detectedSection);
+    }
+  }
 
   // Global Refresh State
   isSyncingAll = signal<boolean>(false);
@@ -151,10 +228,30 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   private searchSubscription?: Subscription;
 
   ngOnInit(): void {
+    this.applyThemeToDom();
     this.loadAvailableStocks();
     this.setupSearch();
     this.fetchAllData(false);
     this.startLivePricePolling();
+  }
+
+  toggleTheme(): void {
+    this.isLightTheme.update(v => !v);
+    this.applyThemeToDom();
+  }
+
+  private applyThemeToDom(): void {
+    if (typeof document !== 'undefined') {
+      const theme = this.isLightTheme() ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      if (this.isLightTheme()) {
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+        document.body.classList.add('dark-theme');
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -434,6 +531,14 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   closeEvaluationModal(): void {
     this.isEvaluationModalOpen.set(false);
+  }
+
+  openAboutModal(): void {
+    this.isAboutModalOpen.set(true);
+  }
+
+  closeAboutModal(): void {
+    this.isAboutModalOpen.set(false);
   }
 
   syncAllData(): void {
@@ -936,6 +1041,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.selectedChartType.set(type);
   }
 
+  setFinancialTab(tab: 'cashflow' | 'balancesheet'): void {
+    this.selectedFinancialTab.set(tab);
+  }
+
   onBreakoutStateChange(hasBreakout: boolean): void {
     this.hasActiveBreakouts.set(hasBreakout);
   }
@@ -1077,17 +1186,17 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   getTruncatedAboutText(): string {
     const full = this.getAboutText();
-    if (!this.shouldShowReadMore() || this.isAboutExpanded()) {
+    const limit = 220;
+    if (full.length <= limit) {
       return full;
     }
-    const limit = 600;
     const truncated = full.substring(0, limit);
     const lastSpace = truncated.lastIndexOf(' ');
     return (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated).trim();
   }
 
   shouldShowReadMore(): boolean {
-    return this.getAboutText().length > 1550;
+    return this.getAboutText().length > 180;
   }
 
   getSectorName(): string {
@@ -1339,6 +1448,11 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   setLqTimeframe(tf: '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'): void {
     this.lqTimeframe.set(tf);
+  }
+
+  getLatestQuarterPeriod(): string {
+    const q = this.quartersResponse();
+    return q?.latestQuarter || q?.summary?.period || this.selectedLatestQuarterPeriod() || 'Jun 2026';
   }
 
   getBookValueFormatted(): string {

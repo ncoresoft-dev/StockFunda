@@ -13,6 +13,7 @@ export class StockTechnicalAnalysis implements OnInit, OnChanges {
   @Input() symbol!: string;
   @Input() exchange: string = 'NSE';
   @Input() refreshTrigger: number = 0;
+  @Input() isLightTheme: boolean = true;
   @Output() breakoutStateChange = new EventEmitter<boolean>();
 
   private evalService = inject(StockEvaluationService);

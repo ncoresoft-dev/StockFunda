@@ -1,10 +1,8 @@
-<div class="cockpit-container">
+<div class="cockpit-container" (scroll)="onCockpitScroll($event)" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()"
+  [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
   <!-- Top Animated Cyber Reload Progress Bar -->
   <div class="top-reload-bar" [class.active]="isLoadingStock()"></div>
 
-  <!-- ========================================================================= -->
-  <!-- 1. TOP GLOBAL APPLICATION HEADER & SEARCH BAR                             -->
-  <!-- ========================================================================= -->
   <!-- ========================================================================= -->
   <!-- 1. TOP GLOBAL APPLICATION NAVBAR                                          -->
   <!-- ========================================================================= -->
@@ -67,7 +65,7 @@
       </div>
     </div>
 
-    <!-- Right: Exchange Switcher & Sync Button Only -->
+    <!-- Right: Exchange Switcher, Theme Switcher & Sync Button -->
     <div class="header-right">
       <!-- Exchange Switcher Pills -->
       <div class="exchange-pills">
@@ -94,514 +92,306 @@
   </header>
 
   <!-- ========================================================================= -->
-  <!-- 2. STOCK HERO EXECUTIVE HEADER BAR                                        -->
+  <!-- 2. STICKY SCREENER NAVIGATION TAB BAR (SCROLL-SPY ENABLED)                -->
   <!-- ========================================================================= -->
-  <div class="stock-hero-banner">
-    <!-- Left: Company Logo & Identity -->
-    <div class="hero-left-col">
-      <div class="company-logo-avatar-wrap">
-        @if (getCompanyLogoUrl() && !isLogoFailed()) {
-        <div class="company-logo-badge">
-          <img [src]="getCompanyLogoUrl()" [alt]="getCompanyName() + ' Logo'" class="company-logo-img"
-            (error)="onLogoError($event)" loading="lazy" />
-        </div>
-        } @else {
-        <div class="company-gold-avatar" [class.reliance-brand]="selectedSymbol().toUpperCase() === 'RELIANCE'">
-          @if (selectedSymbol().toUpperCase() === 'RELIANCE') {
-          <svg viewBox="0 0 32 32" fill="currentColor" class="reliance-r-icon">
-            <path
-              d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm1 21.5h-3.8V8.5H18c3.2 0 5.4 1.8 5.4 4.5 0 2.1-1.3 3.6-3.2 4.1l3.8 6.4h-4.3l-3.2-5.7h-0.5v5.7h-2V10.3h2.3c2.1 0 3.5 1.1 3.5 2.7 0 1.7-1.4 2.8-3.5 2.8h-0.3v2h0.3l3.2 5.7z" />
+  <nav class="screener-sticky-nav-bar">
+    <div class="screener-tabs-inner">
+      <div class="screener-tabs-list">
+        <!-- Tab 1: Overview / Symbol -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'overview'"
+          (click)="scrollToSection('overview')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
-          } @else {
-          <span>{{ selectedSymbol().substring(0, 2) }}</span>
-          }
-        </div>
-        }
-      </div>
+          <span>{{ selectedSymbol() }}</span>
+        </button>
 
-      <div class="company-meta-col">
-        <div class="company-title-line">
-          <h1 class="company-name-text">{{ getCompanyName() }}</h1>
-          <span class="ticker-pill">{{ selectedSymbol() }}</span>
-          <span class="ticker-pill">{{ selectedExchange() }}</span>
-        </div>
-        <div class="company-sub-line">
-          {{ getIndustryName() }}
-        </div>
-        <div class="company-tags-line">
-          <span class="tag-cap-outline">{{ getCompanyCapCategory() }}</span>
-          <span class="tag-sector-solid">{{ getCompanySectorTag() }}</span>
-          <span class="tag-industry-dark">{{ getCompanyIndustryTag() }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Middle-Left: Price Display -->
-    <div class="hero-price-col">
-      <div class="hero-price-val">{{ getCurrentPriceFormatted() }}</div>
-      <div class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive">
-        {{ getPriceChangeDisplay().text }}
-      </div>
-    </div>
-
-    <!-- Right: 6 Compact Metric Cards Grid -->
-    <div class="hero-metrics-grid">
-      <!-- 1. Market Cap -->
-      <div class="metric-card">
-        <span class="m-card-lbl">Market Cap</span>
-        <span class="m-card-val">{{ getMarketCapFormatted() }}</span>
-      </div>
-
-      <!-- 2. P/E Ratio -->
-      <div class="metric-card">
-        <span class="m-card-lbl">P/E Ratio</span>
-        <span class="m-card-val">{{ getPeRatioFormatted() }}</span>
-      </div>
-
-      <!-- 3. Sector P/E -->
-      <div class="metric-card">
-        <span class="m-card-lbl">Sector P/E</span>
-        <span class="m-card-val">{{ getSectorPeFormatted() }}</span>
-      </div>
-
-      <!-- 4. 52W High -->
-      <div class="metric-card">
-        <span class="m-card-lbl">52W High</span>
-        <span class="m-card-val">{{ get52WHighFormatted() }}</span>
-      </div>
-
-      <!-- 5. 52W Low -->
-      <div class="metric-card">
-        <span class="m-card-lbl">52W Low</span>
-        <span class="m-card-val">{{ get52WLowFormatted() }}</span>
-      </div>
-
-      <!-- 6. Score & Buy Verdict -->
-      <div class="metric-card verdict-metric-card" (click)="openEvaluationModal()">
-        <div class="verdict-tag-pill">
-          <svg class="thumbs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path
-              d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3">
-            </path>
+        <!-- Tab 2: News & Filings -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'news'"
+          (click)="scrollToSection('news')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-          <span>{{ getEvaluationVerdict().text }}</span>
-        </div>
-        <div class="score-progress-wrap">
-          <div class="score-bar-track">
-            <div class="score-bar-fill" [style.width.%]="getEvaluationVerdict().progressWidth"></div>
-          </div>
-          <span class="score-bar-text">{{ getEvaluationVerdict().score }}/100</span>
-        </div>
+          <span>News &amp; Filings</span>
+        </button>
+
+        <!-- Tab 3: Quarters -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'quarters'"
+          (click)="scrollToSection('quarters')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Quarters</span>
+        </button>
+
+        <!-- Tab 4: Investors / Shareholding -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'ownership'"
+          (click)="scrollToSection('ownership')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Investors</span>
+        </button>
+
+        <!-- Tab 5: Chart -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'chart'"
+          (click)="scrollToSection('chart')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Chart</span>
+        </button>
+
+        <!-- Tab 6: Volume Analysis -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'volume'"
+          (click)="scrollToSection('volume')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Volume</span>
+        </button>
+
+        <!-- Tab 7: Cash Flow & Borrowings -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'cashflow'"
+          (click)="scrollToSection('cashflow')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span>Cash Flow</span>
+        </button>
+
+        <!-- Tab 8: Balance Sheet & Valuation -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'balancesheet'"
+          (click)="scrollToSection('balancesheet')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="9"></line>
+          </svg>
+          <span>Balance Sheet</span>
+        </button>
+
+        <!-- Tab 9: Corporate Deals -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'deals'"
+          (click)="scrollToSection('deals')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+          </svg>
+          <span>Deals</span>
+        </button>
+
+        <!-- Tab 10: Peer Comparison -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'peers'"
+          (click)="scrollToSection('peers')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Peer Comparison</span>
+        </button>
       </div>
     </div>
-  </div>
+  </nav>
 
   <!-- ========================================================================= -->
-  <!-- 3. MAIN DASHBOARD SPLIT VIEWPORT (2 COLUMNS: LEFT & RIGHT)                -->
+  <!-- 3. MAIN DASHBOARD CONTENT (CONTINUOUS SECTIONS FLOW WITH SCROLL-SPY)      -->
   <!-- ========================================================================= -->
-  <div class="cockpit-dashboard-grid">
-    <!-- ======================================================================= -->
-    <!-- LEFT COLUMN: ABOUT THE COMPANY + (OWNERSHIP PATTERN & LATEST QUARTER)    -->
-    <!-- ======================================================================= -->
-    <div class="dashboard-left-col">
-      <!-- --------------------------------------------------------------------- -->
-      <!-- CARD 1A: ABOUT THE COMPANY                                            -->
-      <!-- --------------------------------------------------------------------- -->
-      <div class="cockpit-card about-company-card" [class.is-expanded]="isAboutExpanded()">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <div class="card-icon-box bg-blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 21h18"></path>
-                <path d="M5 21V7l8-4v18"></path>
-                <path d="M19 21V11l-6-4"></path>
-                <path d="M9 9v.01"></path>
-                <path d="M9 13v.01"></path>
-                <path d="M9 17v.01"></path>
-              </svg>
-            </div>
-            <span class="card-title-text">About the Company</span>
-          </div>
+  <div class="cockpit-top-section">
+    <div class="screener-sections-container">
 
-          <button type="button" class="official-website-btn" (click)="openWebsite()" title="Visit official website">
-            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-            </svg>
-            <span>Official Website</span>
-            <svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <line x1="10" y1="14" x2="21" y2="3"></line>
-            </svg>
-          </button>
-        </div>
-
-        <div class="about-card-body-full">
-          <div class="about-desc-wrapper" [class.expanded]="isAboutExpanded()">
-            <p class="about-desc-p">
-              <span>{{ isAboutExpanded() ? getAboutText() : (getTruncatedAboutText() + '...') }}</span>
-              @if (shouldShowReadMore()) {
-              <button type="button" class="read-more-inline-btn" (click)="toggleAboutExpand()">
-                {{ isAboutExpanded() ? 'Read Less ▲' : 'Read More ▼' }}
-              </button>
-              }
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- --------------------------------------------------------------------- -->
-      <!-- CARD 1B: LOWER LEFT DUO (OWNERSHIP PATTERN & LATEST QUARTER)          -->
-      <!-- --------------------------------------------------------------------- -->
-      <div class="left-bottom-duo-grid">
-        <!-- ------------------------------------------------------------------- -->
-        <!-- CARD 2A: OWNERSHIP PATTERN                                          -->
-        <!-- ------------------------------------------------------------------- -->
-        <div class="cockpit-card ownership-card">
-          <div class="card-top-bar">
-            <div class="card-title-group">
-              <div class="card-icon-box bg-blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
+      <!-- ===================================================================== -->
+      <!-- SECTION 1: SCREENER OVERVIEW (HEADER + RATIOS + ABOUT SIDE-BY-SIDE)    -->
+      <!-- ===================================================================== -->
+      <section id="section-overview" class="cockpit-card screener-overview-card">
+        <!-- Top Header: Logo, Company Name, Price, Links -->
+        <div class="screener-hero-header">
+          <div class="hero-left-info">
+            <div class="company-logo-avatar-wrap">
+              @if (getCompanyLogoUrl() && !isLogoFailed()) {
+              <div class="company-logo-badge">
+                <img [src]="getCompanyLogoUrl()" [alt]="getCompanyName() + ' Logo'" class="company-logo-img"
+                  (error)="onLogoError($event)" loading="lazy" />
               </div>
-              <span class="card-title-text">Ownership Pattern</span>
-            </div>
-          </div>
-
-          <div class="ownership-body">
-            <!-- 4 Badges Quad -->
-            <div class="ownership-4quad-grid">
-              <!-- Promoter -->
-              <div class="owner-pill-box">
-                <span class="pill-label"><span class="dot dot-emerald"></span>Promoter</span>
-                <div class="pill-val">{{ getOwnershipBreakdown().promoter }}</div>
-                <div class="pill-delta-row">
-                  <span class="pill-delta" [class.positive]="getOwnershipBreakdown().promoterIsPos"
-                    [class.negative]="!getOwnershipBreakdown().promoterIsPos">{{ getOwnershipBreakdown().promoterPp
-                    }}</span>
-                </div>
-              </div>
-
-              <!-- FII / FPI -->
-              <div class="owner-pill-box">
-                <span class="pill-label"><span class="dot dot-cyan"></span>FII / FPI</span>
-                <div class="pill-val">{{ getOwnershipBreakdown().fii }}</div>
-                <div class="pill-delta-row">
-                  <span class="pill-delta" [class.positive]="getOwnershipBreakdown().fiiIsPos"
-                    [class.negative]="!getOwnershipBreakdown().fiiIsPos">{{ getOwnershipBreakdown().fiiPp }}</span>
-                </div>
-              </div>
-
-              <!-- DII -->
-              <div class="owner-pill-box">
-                <span class="pill-label"><span class="dot dot-purple"></span>DII</span>
-                <div class="pill-val">{{ getOwnershipBreakdown().dii }}</div>
-                <div class="pill-delta-row">
-                  <span class="pill-delta" [class.positive]="getOwnershipBreakdown().diiIsPos"
-                    [class.negative]="!getOwnershipBreakdown().diiIsPos">{{ getOwnershipBreakdown().diiPp }}</span>
-                </div>
-              </div>
-
-              <!-- Public -->
-              <div class="owner-pill-box">
-                <span class="pill-label"><span class="dot dot-amber"></span>Public</span>
-                <div class="pill-val">{{ getOwnershipBreakdown().public }}</div>
-                <div class="pill-delta-row">
-                  <span class="pill-delta" [class.positive]="getOwnershipBreakdown().publicIsPos"
-                    [class.negative]="!getOwnershipBreakdown().publicIsPos">{{ getOwnershipBreakdown().publicPp
-                    }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 4-Quarter Trend Table -->
-            <div class="history-table-wrapper">
-              <table class="owner-table">
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th class="th-promoter">Promoter</th>
-                    <th class="th-fii">FII</th>
-                    <th class="th-dii">DII</th>
-                    <th class="th-public">Public</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @if (getOwnershipBreakdown().history.length > 0) {
-                  @for (row of getOwnershipBreakdown().history; track row.period) {
-                  <tr>
-                    <td class="td-period">{{ row.period }}</td>
-                    <td class="td-promoter">{{ row.promoter }}</td>
-                    <td class="td-fii">{{ row.fii }}</td>
-                    <td class="td-dii">{{ row.dii }}</td>
-                    <td class="td-public">{{ row.public }}</td>
-                  </tr>
-                  }
-                  } @else {
-                  <tr>
-                    <td colspan="5" style="text-align: center; color: #64748b; padding: 0.75rem 0;">No historical
-                      shareholding data available</td>
-                  </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ------------------------------------------------------------------- -->
-        <!-- CARD 2B: LATEST QUARTER (Jun 2026) - 1st row 4 boxes, 2nd row 3 boxes -->
-        <!-- ------------------------------------------------------------------- -->
-        <div class="cockpit-card financials-quarter-card">
-          <div class="card-top-bar">
-            <div class="card-title-group">
-              <div class="card-icon-box bg-blue-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-              </div>
-              <span class="card-title-text">Latest Quarter{{ quartersResponse()?.latestQuarter ? ' (' +
-                quartersResponse()?.latestQuarter + ')' : '' }}</span>
-            </div>
-          </div>
-
-          <div class="financials-card-body">
-            <!-- Row 1: 3 Hero Boxes (Revenue, Operating Profit, Net Profit) -->
-            <div class="fin-row-3col">
-              <!-- 1. Revenue / Sales -->
-              <div class="fin-metric-box">
-                <span class="fin-lbl"><span class="dot dot-cyan"></span>Revenue</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().sales }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().salesQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().salesQoQ.text }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 2. Operating Profit -->
-              <div class="fin-metric-box">
-                <span class="fin-lbl"><span class="dot dot-emerald"></span>Operating Profit</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().operatingProfit }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().operatingProfitQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().operatingProfitQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().operatingProfitQoQ.text }}
-                  </span>
-                  <span class="fin-margin">{{ getQuarterlyFinancialsData().opMargin }}</span>
-                </div>
-              </div>
-
-              <!-- 3. Net Profit (PAT) -->
-              <div class="fin-metric-box">
-                <span class="fin-lbl"><span class="dot dot-indigo"></span>Net Profit (PAT)</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().netProfit }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().netProfitQoQ.text }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Row 2: 2x2 Grid (EPS, Interest, Tax, Depreciation) -->
-            <div class="fin-2x2-grid">
-              <!-- 4. EPS -->
-              <div class="fin-sub-box">
-                <span class="fin-lbl"><span class="dot dot-emerald"></span>EPS</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().eps }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().epsQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().epsQoQ.text }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 5. Interest -->
-              <div class="fin-sub-box">
-                <span class="fin-lbl"><span class="dot dot-amber"></span>Interest</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().interest }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().interestQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().interestQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().interestQoQ.text }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 6. Tax -->
-              <div class="fin-sub-box">
-                <span class="fin-lbl"><span class="dot dot-cyan"></span>Tax</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().tax }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().taxQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().taxQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().taxQoQ.text }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- 7. Depreciation -->
-              <div class="fin-sub-box">
-                <span class="fin-lbl"><span class="dot dot-purple"></span>Depreciation</span>
-                <div class="fin-val">{{ getQuarterlyFinancialsData().depreciation }}</div>
-                <div class="fin-deltas-row">
-                  <span class="fin-growth" [class.positive]="getQuarterlyFinancialsData().depreciationQoQ.isPositive"
-                    [class.negative]="!getQuarterlyFinancialsData().depreciationQoQ.isPositive">
-                    {{ getQuarterlyFinancialsData().depreciationQoQ.text }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======================================================================= -->
-    <!-- RIGHT COLUMN: FINANCIALS & KEY RATIOS + LATEST NEWS & CORPORATE FILINGS  -->
-    <!-- ======================================================================= -->
-    <div class="dashboard-right-col">
-      <!-- --------------------------------------------------------------------- -->
-      <!-- CARD 2A: FINANCIALS & KEY RATIOS (COMPACT NATURAL HEIGHT)              -->
-      <!-- --------------------------------------------------------------------- -->
-      <div class="cockpit-card latest-quarter-preview-card">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <div class="card-icon-box bg-blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 20V10"></path>
-                <path d="M12 20V4"></path>
-                <path d="M6 20v-6"></path>
-              </svg>
-            </div>
-            <span class="card-title-text">Financials &amp; Key Ratios</span>
-          </div>
-        </div>
-
-        <div class="lq-body-content">
-          <!-- 6 Financial Metric Cards Full Grid -->
-          <div class="fin-metrics-full-grid">
-            <!-- 1. Book Value -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-teal-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-              </div>
-              <div class="lq-metric-info">
-                <span class="lq-metric-label">Book Value</span>
-                <span class="lq-metric-value">{{ getBookValueFormatted() }}</span>
-              </div>
-            </div>
-
-            <!-- 2. Face Value -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-blue-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="9"></circle>
-                  <path d="M12 7v10M8 12h8"></path>
-                </svg>
-              </div>
-              <div class="lq-metric-info">
-                <span class="lq-metric-label">Face Value</span>
-                <span class="lq-metric-value">{{ getFaceValueFormatted() }}</span>
-              </div>
-            </div>
-
-            <!-- 3. ROE -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-emerald-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                  <polyline points="17 6 23 6 23 12"></polyline>
-                </svg>
-              </div>
-              <div class="lq-metric-info">
-                <div class="lq-metric-label-row">
-                  <span class="lq-metric-label">ROE</span>
-                  @if (getRoeYoY(); as roeY) {
-                  <span class="lq-delta-tag" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
-                    {{ getArrow(roeY) }} {{ formatPercent(roeY) }}
-                  </span>
-                  }
-                </div>
-                <span class="lq-metric-value">{{ getRoeFormatted() }}</span>
-              </div>
-            </div>
-
-            <!-- 4. ROCE -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-purple-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                  </polygon>
-                </svg>
-              </div>
-              <div class="lq-metric-info">
-                <div class="lq-metric-label-row">
-                  <span class="lq-metric-label">ROCE</span>
-                  @if (getRoceYoY(); as roceY) {
-                  <span class="lq-delta-tag" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
-                    {{ getArrow(roceY) }} {{ formatPercent(roceY) }}
-                  </span>
-                  }
-                </div>
-                <span class="lq-metric-value">{{ getRoceFormatted() }}</span>
-              </div>
-            </div>
-
-            <!-- 5. P/B Ratio -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-amber-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+} @else {
+              <div class="company-gold-avatar" [class.reliance-brand]="selectedSymbol().toUpperCase() === 'RELIANCE'">
+                @if (selectedSymbol().toUpperCase() === 'RELIANCE') {
+                <svg viewBox="0 0 32 32" fill="currentColor" class="reliance-r-icon">
                   <path
-                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                  </path>
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm1 21.5h-3.8V8.5H18c3.2 0 5.4 1.8 5.4 4.5 0 2.1-1.3 3.6-3.2 4.1l3.8 6.4h-4.3l-3.2-5.7h-0.5v5.7h-2V10.3h2.3c2.1 0 3.5 1.1 3.5 2.7 0 1.7-1.4 2.8-3.5 2.8h-0.3v2h0.3l3.2 5.7z" />
                 </svg>
+                } @else {
+                <span>{{ selectedSymbol().substring(0, 2) }}</span>
+                }
               </div>
-              <div class="lq-metric-info">
-                <span class="lq-metric-label">P/B Ratio</span>
-                <span class="lq-metric-value">{{ getPbRatioFormatted() }}</span>
-              </div>
+              }
             </div>
 
-            <!-- 6. Total Shares -->
-            <div class="lq-metric-card">
-              <div class="lq-metric-icon-box bg-cyan-soft">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
+            <div class="hero-title-group">
+              <div class="company-title-row">
+                <h1 class="company-name-text">{{ getCompanyName() }}</h1>
+                <div class="hero-price-group">
+                  <span class="hero-price-val">{{ getCurrentPriceFormatted() }}</span>
+                  <span class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive"
+                    [class.negative]="!getPriceChangeDisplay().isPositive">
+                    {{ getPriceChangeDisplay().text }}
+                  </span>
+                </div>
               </div>
-              <div class="lq-metric-info">
-                <span class="lq-metric-label">Total Shares</span>
-                <span class="lq-metric-value">{{ getSharesCountFormatted() }}</span>
+
+              <div class="hero-links-subline">
+                <a class="hero-website-link" (click)="openWebsite()" title="Visit official website">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="link-icon">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                  </svg>
+                  <span>{{ selectedSymbol().toLowerCase() }}.com</span>
+                </a>
+                <span class="hero-sub-pill">BSE: 500325</span>
+                <span class="hero-sub-pill">NSE: {{ selectedSymbol() }}</span>
+                <span class="tag-cap-outline">{{ getCompanyCapCategory() }}</span>
+                <span class="tag-sector-solid">{{ getCompanySectorTag() }}</span>
+                <span class="tag-industry-dark">{{ getCompanyIndustryTag() }}</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- --------------------------------------------------------------------- -->
-      <!-- CARD 2B: LATEST NEWS & CORPORATE FILINGS (EXPANDED TO OCCUPY HEIGHT)   -->
-      <!-- --------------------------------------------------------------------- -->
-      <div class="cockpit-card news-stream-card">
+          <div class="hero-right-score">
+            <div class="quick-verdict-pill" (click)="openEvaluationModal()"
+              title="View 23-Metric Comprehensive Scorecard">
+              <span class="quick-verdict-label">Investment Verdict:</span>
+              <span class="quick-verdict-signal {{ getEvaluationVerdict().class }}">{{ getEvaluationVerdict().text }}</span>
+              <span class="quick-verdict-score">{{ getEvaluationVerdict().score }}/100 ↗</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screener Ratios Grid (Left) + About & Key Points (Right) -->
+        <div class="screener-overview-grid">
+          <!-- Left: Ratios Table (3 columns) -->
+          <div class="screener-ratios-col">
+            <div class="screener-ratios-table">
+              <!-- Row 1 -->
+              <div class="ratio-item">
+                <span class="ratio-lbl">Market Cap</span>
+                <span class="ratio-val">{{ getMarketCapFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">Current Price</span>
+                <span class="ratio-val">{{ getCurrentPriceFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">High / Low</span>
+                <span class="ratio-val">{{ get52WHighFormatted() }} / {{ get52WLowFormatted() }}</span>
+              </div>
+
+              <!-- Row 2 -->
+              <div class="ratio-item">
+                <span class="ratio-lbl">Stock P/E</span>
+                <span class="ratio-val">{{ getPeRatioFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">Book Value</span>
+                <span class="ratio-val">{{ getBookValueFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">Dividend Yield</span>
+                <span class="ratio-val">{{ getDividendYieldFormatted() }}</span>
+              </div>
+
+              <!-- Row 3 -->
+              <div class="ratio-item">
+                <span class="ratio-lbl">ROCE</span>
+                <div class="ratio-val-row">
+                  @if (getRoceYoY(); as roceY) {
+                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
+                    {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
+                  </span>
+                  }
+                  <span class="ratio-val">{{ getRoceFormatted() }}</span>
+                </div>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">ROE</span>
+                <div class="ratio-val-row">
+                  @if (getRoeYoY(); as roeY) {
+                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
+                    {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
+                  </span>
+                  }
+                  <span class="ratio-val">{{ getRoeFormatted() }}</span>
+                </div>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">Face Value</span>
+                <span class="ratio-val">{{ getFaceValueFormatted() }}</span>
+              </div>
+
+              <!-- Row 4 -->
+              <div class="ratio-item">
+                <span class="ratio-lbl">Industry PE</span>
+                <span class="ratio-val">{{ getSectorPeFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">Total Shares</span>
+                <span class="ratio-val">{{ getSharesCountFormatted() }}</span>
+              </div>
+              <div class="ratio-item">
+                <span class="ratio-lbl">P/B Ratio</span>
+                <span class="ratio-val">{{ getPbRatioFormatted() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: ABOUT & KEY POINTS -->
+          <div class="screener-about-col">
+            <div class="about-side-box">
+              <h4 class="about-side-heading">ABOUT</h4>
+              <p class="about-side-desc">{{ getTruncatedAboutText() }}...</p>
+
+              <h4 class="about-side-heading" style="margin-top: 0.85rem;">KEY POINTS</h4>
+              <div class="key-points-meta">
+                <div class="key-point-row">
+                  <span class="kp-lbl">Sector:</span>
+                  <span class="kp-val">{{ getCompanySectorTag() }}</span>
+                </div>
+                <div class="key-point-row">
+                  <span class="kp-lbl">Industry:</span>
+                  <span class="kp-val">{{ getIndustryName() }}</span>
+                </div>
+                <div class="key-point-row">
+                  <span class="kp-lbl">Category:</span>
+                  <span class="kp-val">{{ getCompanyCapCategory() }}</span>
+                </div>
+              </div>
+              <button type="button" class="screener-readmore-btn" (click)="openAboutModal()">
+                READ MORE &gt;
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 2: LATEST NEWS & CORPORATE FILINGS                           -->
+      <!-- ===================================================================== -->
+      <section id="section-news" class="cockpit-card screener-section-card">
         <div class="card-top-bar">
           <div class="card-title-group">
             <div class="card-icon-box bg-blue">
@@ -615,6 +405,13 @@
             </div>
             <span class="card-title-text">Latest News</span>
           </div>
+
+          <button type="button" class="official-website-btn" (click)="fetchNews(true)" [disabled]="isNewsRefreshing()" title="Refresh live news">
+            <svg class="sync-icon" [class.spinning]="isNewsRefreshing()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
         </div>
 
         <!-- News Feed List -->
@@ -623,8 +420,7 @@
           <div class="mini-loading-box"
             style="padding: 2.5rem 1rem; text-align: center; color: #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;">
             <div class="mini-spinner"></div>
-            <span style="font-size: 0.85rem; font-weight: 500;">Fetching live market news &amp; corporate
-              filings...</span>
+            <span style="font-size: 0.85rem; font-weight: 500;">Fetching live market news &amp; corporate filings...</span>
           </div>
           }
 
@@ -636,8 +432,7 @@
           </div>
           }
 
-          @if ((newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getDisplayNewsList().length ===
-          0)) && newsLoadingState() !== 'loading') {
+          @if ((newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getDisplayNewsList().length === 0)) && newsLoadingState() !== 'loading') {
           <div class="mini-empty-box"
             style="padding: 2.5rem 1rem; text-align: center; color: #64748b; font-size: 0.85rem;">
             <span>No corporate news or filings found for {{ selectedSymbol() }}.</span>
@@ -668,21 +463,246 @@
           }
           }
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <!-- ========================================================================= -->
-  <!-- 4. FULL DEEP-DIVE EXPANDABLE COCKPIT (Candlestick Chart & Analysis Tools) -->
-  <!-- ========================================================================= -->
-  <div class="cockpit-body">
+      <!-- ===================================================================== -->
+      <!-- SECTION 3: LATEST QUARTER                                             -->
+      <!-- ===================================================================== -->
+      <section id="section-quarters" class="cockpit-card screener-section-card">
+        <div class="card-top-bar">
+          <div class="card-title-group">
+            <div class="card-icon-box bg-blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="title-with-subtitle">
+              <span class="card-title-text">Latest Quarter Financials</span>
+              @if (getLatestQuarterPeriod()) {
+              <span class="card-subtitle-tag">{{ getLatestQuarterPeriod() }}</span>
+              }
+            </div>
+          </div>
+        </div>
 
+        <div class="latest-quarter-grid screener-quarter-grid">
+          <!-- 1. Sales -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Sales (Revenue)</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().sales }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().salesQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().salesQoQ.text }}
+              </span>
+            </div>
+          </div>
 
-    <!-- ===================================================================== -->
-    <!-- ROW 2: DEDICATED 100% FULL-WIDTH OHLC CANDLESTICK / LINE CHART (HERO)   -->
-    <!-- ===================================================================== -->
-    <div class="cockpit-row-full chart-full-row">
-      <div class="cockpit-card candlestick-card">
+          <!-- 2. Operating Profit (with OPM badge) -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Operating Profit</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().operatingProfit }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().operatingProfitQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().operatingProfitQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().operatingProfitQoQ.text }}
+              </span>
+              @if (getQuarterlyFinancialsData().opMargin) {
+              <span class="qr-margin-badge" title="Operating Profit Margin (OPM)">OPM: {{ getQuarterlyFinancialsData().opMargin }}</span>
+              }
+            </div>
+          </div>
+
+          <!-- 3. Net Profit -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Net Profit (PAT)</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().netProfit }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().netProfitQoQ.text }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 4. EPS -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Earnings Per Share (EPS)</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().eps }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().epsQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().epsQoQ.text }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 5. Interest -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Interest</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().interest }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().interestQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().interestQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().interestQoQ.text }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 6. Tax -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Tax</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().tax }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().taxQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().taxQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().taxQoQ.text }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 7. Depreciation -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Depreciation</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val">{{ getQuarterlyFinancialsData().depreciation }}</span>
+              <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().depreciationQoQ.isPositive"
+                [class.negative]="!getQuarterlyFinancialsData().depreciationQoQ.isPositive">
+                {{ getQuarterlyFinancialsData().depreciationQoQ.text }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 8. YoY Sales Growth -->
+          <div class="tab-metric-box">
+            <span class="metric-box-lbl">Sales YoY Growth</span>
+            <div class="metric-box-val-row">
+              <span class="metric-box-val" [class.text-green]="getQuarterlyFinancialsData().salesYoY.isPositive"
+                [class.text-red]="!getQuarterlyFinancialsData().salesYoY.isPositive">
+                {{ getQuarterlyFinancialsData().salesYoY.text }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 4: SHAREHOLDING / OWNERSHIP PATTERN                           -->
+      <!-- ===================================================================== -->
+      <section id="section-ownership" class="cockpit-card screener-section-card">
+        <div class="card-top-bar">
+          <div class="card-title-group">
+            <div class="card-icon-box bg-blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <span class="card-title-text">Shareholding (Ownership) Pattern</span>
+          </div>
+        </div>
+
+        <div class="tab-panel-ownership">
+          <div class="ownership-quad-row">
+            <!-- Promoter -->
+            <div class="ownership-stat-card">
+              <div class="owner-stat-head">
+                <span class="dot dot-emerald"></span>
+                <span class="owner-stat-title">Promoter</span>
+              </div>
+              <div class="owner-stat-number">{{ getOwnershipBreakdown().promoter }}</div>
+              <div class="owner-stat-sub">
+                <span class="pill-delta" [class.positive]="getOwnershipBreakdown().promoterIsPos"
+                  [class.negative]="!getOwnershipBreakdown().promoterIsPos">QoQ: {{ getOwnershipBreakdown().promoterPp }}</span>
+              </div>
+            </div>
+
+            <!-- FII / FPI -->
+            <div class="ownership-stat-card">
+              <div class="owner-stat-head">
+                <span class="dot dot-cyan"></span>
+                <span class="owner-stat-title">FII / FPI</span>
+              </div>
+              <div class="owner-stat-number">{{ getOwnershipBreakdown().fii }}</div>
+              <div class="owner-stat-sub">
+                <span class="pill-delta" [class.positive]="getOwnershipBreakdown().fiiIsPos"
+                  [class.negative]="!getOwnershipBreakdown().fiiIsPos">QoQ: {{ getOwnershipBreakdown().fiiPp }}</span>
+              </div>
+            </div>
+
+            <!-- DII -->
+            <div class="ownership-stat-card">
+              <div class="owner-stat-head">
+                <span class="dot dot-purple"></span>
+                <span class="owner-stat-title">DII</span>
+              </div>
+              <div class="owner-stat-number">{{ getOwnershipBreakdown().dii }}</div>
+              <div class="owner-stat-sub">
+                <span class="pill-delta" [class.positive]="getOwnershipBreakdown().diiIsPos"
+                  [class.negative]="!getOwnershipBreakdown().diiIsPos">QoQ: {{ getOwnershipBreakdown().diiPp }}</span>
+              </div>
+            </div>
+
+            <!-- Public -->
+            <div class="ownership-stat-card">
+              <div class="owner-stat-head">
+                <span class="dot dot-amber"></span>
+                <span class="owner-stat-title">Public</span>
+              </div>
+              <div class="owner-stat-number">{{ getOwnershipBreakdown().public }}</div>
+              <div class="owner-stat-sub">
+                <span class="pill-delta" [class.positive]="getOwnershipBreakdown().publicIsPos"
+                  [class.negative]="!getOwnershipBreakdown().publicIsPos">QoQ: {{ getOwnershipBreakdown().publicPp }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historical Trend Table -->
+          <div class="screener-history-table-box">
+            <div class="table-sub-title">Quarterly Shareholding Breakdown (%)</div>
+            <table class="owner-table screener-owner-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th class="th-promoter">Promoter</th>
+                  <th class="th-fii">FII</th>
+                  <th class="th-dii">DII</th>
+                  <th class="th-public">Public</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (getOwnershipBreakdown().history.length > 0) {
+                @for (row of getOwnershipBreakdown().history; track row.period) {
+                <tr>
+                  <td class="td-period">{{ row.period }}</td>
+                  <td class="td-promoter">{{ row.promoter }}</td>
+                  <td class="td-fii">{{ row.fii }}</td>
+                  <td class="td-dii">{{ row.dii }}</td>
+                  <td class="td-public">{{ row.public }}</td>
+                </tr>
+                }
+                } @else {
+                <tr>
+                  <td colspan="5" style="text-align: center; color: #64748b; padding: 1rem 0;">No historical
+                    shareholding data available</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- SECTION 5: OHLC CANDLESTICK / LINE CHART                                  -->
+      <!-- ========================================================================= -->
+      <section class="cockpit-row-full chart-full-row" id="section-chart">
+        <div class="cockpit-card candlestick-card">
         <div class="card-top-bar">
           <div class="card-title-group">
             <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -768,275 +788,285 @@
 
         <div class="chart-canvas-wrapper" style="position: relative;">
           <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-            [period]="candlestickPeriod()" [chartType]="selectedChartType()"
+            [period]="candlestickPeriod()" [chartType]="selectedChartType()" [isLightTheme]="isLightTheme()"
             (priceDataLoaded)="onPriceDataLoaded($event)" customHeight="100%"></app-stock-candlestick-chart>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ===================================================================== -->
-    <!-- ROW 3: VOLUME & BREAKOUT ANALYSIS                                     -->
-    <!-- ===================================================================== -->
-    <div class="volume-breakout-row" [class.has-breakout]="hasActiveBreakouts()">
+      <!-- ========================================================================= -->
+      <!-- SECTION 6: VOLUME & BREAKOUT ANALYSIS                                     -->
+      <!-- ========================================================================= -->
+      <section class="volume-breakout-row" id="section-volume" [class.has-breakout]="hasActiveBreakouts()">
       <app-stock-volume-delivery-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-        [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()">
+        [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()" [isLightTheme]="isLightTheme()">
       </app-stock-volume-delivery-card>
       <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-        [refreshTrigger]="technicalRefreshTrigger()" (breakoutStateChange)="onBreakoutStateChange($event)"
+        [refreshTrigger]="technicalRefreshTrigger()" [isLightTheme]="isLightTheme()" (breakoutStateChange)="onBreakoutStateChange($event)"
         [style.display]="hasActiveBreakouts() ? 'block' : 'none'">
       </app-stock-technical-analysis>
-    </div>
+    </section>
 
     <!-- ===================================================================== -->
-    <!-- ROW 4: 2-COLUMN FUNDAMENTAL COCKPIT (CASH FLOW & BALANCE SHEET)       -->
+    <!-- ROW: CASH FLOW & BORROWINGS (100% FULL-WIDTH ROW)                     -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-2col cockpit-row-middle">
-      <!-- ------------------------------------------------------------------- -->
-      <!-- CARD 1: CASH FLOW & BORROWINGS (Debt Position)                      -->
-      <!-- ------------------------------------------------------------------- -->
-      <div class="cockpit-card fundamental-card">
+    <section class="cockpit-row-full fundamental-row" id="section-cashflow">
+      <div class="cockpit-card fundamental-card full-width-fundamental">
         <div class="card-top-bar">
           <div class="card-title-group">
-            <svg class="card-icon text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="card-icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
             <span class="card-title">CASH FLOW &amp; BORROWINGS</span>
           </div>
+
           @if (cashflowResponse()?.latestFiscalYear; as fy) {
           <span class="period-tag">{{ fy }}</span>
           }
         </div>
 
-        <div class="card-inner-content split-content-col">
-          <!-- TOP SUB-SECTION: CASH FLOW STATEMENTS -->
-          <div class="sub-section">
-            <span class="sub-section-heading">CASH FLOW STATEMENTS</span>
-            <div class="cflow-list">
-              <!-- FCF -->
-              <div class="cflow-item">
-                <div class="cf-left">
-                  <span class="cf-name">Free Cash Flow (FCF)</span>
-                  @if (cashflowResponse()?.summary?.yoYChange?.freeCashFlowGrowth; as g) {
-                  <span class="mini-delta" [ngClass]="getChangeClass(g)">YoY: {{ formatPercent(g) }}</span>
-                  }
+        <div class="card-inner-content">
+          <div class="cashflow-full-grid">
+            
+            <!-- SECTION A: CASH FLOW STATEMENTS -->
+            <div class="sub-section">
+              <span class="sub-section-heading">CASH FLOW STATEMENTS</span>
+              <div class="cflow-list">
+                <!-- FCF -->
+                <div class="cflow-item">
+                  <div class="cf-left">
+                    <span class="cf-name">Free Cash Flow (FCF)</span>
+                    @if (cashflowResponse()?.summary?.yoYChange?.freeCashFlowGrowth; as g) {
+                    <span class="mini-delta" [ngClass]="getChangeClass(g)">YoY: {{ formatPercent(g) }}</span>
+                    }
+                  </div>
+                  <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{
+                    formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
                 </div>
-                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{
-                  formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
-              </div>
 
-              <!-- Net Cash Flow -->
-              <div class="cflow-item">
-                <div class="cf-left">
-                  <span class="cf-name">Net Cash Flow</span>
+                <!-- Net Cash Flow -->
+                <div class="cflow-item">
+                  <div class="cf-left">
+                    <span class="cf-name">Net Cash Flow</span>
+                  </div>
+                  <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{
+                    formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
                 </div>
-                <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{
-                  formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
-              </div>
 
-              <!-- CFO / OP -->
-              <div class="cflow-item">
-                <div class="cf-left">
-                  <span class="cf-name">CFO / OP</span>
-                  @if (getCfoToOpRatio(); as ratio) {
-                  <span class="mini-delta"
-                    [ngClass]="(ratio >= 0.8 || ratio >= 80) ? 'positive' : ((ratio >= 0.5 || ratio >= 50) ? 'neutral' : 'negative')">
-                    {{ (ratio >= 0.8 || ratio >= 80) ? 'High Conv.' : ((ratio >= 0.5 || ratio >= 50) ? 'Moderate' :
-                    'Low') }}
-                  </span>
-                  }
-                </div>
-                <span class="cf-val text-accent">{{ formatCfoToOp() }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- BOTTOM SUB-SECTION: BORROWINGS & LIABILITIES -->
-          <div class="sub-section">
-            <span class="sub-section-heading">BORROWINGS &amp; LIABILITIES</span>
-            <div class="cflow-list">
-              <!-- Long term borrowing -->
-              <div class="cflow-item">
-                <div class="cf-left">
-                  <span class="cf-name">Long term borrowing</span>
-                  @if (getLongTermBorrowingsYoY() !== null) {
-                  <span class="mini-delta" [ngClass]="getInvertedChangeClass(getLongTermBorrowingsYoY())">
-                    YoY: {{ formatPercent(getLongTermBorrowingsYoY()) }}
-                  </span>
-                  }
-                </div>
-                <span class="cf-val text-purple">{{ formatCrores(getLatestLongTermBorrowings()) }}</span>
-              </div>
-
-              <!-- Short term borrowing -->
-              <div class="cflow-item">
-                <div class="cf-left">
-                  <span class="cf-name">Short term borrowing</span>
-                  @if (getShortTermBorrowingsYoY() !== null) {
-                  <span class="mini-delta" [ngClass]="getInvertedChangeClass(getShortTermBorrowingsYoY())">
-                    YoY: {{ formatPercent(getShortTermBorrowingsYoY()) }}
-                  </span>
-                  }
-                </div>
-                <span class="cf-val text-cyan">{{ formatCrores(getLatestShortTermBorrowings()) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- EFFICIENCY RATIOS -->
-          <div class="sub-section">
-            <span class="sub-section-heading">EFFICIENCY RATIOS</span>
-            <div class="efficiency-trio-grid">
-              <!-- Debtor Days -->
-              <div class="quad-box">
-                <div class="quad-label-row">
-                  <span class="quad-label"><span class="dot dot-amber"></span>Debtor Days</span>
-                </div>
-                <div class="quad-bottom-row">
-                  <span class="quad-value">{{ cashflowResponse()?.ratios?.debtorDays != null ?
-                    cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
-                  @if (cashflowResponse()?.ratios?.debtorDaysYoY; as g) {
-                  <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
-                    {{ getArrow(g) }} {{ formatPercent(g) }}
-                  </span>
-                  }
-                </div>
-              </div>
-
-              <!-- Inventory Days -->
-              <div class="quad-box">
-                <div class="quad-label-row">
-                  <span class="quad-label"><span class="dot dot-emerald"></span>Inventory Days</span>
-                </div>
-                <div class="quad-bottom-row">
-                  <span class="quad-value">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
-                    cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
-                  @if (cashflowResponse()?.ratios?.inventoryDaysYoY; as g) {
-                  <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
-                    {{ getArrow(g) }} {{ formatPercent(g) }}
-                  </span>
-                  }
-                </div>
-              </div>
-
-              <!-- Payable Days -->
-              <div class="quad-box">
-                <div class="quad-label-row">
-                  <span class="quad-label"><span class="dot dot-cyan"></span>Payable Days</span>
-                </div>
-                <div class="quad-bottom-row">
-                  <span class="quad-value">{{ cashflowResponse()?.ratios?.payableDays != null ?
-                    cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
-                  @if (cashflowResponse()?.ratios?.payableDaysYoY; as g) {
-                  <span class="delta-tag" [ngClass]="getChangeClass(g)">
-                    {{ getArrow(g) }} {{ formatPercent(g) }}
-                  </span>
-                  }
+                <!-- CFO / OP -->
+                <div class="cflow-item">
+                  <div class="cf-left">
+                    <span class="cf-name">CFO / OP</span>
+                    @if (getCfoToOpRatio(); as ratio) {
+                    <span class="mini-delta"
+                      [ngClass]="(ratio >= 0.8 || ratio >= 80) ? 'positive' : ((ratio >= 0.5 || ratio >= 50) ? 'neutral' : 'negative')">
+                      {{ (ratio >= 0.8 || ratio >= 80) ? 'High Conv.' : ((ratio >= 0.5 || ratio >= 50) ? 'Moderate' :
+                      'Low') }}
+                    </span>
+                    }
+                  </div>
+                  <span class="cf-val text-accent">{{ formatCfoToOp() }}</span>
                 </div>
               </div>
             </div>
+
+            <!-- SECTION B: BORROWINGS & LIABILITIES -->
+            <div class="sub-section">
+              <span class="sub-section-heading">BORROWINGS &amp; LIABILITIES</span>
+              <div class="cflow-list">
+                <!-- Long term borrowing -->
+                <div class="cflow-item">
+                  <div class="cf-left">
+                    <span class="cf-name">Long term borrowing</span>
+                    @if (getLongTermBorrowingsYoY() !== null) {
+                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(getLongTermBorrowingsYoY())">
+                      YoY: {{ formatPercent(getLongTermBorrowingsYoY()) }}
+                    </span>
+                    }
+                  </div>
+                  <span class="cf-val text-purple">{{ formatCrores(getLatestLongTermBorrowings()) }}</span>
+                </div>
+
+                <!-- Short term borrowing -->
+                <div class="cflow-item">
+                  <div class="cf-left">
+                    <span class="cf-name">Short term borrowing</span>
+                    @if (getShortTermBorrowingsYoY() !== null) {
+                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(getShortTermBorrowingsYoY())">
+                      YoY: {{ formatPercent(getShortTermBorrowingsYoY()) }}
+                    </span>
+                    }
+                  </div>
+                  <span class="cf-val text-cyan">{{ formatCrores(getLatestShortTermBorrowings()) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION C: EFFICIENCY RATIOS -->
+            <div class="sub-section">
+              <span class="sub-section-heading">EFFICIENCY RATIOS</span>
+              <div class="efficiency-trio-grid">
+                <!-- Debtor Days -->
+                <div class="quad-box">
+                  <div class="quad-label-row">
+                    <span class="quad-label"><span class="dot dot-amber"></span>Debtor Days</span>
+                  </div>
+                  <div class="quad-bottom-row">
+                    <span class="quad-value">{{ cashflowResponse()?.ratios?.debtorDays != null ?
+                      cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
+                    @if (cashflowResponse()?.ratios?.debtorDaysYoY; as g) {
+                    <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
+                      {{ getArrow(g) }} {{ formatPercent(g) }}
+                    </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Inventory Days -->
+                <div class="quad-box">
+                  <div class="quad-label-row">
+                    <span class="quad-label"><span class="dot dot-emerald"></span>Inventory Days</span>
+                  </div>
+                  <div class="quad-bottom-row">
+                    <span class="quad-value">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
+                      cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
+                    @if (cashflowResponse()?.ratios?.inventoryDaysYoY; as g) {
+                    <span class="delta-tag" [ngClass]="getInvertedChangeClass(g)">
+                      {{ getArrow(g) }} {{ formatPercent(g) }}
+                    </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Payable Days -->
+                <div class="quad-box">
+                  <div class="quad-label-row">
+                    <span class="quad-label"><span class="dot dot-cyan"></span>Payable Days</span>
+                  </div>
+                  <div class="quad-bottom-row">
+                    <span class="quad-value">{{ cashflowResponse()?.ratios?.payableDays != null ?
+                      cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
+                    @if (cashflowResponse()?.ratios?.payableDaysYoY; as g) {
+                    <span class="delta-tag" [ngClass]="getChangeClass(g)">
+                      {{ getArrow(g) }} {{ formatPercent(g) }}
+                    </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- ------------------------------------------------------------------- -->
-      <!-- CARD 2: BALANCE SHEET, VALUATION & LONG-TERM FUNDAMENTALS           -->
-      <!-- ------------------------------------------------------------------- -->
-      <div class="cockpit-card fundamental-card">
+    <!-- ===================================================================== -->
+    <!-- ROW: BALANCE SHEET & VALUATION (100% FULL-WIDTH ROW)                  -->
+    <!-- ===================================================================== -->
+<section class="cockpit-row-full fundamental-row" id="section-balancesheet">
+      <div class="cockpit-card fundamental-card full-width-fundamental">
         <div class="card-top-bar">
           <div class="card-title-group">
             <svg class="card-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path
-                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-              </path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
             </svg>
             <span class="card-title">BALANCE SHEET &amp; VALUATION</span>
           </div>
+
+          <span class="period-tag">ANNUAL</span>
         </div>
 
-        <div class="card-inner-content bs-card-content">
-          <!-- BALANCE SHEET ESSENTIALS -->
-          <div class="sub-section bs-section-block">
-            <span class="sub-section-heading">BALANCE SHEET ESSENTIALS</span>
-            <div class="bs-feature-banner">
-              <div class="bs-feature-left">
-                <div class="bs-feature-icon-box">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path
-                      d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                    </path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                  </svg>
+        <div class="card-inner-content">
+          <div class="balancesheet-full-grid">
+            
+            <!-- BALANCE SHEET ESSENTIALS -->
+            <div class="sub-section bs-section-block">
+              <span class="sub-section-heading">BALANCE SHEET ESSENTIALS</span>
+              <div class="bs-feature-banner">
+                <div class="bs-feature-left">
+                  <div class="bs-feature-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                      </path>
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                  </div>
+                  <div class="bs-feature-text">
+                    <span class="bs-feature-title">Fixed Assets / Total</span>
+                    <span class="bs-feature-desc">Tangible &amp; Capital Asset Base</span>
+                  </div>
                 </div>
-                <div class="bs-feature-text">
-                  <span class="bs-feature-title">Fixed Assets / Total</span>
-                  <span class="bs-feature-desc">Tangible &amp; Capital Asset Base</span>
-                </div>
-              </div>
-              <div class="bs-feature-right">
-                <span class="bs-feature-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- VALUATION MULTIPLES & 5Y TRENDS -->
-          <div class="sub-section bs-section-block">
-            <span class="sub-section-heading">VALUATION MULTIPLES &amp; 5Y TRENDS</span>
-            <div class="bs-duo-grid">
-              <!-- PEG Ratio -->
-              <div class="quad-box bs-stat-card">
-                <div class="quad-label-row">
-                  <span class="quad-label"><span class="dot dot-indigo"></span>PEG Ratio</span>
-                  <span class="mini-delta neutral">Valuation</span>
-                </div>
-                <div class="bs-stat-main">
-                  <span class="quad-value text-accent">{{ getPegRatio() !== null && getPegRatio() !== undefined ?
-                    (getPegRatio() + 'x') : '—' }}</span>
-                </div>
-                <div class="bs-stat-footnote">
-                  <span class="bs-sub-tag">P/E to Growth</span>
-                </div>
-              </div>
-
-              <!-- 5Y Asset Growth -->
-              <div class="quad-box bs-stat-card">
-                <div class="quad-label-row">
-                  <span class="quad-label"><span class="dot dot-emerald"></span>5Y Asset Growth</span>
-                  @if (assetsResponse()?.assetGrowthPercentage; as g) {
-                  <span class="delta-tag" [ngClass]="getChangeClass(g)">
-                    {{ getArrow(g) }} {{ formatPercent(g) }}
-                  </span>
-                  }
-                </div>
-                <div class="bs-stat-main">
-                  <span class="quad-value text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage)
-                    }}</span>
-                </div>
-                <div class="bs-stat-footnote">
-                  <span class="bs-sub-tag">5-Year Trend</span>
+                <div class="bs-feature-right">
+                  <span class="bs-feature-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
                 </div>
               </div>
             </div>
+
+            <!-- VALUATION MULTIPLES & 5Y TRENDS -->
+            <div class="sub-section bs-section-block">
+              <span class="sub-section-heading">VALUATION MULTIPLES &amp; 5Y TRENDS</span>
+              <div class="bs-duo-grid">
+                <!-- PEG Ratio -->
+                <div class="quad-box bs-stat-card">
+                  <div class="quad-label-row">
+                    <span class="quad-label"><span class="dot dot-indigo"></span>PEG Ratio</span>
+                    <span class="mini-delta neutral">Valuation</span>
+                  </div>
+                  <div class="bs-stat-main">
+                    <span class="quad-value text-accent">{{ getPegRatio() !== null && getPegRatio() !== undefined ?
+                      (getPegRatio() + 'x') : '—' }}</span>
+                  </div>
+                  <div class="bs-stat-footnote">
+                    <span class="bs-sub-tag">P/E to Growth</span>
+                  </div>
+                </div>
+
+                <!-- 5Y Asset Growth -->
+                <div class="quad-box bs-stat-card">
+                  <div class="quad-label-row">
+                    <span class="quad-label"><span class="dot dot-emerald"></span>5Y Asset Growth</span>
+                    @if (assetsResponse()?.assetGrowthPercentage; as g) {
+                    <span class="delta-tag" [ngClass]="getChangeClass(g)">
+                      {{ getArrow(g) }} {{ formatPercent(g) }}
+                    </span>
+                    }
+                  </div>
+                  <div class="bs-stat-main">
+                    <span class="quad-value text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage)
+                      }}</span>
+                  </div>
+                  <div class="bs-stat-footnote">
+                    <span class="bs-sub-tag">5-Year Trend</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
-    </div>
+    </section>
+
     <!-- ===================================================================== -->
-    <!-- ROW 5: INSIDER & BULK/BLOCK DEALS (100% FULL WIDTH)                   -->
+    <!-- ROW: INSIDER & BULK/BLOCK DEALS (100% FULL WIDTH)                     -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-full deals-row">
-      <app-stock-deals-card [symbol]="selectedSymbol()"></app-stock-deals-card>
-    </div>
+    <section class="cockpit-row-full deals-row" id="section-deals">
+      <app-stock-deals-card [symbol]="selectedSymbol()" [isLightTheme]="isLightTheme()"></app-stock-deals-card>
+    </section>
 
     <!-- ===================================================================== -->
     <!-- ROW 6: PEER COMPARISON                                                -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-full peer-comparison-row" style="margin-bottom: 1.5rem;">
+    <section class="cockpit-row-full peer-comparison-row" id="section-peers">
       <app-stock-peer-comparison-card [symbol]="selectedSymbol()" [companyName]="companyOverview()?.companyName || ''" [exchange]="selectedExchange()"
         [peers]="companyPeers()" [isLoading]="isPeersLoading()" [hasError]="hasPeersError()"
-        [industry]="companyOverview()?.industry"></app-stock-peer-comparison-card>
+        [industry]="companyOverview()?.industry" [isLightTheme]="isLightTheme()"></app-stock-peer-comparison-card>
+    </section>
     </div>
   </div>
 
@@ -1170,6 +1200,85 @@
         <span class="eval-disclaimer">* Algorithmic assessment based on 23 financial and technical indicators. For
           informational & research purposes only.</span>
         <button class="eval-done-btn" (click)="closeEvaluationModal()">Close Scorecard</button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- ABOUT THE COMPANY FULL MODAL DIALOG POPUP -->
+  @if (isAboutModalOpen()) {
+  <div class="eval-modal-backdrop" (click)="closeAboutModal()">
+    <div class="eval-modal-dialog about-modal-dialog" (click)="$event.stopPropagation()">
+      <div class="eval-modal-header">
+        <div class="eval-header-title-box">
+          @if (getCompanyLogoUrl() && !isLogoFailed()) {
+          <div class="company-logo-badge" style="width: 44px; height: 44px;">
+            <img [src]="getCompanyLogoUrl()" [alt]="getCompanyName()" class="company-logo-img" />
+          </div>
+          } @else {
+          <div class="eval-avatar">{{ selectedSymbol().substring(0, 2) }}</div>
+          }
+          <div class="eval-title-meta">
+            <div class="eval-title-row">
+              <h2 class="eval-company-name">{{ getCompanyName() }}</h2>
+              <span class="eval-symbol-badge">{{ selectedSymbol() }}</span>
+              <span class="eval-exchange-badge">{{ selectedExchange() }}</span>
+            </div>
+            <span class="eval-subtitle">{{ getIndustryName() }} &bull; {{ getSectorName() }}</span>
+          </div>
+        </div>
+        <div class="eval-header-actions">
+          <button type="button" class="official-website-btn" (click)="openWebsite()" title="Visit official website">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            <span>Website</span>
+            <svg class="ext-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </button>
+          <button type="button" class="eval-close-btn" (click)="closeAboutModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="eval-modal-body about-modal-body">
+        <!-- Quick Meta Info Chips -->
+        <div class="about-modal-chips-row">
+          <div class="about-chip">
+            <span class="chip-lbl">Market Cap Category</span>
+            <span class="chip-val text-cyan">{{ getCompanyCapCategory() }}</span>
+          </div>
+          <div class="about-chip">
+            <span class="chip-lbl">Industry Sector</span>
+            <span class="chip-val text-indigo">{{ getSectorName() }}</span>
+          </div>
+          <div class="about-chip">
+            <span class="chip-lbl">Founded Year</span>
+            <span class="chip-val text-amber">{{ getFoundedYear() }}</span>
+          </div>
+          <div class="about-chip">
+            <span class="chip-lbl">Employees</span>
+            <span class="chip-val text-emerald">{{ getEmployeesCount() }}</span>
+          </div>
+        </div>
+
+        <!-- Full About Text -->
+        <div class="about-modal-text-wrap">
+          <h3 class="about-modal-heading">Corporate Profile &amp; Business Summary</h3>
+          <p class="about-modal-full-text">{{ getAboutText() }}</p>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <span class="eval-disclaimer">* Disclosed corporate data from exchange filings &amp; public reports.</span>
+        <button class="eval-done-btn" (click)="closeAboutModal()">Close</button>
       </div>
     </div>
   </div>

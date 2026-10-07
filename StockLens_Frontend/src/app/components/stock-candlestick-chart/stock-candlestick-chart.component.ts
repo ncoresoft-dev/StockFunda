@@ -31,6 +31,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
   @Input() exchange: string = 'NSE';
   @Input() period: string = '1yr';
   @Input() chartType: 'candlestick' | 'area' = 'candlestick';
+  @Input() isLightTheme: boolean = false;
   @Input() customHeight: string = '100%';
   @Output() errorOccurred = new EventEmitter<string>();
   @Output() priceDataLoaded = new EventEmitter<any>();
@@ -134,7 +135,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
         const plotLeft = this.chart.plotLeft;
         const plotRight = plotLeft + this.chart.plotWidth;
         const plotTop = this.chart.plotTop;
-        
+
         // Get precise boundaries of the Candlestick Y-Axis (yAxis[0])
         // This ensures zooming ONLY happens exactly over the candlestick graph area
         // and perfectly ignores the volume area (yAxis[1]) and margins.
@@ -169,7 +170,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
       this.loadPriceHistory(false);
     } else if (changes['period'] && !changes['symbol'] && !changes['exchange']) {
       this.zoomToPeriod();
-    } else if (changes['chartType'] && this.priceHistory) {
+    } else if ((changes['chartType'] || changes['isLightTheme']) && this.priceHistory) {
       this.renderChart(this.priceHistory);
     }
   }
@@ -338,6 +339,26 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
       });
     }
 
+    const isLight = this.isLightTheme;
+    const plotBg = isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.4)';
+    const gridColor = isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)';
+    const axisLineColor = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.06)';
+    const xLabelColor = isLight ? '#334155' : '#cbd5e1';
+    const yPriceLabelColor = isLight ? '#0f172a' : '#f8fafc';
+    const yVolumeLabelColor = isLight ? '#64748b' : '#94a3b8';
+    const yTitleColor = isLight ? '#475569' : '#94a3b8';
+    const crosshairColor = isLight ? '#0284c7' : '#38bdf8';
+    const crosshairLabelBg = isLight ? '#0284c7' : '#38bdf8';
+    const crosshairLabelText = '#ffffff';
+
+    const candleUp = isLight ? '#16a34a' : '#22c55e';
+    const candleDown = isLight ? '#dc2626' : '#ef4444';
+    const areaLineColor = isLight ? '#0284c7' : '#38bdf8';
+    const areaFillStart = isLight ? 'rgba(2, 132, 199, 0.22)' : 'rgba(56, 189, 248, 0.35)';
+    const areaFillEnd = isLight ? 'rgba(2, 132, 199, 0.0)' : 'rgba(56, 189, 248, 0.0)';
+    const dma50Color = isLight ? '#d97706' : '#eab308';
+    const dma200Color = isLight ? '#9333ea' : '#a855f7';
+
     const p = (this.period || '1yr').toLowerCase().trim();
 
     // Prepare true OHLC Candlestick data: [timestamp, open, high, low, close]
@@ -360,15 +381,21 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
       if (this.chartType === 'area') {
         gradientColor = {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [[0, 'rgba(148, 163, 184, 0.4)'], [1, 'rgba(148, 163, 184, 0.05)']] // Slate-400
+          stops: isLight
+            ? [[0, 'rgba(100, 116, 139, 0.4)'], [1, 'rgba(100, 116, 139, 0.05)']]
+            : [[0, 'rgba(148, 163, 184, 0.4)'], [1, 'rgba(148, 163, 184, 0.05)']]
         };
       } else {
         gradientColor = isBullish ? {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [[0, 'rgba(34, 197, 94, 0.8)'], [1, 'rgba(34, 197, 94, 0.1)']] // Classic Green
+          stops: isLight
+            ? [[0, 'rgba(22, 163, 74, 0.75)'], [1, 'rgba(22, 163, 74, 0.1)']]
+            : [[0, 'rgba(34, 197, 94, 0.8)'], [1, 'rgba(34, 197, 94, 0.1)']]
         } : {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [[0, 'rgba(239, 68, 68, 0.8)'], [1, 'rgba(239, 68, 68, 0.1)']] // Classic Red
+          stops: isLight
+            ? [[0, 'rgba(220, 38, 38, 0.75)'], [1, 'rgba(220, 38, 38, 0.1)']]
+            : [[0, 'rgba(239, 68, 68, 0.8)'], [1, 'rgba(239, 68, 68, 0.1)']]
         };
       }
       return {
@@ -392,12 +419,12 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
       name: 'Candlestick', // Kept same for activeSeriesState compatibility
       legendIndex: 1,
       data: data.dates.map((d, i) => [new Date(d).getTime(), data.closePrices[i]]),
-      color: '#38bdf8', // Neon blue line
-      lineColor: '#38bdf8', // Explicitly set line color
+      color: areaLineColor,
+      lineColor: areaLineColor,
       threshold: null, // Prevents Area chart from forcing Y-axis to start at 0
       fillColor: {
         linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-        stops: [[0, 'rgba(56, 189, 248, 0.35)'], [1, 'rgba(56, 189, 248, 0.0)']]
+        stops: [[0, areaFillStart], [1, areaFillEnd]]
       },
       lineWidth: 1.5, // Thinner, elegant line
       marker: { enabled: false },
@@ -412,10 +439,10 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
       legendIndex: 1,
       point: { events: {} },
       data: candlestickData as any,
-      color: '#ef4444', // Classic Red
-      upColor: '#22c55e', // Classic Green
-      lineColor: '#ef4444',
-      upLineColor: '#22c55e',
+      color: candleDown,
+      upColor: candleUp,
+      lineColor: candleDown,
+      upLineColor: candleUp,
       visible: this.activeSeriesState['Candlestick'] !== false,
       yAxis: 0,
       zIndex: 2,
@@ -457,13 +484,13 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           name: '50 DMA',
           legendIndex: 2,
           data: dma50Points as any,
-          color: '#eab308', // Amber-500
+          color: dma50Color,
           visible: this.activeSeriesState['50 DMA'] !== false,
           yAxis: 0,
           lineWidth: 2,
           marker: { enabled: false },
           zIndex: 3,
-          shadow: { color: 'rgba(234, 179, 8, 0.6)', width: 6, offsetX: 0, offsetY: 0 }
+          shadow: { color: isLight ? 'rgba(217, 119, 6, 0.35)' : 'rgba(234, 179, 8, 0.6)', width: 4, offsetX: 0, offsetY: 0 }
         } as any);
       }
     }
@@ -481,13 +508,13 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           name: '200 DMA',
           legendIndex: 3,
           data: dma200Points as any,
-          color: '#a855f7', // Purple-500
+          color: dma200Color,
           visible: this.activeSeriesState['200 DMA'] !== false,
           yAxis: 0,
           lineWidth: 2,
           marker: { enabled: false },
           zIndex: 3,
-          shadow: { color: 'rgba(168, 85, 247, 0.6)', width: 6, offsetX: 0, offsetY: 0 }
+          shadow: { color: isLight ? 'rgba(147, 51, 234, 0.35)' : 'rgba(168, 85, 247, 0.6)', width: 4, offsetX: 0, offsetY: 0 }
         } as any);
       }
     }
@@ -554,7 +581,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
                 align: 'center',
                 verticalAlign: isPeak ? 'bottom' : 'top',
                 y: isPeak ? -10 : 10,
-                style: { color: patternColor, fontSize: '13px', fontWeight: 'bold', textOutline: '2px white' }
+                style: { color: patternColor, fontSize: '13px', fontWeight: 'bold', textOutline: isLight ? '2px #ffffff' : '2px #0f172a' }
               }
             };
           });
@@ -904,7 +931,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           easing: 'easeOutQuart'
         },
         backgroundColor: 'transparent',
-        plotBackgroundColor: 'rgba(30, 41, 59, 0.4)', // Lighter gray-blue tint for the grid area
+        plotBackgroundColor: plotBg,
         plotBorderWidth: 0,
         style: { fontFamily: 'Inter, sans-serif' },
         marginRight: 90,
@@ -949,9 +976,9 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
         maxPadding: 0,
         gridLineWidth: 1,
         gridLineDashStyle: 'Solid',
-        gridLineColor: 'rgba(255, 255, 255, 0.06)',
+        gridLineColor: gridColor,
         crosshair: {
-          color: '#38bdf8',
+          color: crosshairColor,
           dashStyle: 'Dash',
           width: 1,
           zIndex: 5,
@@ -960,12 +987,12 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
             formatter: function (this: any): string {
               return Highcharts.dateFormat('%d %b %Y', this.value);
             },
-            backgroundColor: '#38bdf8',
-            style: { color: '#0f141c', fontWeight: 'bold', fontSize: '11px' }
+            backgroundColor: crosshairLabelBg,
+            style: { color: crosshairLabelText, fontWeight: 'bold', fontSize: '11px' }
           }
         },
         labels: {
-          style: { color: '#ffffff', fontSize: '11px', fontWeight: '600' },
+          style: { color: xLabelColor, fontSize: '11px', fontWeight: '600' },
           formatter: function (this: any): string {
             const date = new Date(this.value);
             const tickPositions = this.axis.tickPositions;
@@ -997,9 +1024,9 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           y: 20
         },
         tickInterval: tickInterval,
-        lineWidth: 0,
-        lineColor: 'rgba(255, 255, 255, 0.06)',
-        tickColor: 'rgba(255, 255, 255, 0.06)',
+        lineWidth: 1,
+        lineColor: axisLineColor,
+        tickColor: axisLineColor,
         events: {
           setExtremes: (e: any) => {
             // TradingView-style Sticky Right Axis for Mouse Wheel Zoom
@@ -1030,28 +1057,28 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           height: '100%', // Full height
           title: {
             text: 'Price (₹)',
-            style: { color: '#94a3b8', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }
+            style: { color: yTitleColor, fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }
           },
           minPadding: 0.3, // Adds empty space BELOW the lowest candle to avoid volume overlap
           maxPadding: 0.15, // Adds empty space ABOVE the highest candle for headroom
           crosshair: {
-            color: '#38bdf8',
+            color: crosshairColor,
             dashStyle: 'Dash',
             width: 1,
             label: {
               enabled: true,
               format: '₹{value:.2f}',
-              backgroundColor: '#38bdf8',
-              style: { color: '#0f141c', fontSize: '11px', fontWeight: 'bold' }
+              backgroundColor: crosshairLabelBg,
+              style: { color: crosshairLabelText, fontSize: '11px', fontWeight: 'bold' }
             }
           },
           gridLineWidth: 1,
           gridLineDashStyle: 'Solid',
-          gridLineColor: 'rgba(255, 255, 255, 0.06)',
-          lineWidth: 0,
-          lineColor: 'rgba(255, 255, 255, 0.06)',
+          gridLineColor: gridColor,
+          lineWidth: 1,
+          lineColor: axisLineColor,
           labels: {
-            style: { color: '#ffffff', fontSize: '11px', fontWeight: '500' },
+            style: { color: yPriceLabelColor, fontSize: '11px', fontWeight: '600' },
             formatter: function (this: any) {
               return '₹' + Highcharts.numberFormat(this.value, 0, '', ',');
             }
@@ -1071,7 +1098,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           labels: {
             align: 'right',
             x: -5,
-            style: { color: '#ffffff', fontSize: '10px', fontWeight: '500' },
+            style: { color: yVolumeLabelColor, fontSize: '10px', fontWeight: '500' },
             formatter: function (this: any) {
               const val = this.value as number;
               if (val >= 10000000) return (val / 10000000).toFixed(0) + 'Cr';
@@ -1113,8 +1140,15 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           }
 
           if (self.chartType === 'area') {
-            let html = `<div style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #f8fafc; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">`;
-            html += `<div style="font-weight: 700; font-size: 13px; margin-bottom: 6px;">${Highcharts.dateFormat('%d %b %Y', this.x)}</div>`;
+            const cardBg = isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.9)';
+            const borderCol = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.15)';
+            const textTitle = isLight ? '#0f172a' : '#f8fafc';
+            const textLbl = isLight ? '#64748b' : '#cbd5e1';
+            const textVal = isLight ? '#0f172a' : '#ffffff';
+            const shadowStyle = isLight ? '0 4px 16px rgba(0,0,0,0.1)' : '0 4px 12px rgba(0,0,0,0.5)';
+
+            let html = `<div style="background: ${cardBg}; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid ${borderCol}; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: ${textTitle}; box-shadow: ${shadowStyle};">`;
+            html += `<div style="font-weight: 700; font-size: 13px; margin-bottom: 6px; color: ${textTitle};">${Highcharts.dateFormat('%d %b %Y', this.x)}</div>`;
 
             if (this.points) {
               this.points.forEach((p: any) => {
@@ -1123,15 +1157,15 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
                 if (name !== 'Volume') valStr = '₹' + p.y.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 let color = p.series.color;
-                if (name === 'Volume') color = '#94a3b8';
-                else if (name === '50 DMA') color = '#eab308';
-                else if (name === '200 DMA') color = '#a855f7';
-                else if (name === 'Price') color = '#38bdf8';
+                if (name === 'Volume') color = isLight ? '#64748b' : '#94a3b8';
+                else if (name === '50 DMA') color = dma50Color;
+                else if (name === '200 DMA') color = dma200Color;
+                else if (name === 'Price') color = areaLineColor;
 
                 html += `<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                  <div style="width: 6px; height: 6px; border-radius: 50%; background: ${color}; box-shadow: 0 0 4px ${color};"></div>
-                  <span style="color: #cbd5e1; flex: 1;">${name}:</span>
-                  <span style="font-weight: 700;">${valStr}</span>
+                  <div style="width: 6px; height: 6px; border-radius: 50%; background: ${color};"></div>
+                  <span style="color: ${textLbl}; flex: 1;">${name}:</span>
+                  <span style="font-weight: 700; color: ${textVal};">${valStr}</span>
                 </div>`;
               });
             }
@@ -1140,12 +1174,18 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           }
 
           // Default Candlestick tooltip
-          let html = `<div style="backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 6px 12px; color: #f8fafc; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; gap: 4px;">`;
-          html += `<span style="font-weight:700; color: #38bdf8; letter-spacing: 0.5px;">${Highcharts.dateFormat('%d %b %Y', this.x)}</span>`;
+          const cardBg = isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.75)';
+          const borderCol = isLight ? '#cbd5e1' : 'rgba(255, 255, 255, 0.15)';
+          const headerCol = crosshairColor;
+          const shadowStyle = isLight ? '0 6px 20px rgba(0,0,0,0.12)' : '0 8px 24px rgba(0,0,0,0.4)';
+
+          let html = `<div style="backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: ${cardBg}; border: 1px solid ${borderCol}; border-radius: 8px; padding: 6px 12px; font-size: 12px; box-shadow: ${shadowStyle}; display: flex; flex-direction: column; align-items: center; gap: 4px;">`;
+          html += `<span style="font-weight:700; color: ${headerCol}; letter-spacing: 0.5px;">${Highcharts.dateFormat('%d %b %Y', this.x)}</span>`;
           if (self.legendData && self.legendData.hoverPattern) {
             const p = self.legendData.hoverPattern;
-            const pColor = p.signal === 'Bullish' ? '#10b981' : (p.signal === 'Bearish' ? '#ef4444' : '#eab308');
-            html += `<div style="padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center;"><span style="color: ${pColor}; font-weight:800; font-size: 11px;">${p.patternName}</span></div>`;
+            const pColor = p.signal === 'Bullish' ? (isLight ? '#16a34a' : '#10b981') : (p.signal === 'Bearish' ? (isLight ? '#dc2626' : '#ef4444') : (isLight ? '#d97706' : '#eab308'));
+            const lineBorder = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.1)';
+            html += `<div style="padding-top: 4px; border-top: 1px solid ${lineBorder}; width: 100%; text-align: center;"><span style="color: ${pColor}; font-weight:800; font-size: 11px;">${p.patternName}</span></div>`;
           }
           html += `</div>`;
           return html;
@@ -1167,10 +1207,10 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           }
         },
         candlestick: {
-          color: '#ef4444',
-          upColor: '#22c55e',
-          lineColor: '#ef4444',
-          upLineColor: '#22c55e',
+          color: candleDown,
+          upColor: candleUp,
+          lineColor: candleDown,
+          upLineColor: candleUp,
           pointPadding: 0.1,
           groupPadding: 0.1
         },

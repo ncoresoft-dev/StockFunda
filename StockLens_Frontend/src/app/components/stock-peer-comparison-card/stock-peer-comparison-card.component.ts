@@ -17,6 +17,7 @@ export class StockPeerComparisonCardComponent {
   @Input() isLoading: boolean = false;
   @Input() hasError: boolean = false;
   @Input() industry?: string;
+  @Input() isLightTheme: boolean = false;
 
   formatNumber(val: number | undefined | null, decimals = 2): string {
     if (val == null) return '-';

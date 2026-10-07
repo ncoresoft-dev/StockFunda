@@ -1,4 +1,24 @@
 :root {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --border-focus: #0284c7;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent-primary: #0284c7;
+  --accent-secondary: #6366f1;
+  --accent-cyan: #0284c7;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', 'Inter', sans-serif;
+}
+
+[data-theme="dark"],
+.dark-theme {
   --bg-primary: #0a0d14;
   --bg-secondary: #0f141c;
   --bg-card: rgba(22, 27, 34, 0.75);
@@ -13,8 +33,6 @@
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Outfit', 'Inter', sans-serif;
 }
 
 *,
@@ -41,13 +59,17 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  background-image: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+body.dark-theme {
   background-image:
     radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
     radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
   background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
 }
 
 h1,
@@ -70,11 +92,19 @@ h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
 }
 
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
@@ -97,4 +127,204 @@ h6 {
 
 .marker-blink {
   animation: marker-blink 1.5s infinite ease-in-out;
+}
+
+.light-theme .news-snippet {
+  color: #475569 !important;
+}
+
+.light-theme .news-meta,
+.light-theme .news-source {
+  color: #64748b !important;
+}
+
+.light-theme .news-time,
+.light-theme .news-chevron {
+  color: #94a3b8 !important;
+}
+
+.light-theme .news-tab-pill,
+.light-theme .news-category-badge {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.light-theme .news-tab-pill.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* Chart Container & Toolbar */
+.light-theme .chart-period-btn,
+.light-theme .chart-type-btn,
+.light-theme .timeframe-btn,
+.light-theme .type-btn,
+.light-theme .tf-pill {
+  color: #64748b !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+.light-theme .chart-period-btn:hover,
+.light-theme .chart-type-btn:hover,
+.light-theme .timeframe-btn:hover,
+.light-theme .type-btn:hover,
+.light-theme .tf-pill:hover {
+  color: #0f172a !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-theme .chart-period-btn.active,
+.light-theme .chart-type-btn.active,
+.light-theme .timeframe-btn.active,
+.light-theme .type-btn.active,
+.light-theme .tf-pill.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+
+.light-theme .chart-type-toggle,
+.light-theme .chart-timeframe-pills {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-theme .cb-label {
+  color: #475569 !important;
+}
+
+.light-theme .custom-checkbox {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-theme .state-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px dashed #cbd5e1 !important;
+}
+
+.light-theme .state-title {
+  color: #0f172a !important;
+}
+
+.light-theme .state-description {
+  color: #64748b !important;
+}
+
+/* Tables in Light Theme */
+.light-theme table,
+.light-theme .custom-financial-table,
+.light-theme .quarters-data-table,
+.light-theme .deals-table,
+.light-theme .detail-modal-table,
+.light-theme .owner-table {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.light-theme table th,
+.light-theme .custom-financial-table th,
+.light-theme .quarters-data-table th,
+.light-theme .deals-table th,
+.light-theme .detail-modal-table th,
+.light-theme .owner-table th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.light-theme table td,
+.light-theme .custom-financial-table td,
+.light-theme .quarters-data-table td,
+.light-theme .deals-table td,
+.light-theme .detail-modal-table td,
+.light-theme .owner-table td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+.light-theme table tr:hover td,
+.light-theme .custom-financial-table tr:hover td,
+.light-theme .quarters-data-table tr:hover td,
+.light-theme .deals-table tr:hover td,
+.light-theme .detail-modal-table tr:hover td,
+.light-theme .owner-table tr:hover td {
+  background: #f8fafc !important;
+}
+
+/* Modals & Dialogs */
+.light-theme .modal-overlay,
+.light-theme .detail-modal-backdrop,
+.light-theme .eval-modal-backdrop {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+.light-theme .modal-container,
+.light-theme .detail-modal-content,
+.light-theme .evaluation-modal-content,
+.light-theme .eval-modal-dialog {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .modal-header,
+.light-theme .detail-modal-header,
+.light-theme .eval-modal-header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.light-theme .modal-title,
+.light-theme .detail-modal-title,
+.light-theme .eval-company-name {
+  color: #0f172a !important;
+}
+
+.light-theme .eval-subtitle {
+  color: #64748b !important;
+}
+
+.light-theme .modal-close-btn,
+.light-theme .eval-close-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.light-theme .modal-close-btn:hover,
+.light-theme .eval-close-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.light-theme .score-summary-desc {
+  color: #334155 !important;
+}
+
+.light-theme .eval-pillar-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-theme .pillar-name {
+  color: #0f172a !important;
+}
+
+.light-theme .eval-metric-row {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.light-theme .em-name {
+  color: #334155 !important;
+}
+
+.light-theme .em-val {
+  color: #0f172a !important;
 }

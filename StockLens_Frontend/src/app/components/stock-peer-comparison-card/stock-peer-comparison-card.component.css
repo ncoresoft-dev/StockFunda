@@ -246,3 +246,179 @@
 .text-center {
   text-align: center !important;
 }
+
+/* Custom Scrollbar for Peer Table */
+.peer-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.peer-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.peer-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+.light-mode.deals-dashboard-card-light,
+:host-context(.light-theme) .deals-dashboard-card-light,
+:host-context([data-theme="light"]) .deals-dashboard-card-light {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+.light-mode .card-title-text,
+:host-context(.light-theme) .card-title-text,
+:host-context([data-theme="light"]) .card-title-text {
+  color: #0f172a !important;
+}
+
+.light-mode .bg-purple-soft,
+:host-context(.light-theme) .bg-purple-soft,
+:host-context([data-theme="light"]) .bg-purple-soft {
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+
+.light-mode .bg-purple-soft svg,
+:host-context(.light-theme) .bg-purple-soft svg,
+:host-context([data-theme="light"]) .bg-purple-soft svg {
+  color: #9333ea !important;
+}
+
+.light-mode .sector-breadcrumbs .breadcrumb-item,
+:host-context(.light-theme) .sector-breadcrumbs .breadcrumb-item,
+:host-context([data-theme="light"]) .sector-breadcrumbs .breadcrumb-item {
+  color: #4f46e5 !important;
+}
+
+.light-mode .sector-breadcrumbs .breadcrumb-icon,
+:host-context(.light-theme) .sector-breadcrumbs .breadcrumb-icon,
+:host-context([data-theme="light"]) .sector-breadcrumbs .breadcrumb-icon {
+  color: #64748b !important;
+}
+
+.light-mode .peer-table-wrapper,
+:host-context(.light-theme) .peer-table-wrapper,
+:host-context([data-theme="light"]) .peer-table-wrapper {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.light-mode .peer-table th,
+:host-context(.light-theme) .peer-table th,
+:host-context([data-theme="light"]) .peer-table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-weight: 600 !important;
+}
+
+.light-mode .peer-table td,
+:host-context(.light-theme) .peer-table td,
+:host-context([data-theme="light"]) .peer-table td {
+  color: #1e293b !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.light-mode .peer-table tbody tr:hover,
+:host-context(.light-theme) .peer-table tbody tr:hover,
+:host-context([data-theme="light"]) .peer-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.light-mode .peer-table tbody tr.highlight,
+:host-context(.light-theme) .peer-table tbody tr.highlight,
+:host-context([data-theme="light"]) .peer-table tbody tr.highlight {
+  background-color: #f0f9ff !important;
+}
+
+.light-mode .peer-table tbody tr.highlight td.col-name,
+:host-context(.light-theme) .peer-table tbody tr.highlight td.col-name,
+:host-context([data-theme="light"]) .peer-table tbody tr.highlight td.col-name {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+.light-mode .text-emerald,
+:host-context(.light-theme) .text-emerald,
+:host-context([data-theme="light"]) .text-emerald {
+  color: #059669 !important;
+  font-weight: 600 !important;
+}
+
+.light-mode .median-row,
+:host-context(.light-theme) .median-row,
+:host-context([data-theme="light"]) .median-row {
+  background-color: #f8fafc !important;
+  border-top: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.light-mode .median-row td,
+:host-context(.light-theme) .median-row td,
+:host-context([data-theme="light"]) .median-row td {
+  color: #475569 !important;
+}
+
+.light-mode .peer-table-wrapper::-webkit-scrollbar-track,
+:host-context(.light-theme) .peer-table-wrapper::-webkit-scrollbar-track,
+:host-context([data-theme="light"]) .peer-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+}
+
+.light-mode .peer-table-wrapper::-webkit-scrollbar-thumb,
+:host-context(.light-theme) .peer-table-wrapper::-webkit-scrollbar-thumb,
+:host-context([data-theme="light"]) .peer-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+.light-mode .loading-state,
+.light-mode .empty-state,
+:host-context(.light-theme) .loading-state,
+:host-context(.light-theme) .empty-state,
+:host-context([data-theme="light"]) .loading-state,
+:host-context([data-theme="light"]) .empty-state {
+  background: #f8fafc !important;
+  border: 1px dashed #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.light-mode .empty-state-icon,
+:host-context(.light-theme) .empty-state-icon,
+:host-context([data-theme="light"]) .empty-state-icon {
+  color: #94a3b8 !important;
+}
+
+.light-mode .empty-state-text,
+:host-context(.light-theme) .empty-state-text,
+:host-context([data-theme="light"]) .empty-state-text {
+  color: #64748b !important;
+}
+
+.light-mode .state-title,
+:host-context(.light-theme) .state-title,
+:host-context([data-theme="light"]) .state-title {
+  color: #0f172a !important;
+}
+
+.light-mode .state-description,
+:host-context(.light-theme) .state-description,
+:host-context([data-theme="light"]) .state-description {
+  color: #64748b !important;
+}
+
+.light-mode .error-icon-bg,
+:host-context(.light-theme) .error-icon-bg,
+:host-context([data-theme="light"]) .error-icon-bg {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
