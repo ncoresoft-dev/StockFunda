@@ -44,20 +44,11 @@ namespace StockLens_BusinessLayer.Services
             var cleanSymbol = (symbol ?? string.Empty).Trim().ToUpper();
             var cleanExchange = string.IsNullOrWhiteSpace(exchange) ? "NSE" : exchange.Trim().ToUpper();
 
-            // Run tasks in parallel to fetch data safely
-            var cashflowTask = FetchSafeAsync(() => _cashflowService.GetCashflowBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
-            var quartersTask = FetchSafeAsync(() => _quartersService.GetQuarterlyResultsBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
-            var shareholdingTask = FetchSafeAsync(() => _shareholdingService.GetShareholdingBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
-            var balanceSheetTask = FetchSafeAsync(() => _balanceSheetService.GetBalanceSheetAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
-            var priceHistoryTask = FetchSafeAsync(() => _priceHistoryService.GetPriceHistoryBySymbolAsync(cleanSymbol, cleanExchange, "5y", refresh, "all", cancellationToken));
-
-            await Task.WhenAll(cashflowTask, quartersTask, shareholdingTask, balanceSheetTask, priceHistoryTask);
-
-            var cashflowData = cashflowTask.Result;
-            var quartersData = quartersTask.Result;
-            var shareholdingData = shareholdingTask.Result;
-            var balanceSheetData = balanceSheetTask.Result;
-            var priceHistoryData = priceHistoryTask.Result;
+            var cashflowData = await FetchSafeAsync(() => _cashflowService.GetCashflowBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
+            var quartersData = await FetchSafeAsync(() => _quartersService.GetQuarterlyResultsBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
+            var shareholdingData = await FetchSafeAsync(() => _shareholdingService.GetShareholdingBySymbolAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
+            var balanceSheetData = await FetchSafeAsync(() => _balanceSheetService.GetBalanceSheetAsync(cleanSymbol, cleanExchange, refresh, cancellationToken));
+            var priceHistoryData = await FetchSafeAsync(() => _priceHistoryService.GetPriceHistoryBySymbolAsync(cleanSymbol, cleanExchange, "5y", refresh, "all", cancellationToken));
 
             var companyName = quartersData?.CompanyName ?? cashflowData?.CompanyName ?? shareholdingData?.CompanyName ?? cleanSymbol;
 

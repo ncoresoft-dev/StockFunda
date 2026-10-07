@@ -515,16 +515,10 @@ namespace StockLens_BusinessLayer.Services
 
             try
             {
-                var ratiosTask = _financialProvider.GetRatiosAsync(cleanSymbol, cancellationToken);
-                var detailsTask = _financialProvider.GetStockDetailsAsync(cleanSymbol, "NSE", cancellationToken);
-                var screenerTask = _financialProvider.GetScreenerDataAsync(cleanSymbol, "NSE", cancellationToken);
-                var financialsTask = _financialProvider.GetFinancialsAsync(cleanSymbol, "annual", 1, 1, cancellationToken);
-
-                await Task.WhenAll(ratiosTask, detailsTask, screenerTask, financialsTask);
-                ratios = await ratiosTask;
-                details = await detailsTask;
-                screener = await screenerTask;
-                financials = await financialsTask;
+                ratios = await _financialProvider.GetRatiosAsync(cleanSymbol, cancellationToken);
+                details = await _financialProvider.GetStockDetailsAsync(cleanSymbol, "NSE", cancellationToken);
+                screener = await _financialProvider.GetScreenerDataAsync(cleanSymbol, "NSE", cancellationToken);
+                financials = await _financialProvider.GetFinancialsAsync(cleanSymbol, "annual", 1, 1, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -852,13 +846,9 @@ namespace StockLens_BusinessLayer.Services
                 catch (Exception ex) { _logger.LogWarning(ex, "Failed to fetch ratios for {Symbol}", stock.Symbol); return null; }
             }
 
-            var ratiosTask = SafeGetRatiosAsync();
-
-            await Task.WhenAll(dataTask, liveQuoteTask, ratiosTask);
-
             var data = await dataTask;
             var liveQuote = await liveQuoteTask;
-            var ratiosData = await ratiosTask;
+            var ratiosData = await SafeGetRatiosAsync();
 
             if (data == null || data.Financials.Count == 0)
             {
@@ -1244,18 +1234,11 @@ namespace StockLens_BusinessLayer.Services
 
             try
             {
-                var recordsTask = _financialProvider.GetFinancialsAsync(stock.Symbol, "annual", 1, 3, cancellationToken);
-                var ratiosTask = _financialProvider.GetRatiosAsync(stock.Symbol, cancellationToken);
-                var detailsTask = _financialProvider.GetStockDetailsAsync(stock.Symbol, stock.Exchange, cancellationToken);
-                var screenerTask = _financialProvider.GetScreenerDataAsync(stock.Symbol, stock.Exchange, cancellationToken);
-                var livePriceTask = GetLiveQuoteInternalAsync(stock.Symbol, stock.Exchange, cancellationToken);
-
-                await Task.WhenAll(recordsTask, ratiosTask, detailsTask, screenerTask, livePriceTask);
-                records = await recordsTask;
-                ratios = await ratiosTask;
-                details = await detailsTask;
-                screener = await screenerTask;
-                var liveQuote = await livePriceTask;
+                records = await _financialProvider.GetFinancialsAsync(stock.Symbol, "annual", 1, 3, cancellationToken);
+                ratios = await _financialProvider.GetRatiosAsync(stock.Symbol, cancellationToken);
+                details = await _financialProvider.GetStockDetailsAsync(stock.Symbol, stock.Exchange, cancellationToken);
+                screener = await _financialProvider.GetScreenerDataAsync(stock.Symbol, stock.Exchange, cancellationToken);
+                var liveQuote = await GetLiveQuoteInternalAsync(stock.Symbol, stock.Exchange, cancellationToken);
                 livePrice = liveQuote?.Price;
             }
             catch (Exception ex)
