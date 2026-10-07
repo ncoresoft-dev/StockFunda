@@ -75,24 +75,75 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
                         title = string.Join(" - ", parts.Take(parts.Length - 1)).Trim();
                     }
 
+                    // --- SMART NEWS CLASSIFIER ---
+                    var titleLower = title.ToLowerInvariant();
+                    string smartCategory = "Market News";
+
+                    if (new[] { "resign", "step down", "quits", "fired", "sacked", "ousted", "fraud", "scam", "sebi", "cbi", "ed raid", "it raid", "auditor quits", "default", "bankrupt", "promoter sells" }.Any(k => titleLower.Contains(k)))
+                        smartCategory = "Key Update";
+
                     var article = new IndianApiStandardArticle
                     {
-                        ExternalNewsId = ComputeSha256Hash(guid), // Hash the massive GUID to a 64-char string to fit the 255-char DB limit perfectly for deduplication
+                        ExternalNewsId = ComputeSha256Hash(guid),
                         Title = title,
                         Description = description,
-                        Content = link, // Store the full URL in Content to restore it later for the frontend
+                        Content = link,
                         SourceName = sourceName,
-                        SourceUrl = link.Length > 400 ? link.Substring(0, 400) : link, // Truncate to 400 chars to avoid SQL Error 1946 (900 byte limit for non-clustered index)
-                        ImageUrl = "", // Google RSS doesn't usually provide direct image URLs in a standard way
+                        SourceUrl = link.Length > 400 ? link.Substring(0, 400) : link,
+                        ImageUrl = "",
                         PublishedAt = publishedAt,
-                        Category = "Market News"
+                        Category = smartCategory
                     };
 
                     articles.Add(article);
                 }
 
-                // Sirf top 5 latest news fetch karenge
-                return articles.OrderByDescending(a => a.PublishedAt).Take(5).ToList();
+                var sortedArticles = articles
+                    .OrderByDescending(a => a.PublishedAt)
+                    .ToList();
+
+                var distinctArticles = new List<IndianApiStandardArticle>();
+                
+                foreach (var article in sortedArticles)
+                {
+                    bool isDuplicate = false;
+                    foreach (var existing in distinctArticles)
+                    {
+                        if (article.Category != "Market News" && article.Category == existing.Category && article.PublishedAt.Date == existing.PublishedAt.Date)
+                        {
+                            isDuplicate = true;
+                            break;
+                        }
+                        
+                        var words1 = article.Title.ToLower().Split(new[] { ' ', '-', ':', ',' }, StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length > 4);
+                        var words2 = existing.Title.ToLower().Split(new[] { ' ', '-', ':', ',' }, StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length > 4);
+                        if (words1.Intersect(words2).Count() >= 3)
+                        {
+                            isDuplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!isDuplicate)
+                    {
+                        distinctArticles.Add(article);
+                    }
+                }
+
+                // 1 Day Filter Logic for Normal News, 15 Day Filter for Key Updates
+                var recentNews = distinctArticles.Where(a => 
+                    (DateTime.UtcNow - a.PublishedAt).TotalDays <= 1 || 
+                    (a.Category == "Key Update" && (DateTime.UtcNow - a.PublishedAt).TotalDays <= 15)
+                ).ToList();
+                
+                // Fallback: If not enough recent news, take the top 5 absolute latest available
+                var finalNews = recentNews.Count >= 5 ? recentNews.Take(5).ToList() : distinctArticles.Take(5).ToList();
+
+                // Out of the final 5, force any Key Updates to the very top
+                return finalNews
+                    .OrderByDescending(a => a.Category == "Key Update" ? 1 : 0)
+                    .ThenByDescending(a => a.PublishedAt)
+                    .ToList();
             }
             catch (Exception ex)
             {

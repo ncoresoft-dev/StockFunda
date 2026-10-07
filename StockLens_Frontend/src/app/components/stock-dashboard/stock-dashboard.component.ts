@@ -10,6 +10,7 @@ import { StockCashflowService } from '../../services/stock-cashflow.service';
 import { StockBalanceSheetService, BalanceSheetResponseDto } from '../../services/stock-balancesheet.service';
 import { StockQuarterlyResultsService } from '../../services/stock-quarterly-results.service';
 import { StockEvaluationService } from '../../services/stock-evaluation.service';
+import { StockPeerService } from '../../services/stock-peer.service';
 import { Stock, Company, StockNewsResponse, StockNewsItem, LoadingState } from '../../models/stock-news.model';
 import { CompanyOverview } from '../../models/company-overview.model';
 import { StockShareholdingResponse } from '../../models/stock-shareholding.model';
@@ -22,6 +23,7 @@ import { StockTechnicalAnalysis } from '../stock-technical-analysis/stock-techni
 import { StockVolumeDeliveryCardComponent } from '../stock-volume-delivery-card/stock-volume-delivery-card.component';
 import { StockCompanyAboutCardComponent } from '../stock-company-about-card/stock-company-about-card.component';
 import { StockDealsCardComponent } from '../stock-deals-card/stock-deals-card.component';
+import { StockPeerComparisonCardComponent } from '../stock-peer-comparison-card/stock-peer-comparison-card.component';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -36,7 +38,8 @@ export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' 
     StockCandlestickChartComponent,
     StockTechnicalAnalysis,
     StockVolumeDeliveryCardComponent,
-    StockDealsCardComponent
+    StockDealsCardComponent,
+    StockPeerComparisonCardComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -44,6 +47,7 @@ export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' 
 export class StockDashboardComponent implements OnInit, OnDestroy {
   private readonly newsService = inject(StockNewsService);
   private readonly companyService = inject(StockCompanyService);
+  private readonly peerService = inject(StockPeerService);
   private readonly shareholdingService = inject(StockShareholdingService);
   private readonly cashflowService = inject(StockCashflowService);
   private readonly financialsService = inject(StockBalanceSheetService);
@@ -126,6 +130,11 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   evaluationResponse = signal<StockHealthScoreResponse | null>(null);
   isEvaluationRefreshing = signal<boolean>(false);
   isEvaluationModalOpen = signal<boolean>(false);
+
+  // Peers State
+  companyPeers = signal<import('../../models/peer.model').Peer[]>([]);
+  isPeersLoading = signal<boolean>(false);
+  hasPeersError = signal<boolean>(false);
 
   // Company Overview & Logo State
   companyOverview = signal<CompanyOverview | null>(null);
@@ -319,6 +328,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       this.technicalRefreshTrigger.update(v => v + 1);
     }
     this.fetchCompanyOverview(isRefresh);
+    this.fetchCompanyPeers(isRefresh);
     this.fetchCashflow(isRefresh);
     this.fetchBalanceSheet(isRefresh);
     this.fetchShareholding(isRefresh);
@@ -340,6 +350,29 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => console.debug('Could not load company overview for logo/meta:', err)
+    });
+  }
+
+  fetchCompanyPeers(isRefresh: boolean = false): void {
+    const symbol = this.selectedSymbol();
+    const exchange = this.selectedExchange();
+    if (!symbol) return;
+    
+    this.isPeersLoading.set(true);
+    this.hasPeersError.set(false);
+
+    this.peerService.getCompanyPeers(symbol, exchange, isRefresh).subscribe({
+      next: (peers) => {
+        if (this.selectedSymbol() === symbol) {
+          this.companyPeers.set(peers || []);
+        }
+        this.isPeersLoading.set(false);
+      },
+      error: (err) => {
+        console.debug('Could not load company peers:', err);
+        this.hasPeersError.set(true);
+        this.isPeersLoading.set(false);
+      }
     });
   }
 

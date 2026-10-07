@@ -1,0 +1,100 @@
+<div class="deals-dashboard-card-light">
+  <div class="card-top-bar">
+    <div class="card-title-group">
+      <div class="card-icon-box bg-purple-soft">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </div>
+      <span class="card-title-text">Peer Comparison</span>
+      @if (industry) {
+        <div class="sector-breadcrumbs" style="margin-bottom: 0; margin-left: 1rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="breadcrumb-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span class="breadcrumb-item">{{ industry }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="peer-card-body">
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="mini-spinner"></div>
+        <span>Loading peers...</span>
+      </div>
+    } @else if (hasError) {
+      <div class="state-card error-state">
+        <div class="state-icon-wrapper error-icon-bg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3 class="state-title">Unable to Load Peers Data</h3>
+        <p class="state-description">Failed to fetch peer comparison for {{symbol || 'this stock'}}.</p>
+        <button type="button" class="action-btn" onclick="window.location.reload()">
+          Retry Sync
+        </button>
+      </div>
+    } @else if (peers.length) {
+      <div class="peer-table-wrapper">
+        <table class="peer-table">
+          <thead>
+            <tr>
+              <th class="col-num">S.No.</th>
+              <th class="col-name">Company</th>
+              <th class="col-num">CMP Rs.</th>
+              @if (hasPeRatio) { <th class="col-num">P/E</th> }
+              @if (hasPbRatio) { <th class="col-num">P/B</th> }
+              <th class="col-num">Mar Cap Rs.Cr.</th>
+              @if (hasRoe) { <th class="col-num">ROE %</th> }
+              @if (hasRoce) { <th class="col-num">ROCE %</th> }
+              @if (hasDividendYield) { <th class="col-num">Div Yld %</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (peer of peers; track peer.companyName; let i = $index) {
+              <tr [class.highlight]="isCurrentCompany(peer.companyName)">
+                <td class="col-num">{{ i + 1 }}.</td>
+                <td class="col-name fw-500">{{ peer.companyName }}</td>
+                <td class="col-num">{{ formatNumber(peer.price) }}</td>
+                @if (hasPeRatio) { <td class="col-num">{{ formatNumber(peer.peRatio) }}</td> }
+                @if (hasPbRatio) { <td class="col-num">{{ formatNumber(peer.pbRatio) }}</td> }
+                <td class="col-num">{{ formatInCrores(peer.marketCap) }}</td>
+                @if (hasRoe) { <td class="col-num" [class.text-emerald]="(peer.roe || 0) > 15">{{ formatNumber(peer.roe) }}</td> }
+                @if (hasRoce) { <td class="col-num" [class.text-emerald]="(peer.roce || 0) > 15">{{ formatNumber(peer.roce) }}</td> }
+                @if (hasDividendYield) { <td class="col-num">{{ formatNumber(peer.dividendYield) }}</td> }
+              </tr>
+            }
+            <tr class="median-row">
+              <td colspan="2" class="text-center fw-600">Median: {{ peers.length }} Co.</td>
+              <td class="col-num fw-500">{{ formatNumber(getMedian('price')) }}</td>
+              @if (hasPeRatio) { <td class="col-num fw-500">{{ formatNumber(getMedian('peRatio')) }}</td> }
+              @if (hasPbRatio) { <td class="col-num fw-500">{{ formatNumber(getMedian('pbRatio')) }}</td> }
+              <td class="col-num fw-500">{{ formatInCrores(getMedian('marketCap')) }}</td>
+              @if (hasRoe) { <td class="col-num fw-500">{{ formatNumber(getMedian('roe')) }}</td> }
+              @if (hasRoce) { <td class="col-num fw-500">{{ formatNumber(getMedian('roce')) }}</td> }
+              @if (hasDividendYield) { <td class="col-num fw-500">{{ formatNumber(getMedian('dividendYield')) }}</td> }
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <div class="empty-state-text">No peer comparison data available for this company.</div>
+      </div>
+    }
+  </div>
+</div>

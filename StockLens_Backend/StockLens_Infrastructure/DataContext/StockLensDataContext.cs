@@ -19,6 +19,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<StockBalanceSheet> StockBalanceSheets => Set<StockBalanceSheet>();
         public DbSet<StockPriceHistory> StockPriceHistories => Set<StockPriceHistory>();
         public DbSet<StockDeal> StockDeals => Set<StockDeal>();
+        public DbSet<StockPeer> StockPeers => Set<StockPeer>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -65,6 +66,30 @@ namespace StockLens_Infrastructure.DataContext
                 entity.HasIndex(c => c.Symbol)
                     .IsUnique()
                     .HasDatabaseName("IX_Company_Symbol");
+            });
+
+            // StockPeer configuration
+            modelBuilder.Entity<StockPeer>(entity =>
+            {
+                entity.ToTable("StockPeers");
+                entity.HasKey(p => p.Id);
+
+                entity.Property(p => p.CompanyName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(p => p.Price).HasPrecision(18, 2);
+                entity.Property(p => p.PeRatio).HasPrecision(18, 2);
+                entity.Property(p => p.PbRatio).HasPrecision(18, 2);
+                entity.Property(p => p.MarketCap).HasPrecision(18, 2);
+                entity.Property(p => p.Roe).HasPrecision(18, 2);
+                entity.Property(p => p.DividendYield).HasPrecision(18, 2);
+                entity.Property(p => p.TotalShares).HasPrecision(18, 2);
+
+                entity.HasOne(p => p.Stock)
+                    .WithMany(s => s.Peers)
+                    .HasForeignKey(p => p.StockId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Stock configuration

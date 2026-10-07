@@ -531,9 +531,9 @@
                 <div class="lq-metric-label-row">
                   <span class="lq-metric-label">ROE</span>
                   @if (getRoeYoY(); as roeY) {
-                    <span class="lq-delta-tag" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
-                      {{ getArrow(roeY) }} {{ formatPercent(roeY) }}
-                    </span>
+                  <span class="lq-delta-tag" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
+                    {{ getArrow(roeY) }} {{ formatPercent(roeY) }}
+                  </span>
                   }
                 </div>
                 <span class="lq-metric-value">{{ getRoeFormatted() }}</span>
@@ -553,9 +553,9 @@
                 <div class="lq-metric-label-row">
                   <span class="lq-metric-label">ROCE</span>
                   @if (getRoceYoY(); as roceY) {
-                    <span class="lq-delta-tag" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
-                      {{ getArrow(roceY) }} {{ formatPercent(roceY) }}
-                    </span>
+                  <span class="lq-delta-tag" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
+                    {{ getArrow(roceY) }} {{ formatPercent(roceY) }}
+                  </span>
                   }
                 </div>
                 <span class="lq-metric-value">{{ getRoceFormatted() }}</span>
@@ -613,7 +613,7 @@
                 <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
             </div>
-            <span class="card-title-text">Latest News &amp; Corporate Filings</span>
+            <span class="card-title-text">Latest News</span>
           </div>
         </div>
 
@@ -652,7 +652,10 @@
               <span class="news-bullet">•</span>
               <span class="news-time">{{ news.publishedAt | timeAgo }}</span>
               @if (news.category) {
-              <span class="news-category-badge">{{ news.category }}</span>
+              <span class="news-category-badge">Market News</span>
+              @if (news.category === 'Key Update') {
+              <span class="pulsing-red-dot"></span>
+              }
               }
             </div>
             <div class="news-title-row">
@@ -1023,8 +1026,17 @@
     <!-- ===================================================================== -->
     <!-- ROW 5: INSIDER & BULK/BLOCK DEALS (100% FULL WIDTH)                   -->
     <!-- ===================================================================== -->
-    <div class="cockpit-row-full deals-row" style="margin-bottom: 2rem;">
+    <div class="cockpit-row-full deals-row">
       <app-stock-deals-card [symbol]="selectedSymbol()"></app-stock-deals-card>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- ROW 6: PEER COMPARISON                                                -->
+    <!-- ===================================================================== -->
+    <div class="cockpit-row-full peer-comparison-row" style="margin-bottom: 1.5rem;">
+      <app-stock-peer-comparison-card [symbol]="selectedSymbol()" [companyName]="companyOverview()?.companyName || ''" [exchange]="selectedExchange()"
+        [peers]="companyPeers()" [isLoading]="isPeersLoading()" [hasError]="hasPeersError()"
+        [industry]="companyOverview()?.industry"></app-stock-peer-comparison-card>
     </div>
   </div>
 

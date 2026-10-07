@@ -211,15 +211,18 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
     this.deliveryData.set(null);
     this.errorMessage.set(null);
 
-    this.deliveryService.getDeliveryAnalysis(this.symbol, this.exchange).subscribe({
-      next: (data) => {
-        this.deliveryData.set(data);
-      },
-      error: (err) => {
-        console.warn('Could not fetch delivery analysis from API, using fallback calculations:', err);
-        this.deliveryData.set(this.getFallbackData());
-      }
-    });
+    // TODO: Verify if this data should come directly from the price history/chart data instead of a separate API call.
+    // this.deliveryService.getDeliveryAnalysis(this.symbol, this.exchange).subscribe({
+    //   next: (data) => {
+    //     this.deliveryData.set(data);
+    //   },
+    //   error: (err) => {
+    //     console.warn('Could not fetch delivery analysis from API, using fallback calculations:', err);
+    //     this.deliveryData.set(this.getFallbackData());
+    //   }
+    // });
+    
+    this.deliveryData.set(this.getFallbackData());
   }
 
   formatVolume(val?: number): string {

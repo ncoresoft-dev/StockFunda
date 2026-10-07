@@ -22,5 +22,6 @@ namespace StockLens_DataLayer.Entities
         public ICollection<StockNews> News { get; set; } = new List<StockNews>();
         public ICollection<StockShareholding> Shareholdings { get; set; } = new List<StockShareholding>();
         public ICollection<StockFinancial> Financials { get; set; } = new List<StockFinancial>();
+        public ICollection<StockPeer> Peers { get; set; } = new List<StockPeer>();
     }
 }
