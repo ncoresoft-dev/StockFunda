@@ -262,7 +262,6 @@
                   </svg>
                   <span>{{ selectedSymbol().toLowerCase() }}.com</span>
                 </a>
-                <span class="hero-sub-pill">BSE: 500325</span>
                 <span class="hero-sub-pill">NSE: {{ selectedSymbol() }}</span>
                 <span class="tag-cap-outline">{{ getCompanyCapCategory() }}</span>
                 <span class="tag-sector-solid">{{ getCompanySectorTag() }}</span>
@@ -404,13 +403,6 @@
             </div>
             <span class="card-title-text">Latest News</span>
           </div>
-
-          <button type="button" class="official-website-btn" (click)="fetchNews(true)" [disabled]="isNewsRefreshing()" title="Refresh live news">
-            <svg class="sync-icon" [class.spinning]="isNewsRefreshing()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-            </svg>
-            <span>Refresh</span>
-          </button>
         </div>
 
         <!-- News Feed List -->
