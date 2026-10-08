@@ -92,18 +92,20 @@ namespace StockLens_BusinessLayer.Services
             var totalScore = pScore.EarnedPoints + vScore.EarnedPoints + sScore.EarnedPoints +
                              gScore.EarnedPoints + smScore.EarnedPoints + eScore.EarnedPoints;
 
-            // Check for Critical Red Flag overrides
-            if (redFlags.Count >= 3)
+            // Check for Critical Red Flag overrides (Dynamic Percentage Penalty)
+            if (redFlags.Count >= 2)
             {
-                totalScore = Math.Min(totalScore, 30); // Cap at Risky / Avoid
-            }
-            else if (redFlags.Count == 2)
-            {
-                totalScore = Math.Min(totalScore, 44);
+                totalScore = (int)Math.Round(totalScore * 0.20m); // Drop to 20% of original score
             }
             else if (redFlags.Count == 1)
             {
-                totalScore = Math.Min(totalScore, 60);
+                totalScore = (int)Math.Round(totalScore * 0.45m); // Drop to 45% of original score
+            }
+
+            // Ensure max cap of 44 for safety if original score was somehow perfectly 80+
+            if (redFlags.Count > 0)
+            {
+                totalScore = Math.Min(totalScore, 44); 
             }
 
             result.TotalScore = Math.Max(0, Math.Min(100, totalScore));
@@ -391,11 +393,18 @@ namespace StockLens_BusinessLayer.Services
 
             int points = 0;
 
+            // Zombie Company Check: Negative Book Value
+            if (cashflow?.Ratios?.BookValue < 0)
+            {
+                cons.Add("Negative Net Worth: Company's liabilities exceed its assets");
+                redFlags.Add("Insolvent Balance Sheet: Book Value is negative (Zombie Company)");
+            }
+
             // Harmonize Operating Profit and Interest to Annual figures
             decimal op = 0m;
             decimal interest = 0m;
 
-            if (cashflow?.Summary?.OperatingProfit.HasValue == true && cashflow.Summary.OperatingProfit.Value > 0)
+            if (cashflow?.Summary?.OperatingProfit.HasValue == true)
             {
                 op = cashflow.Summary.OperatingProfit.Value;
             }
@@ -471,6 +480,11 @@ namespace StockLens_BusinessLayer.Services
                     cons.Add($"Critically Low Interest Coverage ({coverage:F1}x) - debt service pressure");
                     redFlags.Add("Interest coverage below 1.2x (High solvency risk)");
                 }
+            }
+            else if (interest > 0 && op < 0)
+            {
+                cons.Add("Operating Loss: Company is making operating losses while carrying debt");
+                redFlags.Add("Severe Solvency Risk: Negative Operating Profit with high interest burden");
             }
             else
             {
@@ -574,7 +588,7 @@ namespace StockLens_BusinessLayer.Services
                 // Revenue-Profit Mismatch Red Flag (Severe margin collapse)
                 if (salesGrowth.Value > 25 && profitGrowth.Value < -25)
                 {
-                    redFlags.Add($"Revenue-Profit Mismatch: Sales grew {salesGrowth.Value:F1}% but Profits crashed {profitGrowth.Value:F1}% (Severe margin crush)");
+                    redFlags.Add($"Severe Profit Contraction: Sales grew {salesGrowth.Value:F1}% but Net Profits crashed {profitGrowth.Value:F1}% (Check for exceptional losses or rising finance costs)");
                 }
             }
             else

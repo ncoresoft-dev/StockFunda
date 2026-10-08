@@ -271,11 +271,14 @@
           </div>
 
           <div class="hero-right-score">
-            <div class="quick-verdict-pill" (click)="openEvaluationModal()"
+            <div class="quick-verdict-pill {{ getEvaluationVerdict().class }}" (click)="openEvaluationModal()"
               title="View 23-Metric Comprehensive Scorecard">
               <span class="quick-verdict-label">Investment Verdict:</span>
               <span class="quick-verdict-signal {{ getEvaluationVerdict().class }}">{{ getEvaluationVerdict().text }}</span>
-              <span class="quick-verdict-score">{{ getEvaluationVerdict().score }}/100 ↗</span>
+              <span class="quick-verdict-score">
+                <span class="qvs-main">{{ getEvaluationVerdict().score }}</span>
+                <span class="qvs-sub">/100 ↗</span>
+              </span>
             </div>
           </div>
         </div>

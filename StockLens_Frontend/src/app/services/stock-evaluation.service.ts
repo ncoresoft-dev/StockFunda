@@ -104,6 +104,12 @@ export class StockEvaluationService {
     const ratios = cashflow?.ratios;
     const summary = cashflow?.summary;
 
+    if (ratios?.bookValue && ratios.bookValue < 0) {
+      cons.push("Negative Net Worth: Company's liabilities exceed its assets");
+      redFlags.push("Insolvent Balance Sheet: Book Value is negative (Zombie Company)");
+    }
+
+
     // 1. Profitability (25 pts)
     let pPts = 0;
     const roe = ratios?.roe ?? 0;
@@ -179,7 +185,10 @@ export class StockEvaluationService {
     if (interest <= 0) {
       sPts += 8;
       pros.push('Virtually zero debt / interest expense');
-    } else {
+    } else if (interest > 0 && op < 0) {
+      cons.push('Operating Loss: Company is making operating losses while carrying debt');
+      redFlags.push('Severe Solvency Risk: Negative Operating Profit with high interest burden');
+    } else if (interest > 0 && op > 0) {
       const cov = op / interest;
       if (cov >= 4.0) {
         sPts += 8;
@@ -190,6 +199,8 @@ export class StockEvaluationService {
         cons.push(`Low Interest Coverage (${cov.toFixed(1)}x)`);
         redFlags.push('Interest coverage below 1.2x');
       }
+    } else {
+      sPts += 4;
     }
 
     sPts += 7; // Default safe balance sheet score
@@ -206,6 +217,10 @@ export class StockEvaluationService {
         gPts += 4;
       } else if (profitGrowth < -10) {
         cons.push(`Net profit contracted ${profitGrowth.toFixed(1)}% YoY in latest quarter`);
+
+        if (salesGrowth > 10 && profitGrowth < -25) {
+          redFlags.push(`Severe Profit Contraction: Sales grew ${salesGrowth.toFixed(1)}% but Net Profits crashed ${profitGrowth.toFixed(1)}%`);
+        }
       }
     } else {
       gPts += 4;
@@ -252,9 +267,18 @@ export class StockEvaluationService {
     if (ratios?.payableDays) ePts += 3;
 
     let total = pPts + vPts + sPts + gPts + smPts + ePts;
-    if (redFlags.length > 0) {
-      total = Math.min(total, 44);
+    
+    // Dynamic Percentage Penalty for Red Flags
+    if (redFlags.length >= 2) {
+      total = Math.round(total * 0.20); // 80% penalty for multiple red flags
+    } else if (redFlags.length === 1) {
+      total = Math.round(total * 0.45); // 55% penalty for a single red flag
     }
+
+    if (redFlags.length > 0) {
+      total = Math.min(total, 44); // Fallback safety cap
+    }
+    
     total = Math.max(0, Math.min(100, total));
 
     let signal: StockHealthScoreResponse['signal'];
