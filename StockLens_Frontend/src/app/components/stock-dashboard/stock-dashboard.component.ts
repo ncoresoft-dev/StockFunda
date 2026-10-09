@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, Subscription, of, timer } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
 import { StockNewsService } from '../../services/stock-news.service';
@@ -11,6 +12,7 @@ import { StockBalanceSheetService, BalanceSheetResponseDto } from '../../service
 import { StockQuarterlyResultsService } from '../../services/stock-quarterly-results.service';
 import { StockEvaluationService } from '../../services/stock-evaluation.service';
 import { StockPeerService } from '../../services/stock-peer.service';
+import { WatchlistService } from '../../services/watchlist.service';
 import { Stock, Company, StockNewsResponse, StockNewsItem, LoadingState } from '../../models/stock-news.model';
 import { CompanyOverview } from '../../models/company-overview.model';
 import { StockShareholdingResponse } from '../../models/stock-shareholding.model';
@@ -46,6 +48,9 @@ export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | '
   styleUrl: './stock-dashboard.component.css'
 })
 export class StockDashboardComponent implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  readonly watchlistService = inject(WatchlistService);
   private readonly newsService = inject(StockNewsService);
   private readonly companyService = inject(StockCompanyService);
   private readonly peerService = inject(StockPeerService);
@@ -55,6 +60,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   private readonly quartersService = inject(StockQuarterlyResultsService);
   private readonly evaluationService = inject(StockEvaluationService);
   private readonly cd = inject(ChangeDetectorRef);
+
+  private routeSub?: Subscription;
 
   // Quick select stocks
   readonly quickStocks = [
@@ -233,6 +240,22 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.setupSearch();
     this.fetchAllData(false);
     this.startLivePricePolling();
+
+    // Listen for route param changes (e.g. /stock/INFY)
+    this.routeSub = this.route.paramMap.subscribe(params => {
+      const sym = params.get('symbol');
+      if (sym && sym.toUpperCase() !== this.selectedSymbol()) {
+        this.selectStock(sym.toUpperCase(), this.selectedExchange());
+      }
+    });
+  }
+
+  navigateToHome(): void {
+    this.router.navigate(['/']);
+  }
+
+  navigateToWatchlist(): void {
+    this.router.navigate(['/'], { queryParams: { view: 'watchlist' } });
   }
 
   toggleTheme(): void {
@@ -255,6 +278,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     this.stopLivePricePolling();
   }
@@ -362,6 +386,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.selectedExchange.set(cleanExchange);
     this.searchQuery.set('');
     this.searchResults.set([]);
+
+    if (this.route.snapshot.paramMap.get('symbol') !== cleanSymbol) {
+      this.router.navigate(['/stock', cleanSymbol]);
+    }
 
     // Clear previous responses to show skeletons immediately
     this.cashflowResponse.set(null);

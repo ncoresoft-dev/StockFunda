@@ -1,0 +1,482 @@
+<div class="landing-container" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()" [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
+  <!-- Top Animated Cyber Reload Progress Bar -->
+  <div class="top-reload-bar" [class.active]="isLoading() || isSyncing()"></div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP GLOBAL APPLICATION NAVBAR                                          -->
+  <!-- ========================================================================= -->
+  <header class="cockpit-header">
+    <div class="header-left">
+      <!-- Brand Logo -->
+      <div class="brand-box" (click)="navigateToHome()" title="StockLens Home">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M3 3v18h18" stroke-linecap="round"></path>
+            <path d="M18 9l-5 5-4-4-6 6" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <span class="brand-title">Stock<span class="brand-highlight">Lens</span></span>
+      </div>
+    </div>
+
+    <!-- Center: Global Search with Typeahead -->
+    <div class="header-center">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search company (e.g. RELIANCE, TCS, etc...)"
+          [value]="headerSearchQuery()"
+          (input)="onHeaderSearchInput($event)"
+          (keydown.enter)="onHeaderSearchSubmit()"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        />
+
+        <!-- Autocomplete Dropdown Menu -->
+        @if (headerSearchResults().length > 0 || isHeaderSearching()) {
+          <ul class="search-results-menu">
+            @if (isHeaderSearching()) {
+              <li class="result-item searching">
+                <span class="mini-spinner"></span>
+                <span>Searching equities...</span>
+              </li>
+            } @else {
+              @for (company of headerSearchResults(); track company.symbol) {
+                <li class="result-item" (click)="selectHeaderSearchResult(company)">
+                  <div class="res-item-left">
+                    @if (company.logoUrl) {
+                      <div class="res-logo-box">
+                        <img
+                          [src]="company.logoUrl"
+                          [alt]="company.symbol"
+                          class="res-logo-img"
+                          (error)="$any($event.target).parentElement.style.display='none'"
+                        />
+                      </div>
+                    } @else {
+                      <div class="res-logo-placeholder">{{ company.symbol.substring(0, 2) }}</div>
+                    }
+                    <div class="res-text-group">
+                      <span class="res-name">{{ company.companyName }}</span>
+                      <span class="res-symbol">({{ company.symbol }})</span>
+                    </div>
+                  </div>
+                </li>
+              }
+            }
+          </ul>
+        }
+      </div>
+    </div>
+
+    <!-- Right: Watchlist Nav, Exchange Switcher, Theme & Sync Button -->
+    <div class="header-right">
+      <!-- ⭐ Watchlist Button (Toggles view on the same page) -->
+      <button
+        type="button"
+        class="nav-watchlist-btn"
+        [class.active]="activeTab() === 'watchlist'"
+        (click)="setActiveTab(activeTab() === 'watchlist' ? 'nifty50' : 'watchlist')"
+        title="Toggle My Watchlist"
+      >
+        <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Watchlist</span>
+        @if (watchlistService.watchlistCount() > 0) {
+          <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
+        }
+      </button>
+
+      <!-- Exchange Switcher Pills -->
+      <div class="exchange-pills">
+        <button
+          type="button"
+          class="exchange-btn"
+          [class.active]="selectedExchange() === 'NSE'"
+          (click)="toggleExchange('NSE')"
+          title="Switch to NSE"
+        >
+          NSE
+        </button>
+        <button
+          type="button"
+          class="exchange-btn"
+          [class.active]="selectedExchange() === 'BSE'"
+          (click)="toggleExchange('BSE')"
+          title="Switch to BSE"
+        >
+          BSE
+        </button>
+      </div>
+
+      <!-- Sync Button -->
+      <button
+        type="button"
+        class="sync-all-btn"
+        [disabled]="isSyncing()"
+        (click)="syncData()"
+        title="Sync live NIFTY 50 data from API"
+      >
+        <svg
+          class="sync-icon"
+          [class.spinning]="isSyncing()"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>{{ isSyncing() ? 'Syncing...' : 'Sync' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN NIFTY 50 CONTENT AREA                                             -->
+  <!-- ========================================================================= -->
+  <main class="landing-main">
+    <div class="landing-content-inner">
+      <!-- Page Hero Header -->
+      <div class="page-hero-section">
+        <div class="hero-text-block">
+          <div class="hero-badge-row">
+            @if (activeTab() === 'nifty50') {
+              <span class="benchmark-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                  <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+                NSE Benchmark Index
+              </span>
+            } @else {
+              <span class="benchmark-tag watchlist-tag">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="tag-icon">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Personal Watchlist
+              </span>
+            }
+            <span class="live-market-indicator">
+              <span class="pulse-dot"></span>
+              Live API Sync
+            </span>
+          </div>
+
+          <div class="title-with-tabs">
+            <h1 class="page-title">{{ activeTab() === 'nifty50' ? 'NIFTY 50' : 'My Watchlist' }}</h1>
+
+            <!-- Tab Switcher (NIFTY 50 / My Watchlist) -->
+            <div class="view-switch-tabs">
+              <button
+                type="button"
+                class="view-tab-btn"
+                [class.active]="activeTab() === 'nifty50'"
+                (click)="setActiveTab('nifty50')"
+              >
+                <span>NIFTY 50</span>
+                <span class="tab-badge">{{ allStocks().length }}</span>
+              </button>
+              <button
+                type="button"
+                class="view-tab-btn"
+                [class.active]="activeTab() === 'watchlist'"
+                (click)="setActiveTab('watchlist')"
+              >
+                <svg class="tab-star-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span>My Watchlist</span>
+                <span class="tab-badge" [class.highlight]="watchlistService.watchlistCount() > 0">{{ watchlistService.watchlistCount() }}</span>
+              </button>
+            </div>
+          </div>
+
+          <p class="page-subtitle">
+            {{ activeTab() === 'nifty50' ? "Official constituent companies of India's flagship NIFTY 50 Index" : "Stocks you are currently tracking in your watchlist" }}
+          </p>
+        </div>
+
+        <!-- Real Index Metadata Summary Cards -->
+        <div class="market-summary-cards">
+          <div class="summary-card index-card">
+            <div class="sc-label">Total Constituents</div>
+            <div class="sc-value-row">
+              <span class="sc-price">{{ marketStats().totalConstituents }}</span>
+              <span class="sc-badge positive">
+                Companies
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-card market-breadth-card">
+            <div class="sc-label">Sectors Represented</div>
+            <div class="sc-value-row">
+              <span class="sc-price">{{ marketStats().sectorsCount }}</span>
+              <span class="sc-badge positive">
+                Sectors
+              </span>
+            </div>
+          </div>
+
+          @if (marketStats().topWeighted) {
+            <div class="summary-card top-mover-card" (click)="navigateToStock(marketStats().topWeighted!.symbol)">
+              <div class="sc-label">Top Weightage</div>
+              <div class="mover-info">
+                <span class="mover-symbol">{{ marketStats().topWeighted!.symbol }}</span>
+                <span class="sc-badge positive">{{ marketStats().topWeighted!.weightagePercentage | number:'1.2-2' }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Controls Bar: Search & Sector Filters -->
+      <div class="controls-toolbar">
+        <div class="filter-search-box">
+          <svg class="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="fs-input"
+            [placeholder]="activeTab() === 'nifty50' ? 'Search company, symbol, or sector...' : 'Filter your watchlist stocks...'"
+            [(ngModel)]="tableSearchQuery"
+          />
+          @if (tableSearchQuery()) {
+            <button type="button" class="fs-clear" (click)="tableSearchQuery.set('')">✕</button>
+          }
+        </div>
+
+        <!-- Sector Filter Pills (Visible when in NIFTY 50 tab) -->
+        @if (activeTab() === 'nifty50') {
+          <div class="sector-scroll-row">
+            @for (sec of sectors(); track sec) {
+              <button
+                type="button"
+                class="sector-pill"
+                [class.active]="selectedSector() === sec"
+                (click)="setSector(sec)"
+              >
+                {{ sec }}
+              </button>
+            }
+          </div>
+        }
+
+        <div class="results-count-badge">
+          Showing <strong>{{ filteredStocks().length }}</strong> of {{ currentBaseStocks().length }} stocks
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 3. NIFTY 50 / WATCHLIST TABLE                                            -->
+      <!-- ========================================================================= -->
+      <div class="watchlist-table-card">
+        @if (isLoading()) {
+          <div class="table-loading-state">
+            <div class="mini-spinner large"></div>
+            <p>Loading NIFTY 50 constituent companies...</p>
+          </div>
+        } @else if (activeTab() === 'watchlist' && currentBaseStocks().length === 0) {
+          <!-- Empty Watchlist State -->
+          <div class="empty-watchlist-inline">
+            <div class="empty-star-bubble">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+            <h3>Your watchlist is empty</h3>
+            <p>Click the ★ star icon on any NIFTY 50 stock to track it here.</p>
+            <button type="button" class="switch-to-nifty-btn" (click)="setActiveTab('nifty50')">
+              Explore NIFTY 50
+            </button>
+          </div>
+        } @else if (filteredStocks().length === 0) {
+          <!-- Filter Search Empty State -->
+          <div class="table-empty-search">
+            <div class="empty-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <h3>No companies match "{{ tableSearchQuery() }}"</h3>
+            <p>Try searching for a different company name, symbol, or sector.</p>
+            <button type="button" class="clear-filters-btn" (click)="tableSearchQuery.set(''); selectedSector.set('All')">
+              Reset Filters
+            </button>
+          </div>
+        } @else {
+          <div class="table-scroll-container">
+            <table class="watchlist-table">
+              <thead>
+                <tr>
+                  <th class="th-star" title="My Watchlist">★</th>
+                  <th class="th-rank">#</th>
+                  <th class="th-company sortable" (click)="setSorting('name')">
+                    <span>Company</span>
+                    @if (sortField() === 'name') {
+                      <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+                    }
+                  </th>
+                  <th class="th-symbol sortable" (click)="setSorting('symbol')">
+                    <span>Symbol</span>
+                    @if (sortField() === 'symbol') {
+                      <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+                    }
+                  </th>
+                  <th class="th-exchange">Exchange</th>
+                  <th class="th-sector sortable" (click)="setSorting('sector')">
+                    <span>Sector</span>
+                    @if (sortField() === 'sector') {
+                      <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+                    }
+                  </th>
+                  <th class="th-industry sortable" (click)="setSorting('industry')">
+                    <span>Industry</span>
+                    @if (sortField() === 'industry') {
+                      <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+                    }
+                  </th>
+                  @if (activeTab() === 'nifty50') {
+                    <th class="th-weightage sortable" (click)="setSorting('weightage')">
+                      <span>Weightage</span>
+                      @if (sortField() === 'weightage') {
+                        <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+                      }
+                    </th>
+                  }
+                  <th class="th-isin">ISIN</th>
+                  <th class="th-action"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (stock of filteredStocks(); track stock.symbol) {
+                  <tr class="stock-row" (click)="navigateToStock(stock.symbol)">
+                    <!-- 1. Star Column -->
+                    <td class="td-star" (click)="toggleStar($event, stock.symbol)">
+                      <button
+                        type="button"
+                        class="star-toggle-btn"
+                        [class.starred]="isStarred(stock.symbol)"
+                        [title]="isStarred(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'"
+                        [attr.aria-label]="isStarred(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'"
+                      >
+                        @if (isStarred(stock.symbol)) {
+                          <svg class="star-icon filled" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                        } @else {
+                          <svg class="star-icon outlined" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                          </svg>
+                        }
+                      </button>
+                    </td>
+
+                    <!-- 2. Rank / Serial Number -->
+                    <td class="td-rank">
+                      <span class="rank-num">{{ $index + 1 }}</span>
+                    </td>
+
+                    <!-- 3. Company Info -->
+                    <td class="td-company">
+                      <div class="company-cell">
+                        @if (stock.logoUrl) {
+                          <div class="comp-logo-box">
+                            <img
+                              [src]="stock.logoUrl"
+                              [alt]="stock.symbol"
+                              class="comp-logo-img"
+                              (error)="$any($event.target).parentElement.style.display='none'"
+                            />
+                          </div>
+                        } @else {
+                          <div class="comp-logo-avatar">{{ stock.symbol.substring(0, 2) }}</div>
+                        }
+                        <div class="comp-details">
+                          <span class="comp-name" [title]="stock.companyName">{{ stock.companyName }}</span>
+                          @if (stock.websiteUrl) {
+                            <a [href]="stock.websiteUrl" target="_blank" rel="noopener noreferrer" class="comp-web-link" (click)="$event.stopPropagation()">
+                              Website ↗
+                            </a>
+                          }
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- 4. Symbol -->
+                    <td class="td-symbol">
+                      <span class="symbol-badge">{{ stock.symbol }}</span>
+                    </td>
+
+                    <!-- 5. Exchange -->
+                    <td class="td-exchange">
+                      <span class="exchange-badge">{{ stock.exchange || 'NSE' }}</span>
+                    </td>
+
+                    <!-- 6. Sector -->
+                    <td class="td-sector">
+                      <span class="sector-badge">{{ stock.sector || 'Equities' }}</span>
+                    </td>
+
+                    <!-- 7. Industry -->
+                    <td class="td-industry">
+                      <span class="industry-text">{{ stock.industry || '—' }}</span>
+                    </td>
+
+                    <!-- 8. Weightage % (if available) -->
+                    @if (activeTab() === 'nifty50') {
+                      <td class="td-weightage">
+                        @if (stock.weightagePercentage != null && stock.weightagePercentage > 0) {
+                          <div class="weightage-bar-wrapper">
+                            <span class="weight-val">{{ stock.weightagePercentage | number:'1.2-2' }}%</span>
+                            <div class="weight-track">
+                              <div class="weight-fill" [style.width.%]="(stock.weightagePercentage / 12) * 100"></div>
+                            </div>
+                          </div>
+                        } @else {
+                          <span class="weight-val">—</span>
+                        }
+                      </td>
+                    }
+
+                    <!-- 9. ISIN -->
+                    <td class="td-isin">
+                      <span class="isin-code">{{ stock.isin || '—' }}</span>
+                    </td>
+
+                    <!-- 10. Action Button -->
+                    <td class="td-action">
+                      <button
+                        type="button"
+                        class="view-stock-btn"
+                        (click)="navigateToStock(stock.symbol)"
+                        title="View stock details"
+                      >
+                        <span>View</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-icon">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { StockDashboardComponent } from './components/stock-dashboard/stock-dashboard.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [StockDashboardComponent],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

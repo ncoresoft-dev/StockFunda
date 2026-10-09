@@ -9,7 +9,7 @@
   <header class="cockpit-header">
     <div class="header-left">
       <!-- Brand Logo -->
-      <div class="brand-box" (click)="selectStock('RELIANCE', 'NSE')">
+      <div class="brand-box" (click)="navigateToHome()" title="StockLens Home">
         <div class="brand-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M3 3v18h18" stroke-linecap="round"></path>
@@ -64,8 +64,19 @@
       </div>
     </div>
 
-    <!-- Right: Exchange Switcher, Theme Switcher & Sync Button -->
+    <!-- Right: Watchlist Nav, Exchange Switcher, Theme Switcher & Sync Button -->
     <div class="header-right">
+      <!-- ⭐ Watchlist Button -->
+      <button type="button" class="nav-watchlist-btn" (click)="navigateToWatchlist()" title="View My Watchlist">
+        <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Watchlist</span>
+        @if (watchlistService.watchlistCount() > 0) {
+          <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
+        }
+      </button>
+
       <!-- Exchange Switcher Pills -->
       <div class="exchange-pills">
         <button type="button" class="exchange-btn" [class.active]="selectedExchange() === 'NSE'"
