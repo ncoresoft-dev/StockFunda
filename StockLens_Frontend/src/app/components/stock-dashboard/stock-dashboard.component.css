@@ -1169,6 +1169,13 @@
   transform: translateY(-1px);
 }
 
+.quick-verdict-pill.badge-analyzing {
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  color: #64748b;
+  cursor: wait;
+}
+
 /* Dark Theme Badge Colors */
 .cockpit-container.dark-theme .quick-verdict-pill.badge-success {
   background: rgba(16, 185, 129, 0.14);
@@ -1192,6 +1199,63 @@
   background: rgba(239, 68, 68, 0.14);
   border-color: rgba(248, 113, 113, 0.4);
   color: #f87171;
+}
+
+.cockpit-container.dark-theme .quick-verdict-pill.badge-analyzing {
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+.verdict-spinner-mini {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(2, 132, 199, 0.25);
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spinVerdict 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spinVerdict {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Shimmer / Skeleton Animation for Top Section */
+@keyframes shimmerPulse {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ratio-skeleton {
+  display: inline-block;
+  width: 76px;
+  height: 17px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.4s infinite ease-in-out;
+}
+
+.cockpit-container.dark-theme .ratio-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+.hero-price-skeleton {
+  display: inline-block;
+  width: 130px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmerPulse 1.4s infinite ease-in-out;
+}
+
+.cockpit-container.dark-theme .hero-price-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
 }
 
 .quick-verdict-label {
@@ -5844,7 +5908,7 @@
 .eval-disclaimer {
   font-size: 0.65rem;
   color: #64748b;
-  max-width: 75%;
+  max-width: 100%;
 }
 
 .eval-done-btn {

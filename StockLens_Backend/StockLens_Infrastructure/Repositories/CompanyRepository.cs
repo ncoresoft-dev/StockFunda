@@ -73,28 +73,47 @@ namespace StockLens_Infrastructure.Repositories
         }
         public async Task EnsureCompaniesExistAsync(IEnumerable<Company> companies, System.Threading.CancellationToken cancellationToken = default)
         {
-            var symbols = companies.Select(c => c.Symbol.ToLower()).ToList();
-            var existingSymbols = await _context.CompanyMaster
+            var companyList = companies.ToList();
+            if (!companyList.Any()) return;
+
+            var symbols = companyList.Select(c => c.Symbol.ToLower()).Distinct().ToList();
+            var existingCompanies = await _context.CompanyMaster
                 .Where(c => symbols.Contains(c.Symbol.ToLower()))
-                .Select(c => c.Symbol.ToLower())
                 .ToListAsync(cancellationToken);
 
-            var missingCompanies = companies
-                .Where(c => !existingSymbols.Contains(c.Symbol.ToLower()))
-                .GroupBy(c => c.Symbol.ToLower())
-                .Select(g => g.First())
-                .ToList();
+            var existingMap = existingCompanies.ToDictionary(c => c.Symbol.ToLower());
 
-            if (missingCompanies.Any())
+            foreach (var incoming in companyList)
             {
-                foreach (var mc in missingCompanies)
+                var lower = incoming.Symbol.ToLower();
+                if (existingMap.TryGetValue(lower, out var existing))
                 {
-                    mc.CreatedAt = System.DateTime.UtcNow;
-                    mc.UpdatedAt = System.DateTime.UtcNow;
+                    bool modified = false;
+                    if (!string.IsNullOrWhiteSpace(incoming.Sector) && string.IsNullOrWhiteSpace(existing.Sector))
+                    {
+                        existing.Sector = incoming.Sector.Trim();
+                        modified = true;
+                    }
+                    if (!string.IsNullOrWhiteSpace(incoming.CompanyName) && (string.IsNullOrWhiteSpace(existing.CompanyName) || existing.CompanyName.Equals(existing.Symbol, System.StringComparison.OrdinalIgnoreCase)))
+                    {
+                        existing.CompanyName = incoming.CompanyName.Trim();
+                        modified = true;
+                    }
+                    if (modified)
+                    {
+                        existing.UpdatedAt = System.DateTime.UtcNow;
+                    }
                 }
-                await _context.CompanyMaster.AddRangeAsync(missingCompanies, cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
+                else
+                {
+                    incoming.CreatedAt = System.DateTime.UtcNow;
+                    incoming.UpdatedAt = System.DateTime.UtcNow;
+                    _context.CompanyMaster.Add(incoming);
+                    existingMap[lower] = incoming;
+                }
             }
+
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 }

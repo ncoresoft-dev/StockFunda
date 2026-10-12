@@ -246,6 +246,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       this.selectedSymbol.set(routeSym.toUpperCase());
     }
 
+    this.isLoadingStock.set(true);
+    this.cashflowLoadingState.set('loading');
+    this.shareholdingLoadingState.set('loading');
+    this.quartersLoadingState.set('loading');
+    this.assetsLoadingState.set('loading');
+    this.newsLoadingState.set('loading');
+
     this.fetchAllData(false);
     this.startLivePricePolling();
 
@@ -424,9 +431,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.fetchAllData(false);
     this.startLivePricePolling();
 
-    setTimeout(() => {
-      this.isLoadingStock.set(false);
-    }, 600);
   }
 
   toggleExchange(exchange: string): void {
@@ -575,6 +579,21 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     if (existing && existing.symbol === this.selectedSymbol().toUpperCase()) {
       return existing;
     }
+    if (!this.cashflowResponse()) {
+      return {
+        symbol: this.selectedSymbol(),
+        exchange: this.selectedExchange(),
+        companyName: this.getCompanyName(),
+        totalScore: 0,
+        signal: 'Evaluating...',
+        signalClass: 'badge-analyzing',
+        pros: [],
+        cons: [],
+        redFlags: [],
+        summaryText: 'Evaluating stock metrics...',
+        categoryScores: []
+      } as any;
+    }
     return this.evaluationService.computeClientEvaluation(
       this.selectedSymbol(),
       this.selectedExchange(),
@@ -711,11 +730,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
           this.indexService.updateStockInCache(symbol, data.ratios.currentPrice, data.ratios.marketCap);
         }
         this.isCashflowRefreshing.set(false);
+        this.isLoadingStock.set(false);
         this.cashflowLoadingState.set(data && data.summary ? 'success' : 'empty');
       },
       error: (err) => {
         if (this.selectedSymbol() !== symbol) return;
         this.isCashflowRefreshing.set(false);
+        this.isLoadingStock.set(false);
         this.cashflowLoadingState.set('error');
         this.cashflowErrorMessage.set(err.error?.detail || err.error?.message || 'Failed to retrieve financial metrics.');
       }
@@ -1271,7 +1292,17 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return '—';
   }
 
-  getEvaluationVerdict(): { text: string, score: number, class: string, progressWidth: number } {
+  getEvaluationVerdict(): { text: string, score: number | string, class: string, progressWidth: number, isLoading: boolean } {
+    if (this.cashflowLoadingState() === 'loading' || !this.cashflowResponse()) {
+      return {
+        text: 'Evaluating...',
+        score: '—',
+        class: 'badge-analyzing',
+        progressWidth: 0,
+        isLoading: true
+      };
+    }
+
     const evalData = this.getEvaluation();
     const score = evalData.totalScore || 70;
     const text = evalData.signal || 'Good for Buy';
@@ -1279,7 +1310,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       text,
       score,
       class: evalData.signalClass || 'badge-success',
-      progressWidth: Math.min(100, Math.max(0, score))
+      progressWidth: Math.min(100, Math.max(0, score)),
+      isLoading: false
     };
   }
 

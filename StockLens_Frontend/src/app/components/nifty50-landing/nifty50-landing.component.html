@@ -131,10 +131,6 @@
               Personal Watchlist
             </span>
             }
-            <span class="live-market-indicator">
-              <span class="pulse-dot"></span>
-              Live API Sync
-            </span>
           </div>
 
           <div class="title-with-tabs">
@@ -204,33 +200,64 @@
 
       <!-- Controls Bar: Search & Sector Filters -->
       <div class="controls-toolbar">
-        <div class="filter-search-box">
-          <svg class="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" class="fs-input"
-            [placeholder]="activeTab() === 'nifty50' ? 'Search company, symbol, or sector...' : 'Filter your watchlist stocks...'"
-            [(ngModel)]="tableSearchQuery" />
-          @if (tableSearchQuery()) {
-          <button type="button" class="fs-clear" (click)="tableSearchQuery.set('')">✕</button>
+        <div class="controls-top-row">
+          <div class="filter-search-box">
+            <svg class="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="fs-input"
+              [placeholder]="activeTab() === 'nifty50' ? 'Search company, symbol, or sector...' : 'Filter your watchlist stocks...'"
+              [(ngModel)]="tableSearchQuery" />
+            @if (tableSearchQuery()) {
+            <button type="button" class="fs-clear" (click)="tableSearchQuery.set('')">✕</button>
+            }
+          </div>
+
+          <!-- Modern Sector Dropdown (Visible when in NIFTY 50 tab) -->
+          @if (activeTab() === 'nifty50') {
+          <div class="sector-dropdown-wrapper">
+            <svg class="sector-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <select class="sector-select" [ngModel]="selectedSector()" (ngModelChange)="setSector($event)">
+              <option value="All">All Sectors</option>
+              @for (sec of sectorStats(); track sec.name) {
+              <option [value]="sec.name">{{ sec.name }}</option>
+              }
+            </select>
+            <svg class="sector-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
           }
+
+          <div class="results-count-badge">
+            Showing <strong>{{ filteredStocks().length }}</strong> of {{ currentBaseStocks().length }} stocks
+          </div>
         </div>
 
-        <!-- Sector Filter Pills (Visible when in NIFTY 50 tab) -->
+        <!-- Quick 1-Click Popular Sector Chips (No Horizontal Scrollbars) -->
         @if (activeTab() === 'nifty50') {
-        <div class="sector-scroll-row">
-          @for (sec of sectors(); track sec) {
-          <button type="button" class="sector-pill" [class.active]="selectedSector() === sec" (click)="setSector(sec)">
-            {{ sec }}
+        <div class="quick-sectors-bar">
+          <span class="quick-label">Top Sectors:</span>
+          <button type="button" class="sector-chip" [class.active]="selectedSector() === 'All'" (click)="setSector('All')">
+            All
           </button>
+          @for (sec of topSectors(); track sec.name) {
+          <button type="button" class="sector-chip" [class.active]="selectedSector() === sec.name" (click)="setSector(sec.name)">
+            {{ sec.name }}
+          </button>
+          }
+
+          @if (selectedSector() !== 'All' && !isTopSector(selectedSector())) {
+          <div class="active-custom-chip">
+            <span>{{ selectedSector() }}</span>
+            <button type="button" class="chip-remove-btn" (click)="setSector('All')" title="Clear filter">✕</button>
+          </div>
           }
         </div>
         }
-
-        <div class="results-count-badge">
-          Showing <strong>{{ filteredStocks().length }}</strong> of {{ currentBaseStocks().length }} stocks
-        </div>
       </div>
 
       <!-- ========================================================================= -->
@@ -332,17 +359,8 @@
                     } @else {
                       <div class="company-logo-placeholder">{{ stock.companyName.charAt(0) }}</div>
                     }
-                    <div class="comp-details" style="padding-left: 0; display: flex; align-items: center; gap: 6px;">
+                    <div class="comp-details">
                       <a class="comp-name company-link" [title]="stock.companyName" (click)="$event.stopPropagation(); navigateToStock(stock.symbol)">{{ stock.companyName }}</a>
-                      @if (stock.websiteUrl) {
-                      <a [href]="stock.websiteUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()" title="Visit Website" class="website-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                      </a>
-                      }
                     </div>
                   </div>
                 </td>

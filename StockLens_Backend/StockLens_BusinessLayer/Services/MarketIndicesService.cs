@@ -40,9 +40,10 @@ namespace StockLens_BusinessLayer.Services
             if (existingDbRecords.Any())
             {
                 var firstRecord = existingDbRecords.First();
-                if ((DateTime.UtcNow - firstRecord.LastUpdated).TotalDays <= 30)
+                var hasSectors = existingDbRecords.Count(r => !string.IsNullOrWhiteSpace(r.Company?.Sector)) >= 10;
+                if ((DateTime.UtcNow - firstRecord.LastUpdated).TotalDays <= 30 && hasSectors)
                 {
-                    // Fresh enough, return from DB (enriched with live stock financials if viewed individually)
+                    // Fresh enough and has valid sector metadata, return from DB (enriched with live stock financials if viewed individually)
                     return await EnrichWithLiveStockFinancialsAsync(existingDbRecords, cancellationToken);
                 }
             }

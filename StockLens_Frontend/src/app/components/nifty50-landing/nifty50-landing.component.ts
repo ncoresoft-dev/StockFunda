@@ -62,6 +62,27 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     return ['All', ...Array.from(set).sort()];
   });
 
+  // Sector Breakdown with Counts (sorted by count desc)
+  sectorStats = computed(() => {
+    const list = this.allStocks();
+    const map = new Map<string, number>();
+    list.forEach(s => {
+      if (s.sector) {
+        map.set(s.sector, (map.get(s.sector) || 0) + 1);
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+  });
+
+  // Top 6 Major Sectors for quick 1-click chip access without scrollbars
+  topSectors = computed(() => this.sectorStats().slice(0, 6));
+
+  isTopSector(sector: string): boolean {
+    return this.topSectors().some(s => s.name === sector);
+  }
+
   // Base list depending on active tab
   currentBaseStocks = computed(() => {
     const list = this.allStocks();

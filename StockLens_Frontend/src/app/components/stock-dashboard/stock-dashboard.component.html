@@ -257,11 +257,15 @@
               <div class="company-title-row">
                 <h1 class="company-name-text">{{ getCompanyName() }}</h1>
                 <div class="hero-price-group">
-                  <span class="hero-price-val">{{ getCurrentPriceFormatted() }}</span>
-                  <span class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive"
-                    [class.negative]="!getPriceChangeDisplay().isPositive">
-                    {{ getPriceChangeDisplay().text }}
-                  </span>
+                  @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                    <span class="hero-price-skeleton"></span>
+                  } @else {
+                    <span class="hero-price-val">{{ getCurrentPriceFormatted() }}</span>
+                    <span class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive"
+                      [class.negative]="!getPriceChangeDisplay().isPositive">
+                      {{ getPriceChangeDisplay().text }}
+                    </span>
+                  }
                 </div>
               </div>
 
@@ -282,6 +286,13 @@
           </div>
 
           <div class="hero-right-score">
+            @if (getEvaluationVerdict().isLoading) {
+            <div class="quick-verdict-pill badge-analyzing" title="Evaluating 23-Metric Comprehensive Scorecard...">
+              <div class="verdict-spinner-mini"></div>
+              <span class="quick-verdict-label">Investment Verdict:</span>
+              <span class="quick-verdict-signal badge-analyzing">Evaluating...</span>
+            </div>
+            } @else {
             <div class="quick-verdict-pill {{ getEvaluationVerdict().class }}" (click)="openEvaluationModal()"
               title="View 23-Metric Comprehensive Scorecard">
               <span class="quick-verdict-label">Investment Verdict:</span>
@@ -291,6 +302,7 @@
                 <span class="qvs-sub">/100 ↗</span>
               </span>
             </div>
+            }
           </div>
         </div>
 
@@ -302,71 +314,119 @@
               <!-- Row 1 -->
               <div class="ratio-item">
                 <span class="ratio-lbl">Market Cap</span>
-                <span class="ratio-val">{{ getMarketCapFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getMarketCapFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Current Price</span>
-                <span class="ratio-val">{{ getCurrentPriceFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getCurrentPriceFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">High / Low</span>
-                <span class="ratio-val">{{ get52WHighFormatted() }} / {{ get52WLowFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ get52WHighFormatted() }} / {{ get52WLowFormatted() }}</span>
+                }
               </div>
 
               <!-- Row 2 -->
               <div class="ratio-item">
                 <span class="ratio-lbl">Stock P/E</span>
-                <span class="ratio-val">{{ getPeRatioFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getPeRatioFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Book Value</span>
-                <span class="ratio-val">{{ getBookValueFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getBookValueFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Dividend Yield</span>
-                <span class="ratio-val">{{ getDividendYieldFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getDividendYieldFormatted() }}</span>
+                }
               </div>
 
               <!-- Row 3 -->
               <div class="ratio-item">
                 <span class="ratio-lbl">ROCE</span>
-                <div class="ratio-val-row">
-                  @if (getRoceYoY(); as roceY) {
-                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
-                    {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
-                  </span>
-                  }
-                  <span class="ratio-val">{{ getRoceFormatted() }}</span>
-                </div>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <div class="ratio-val-row">
+                    @if (getRoceYoY(); as roceY) {
+                    <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
+                      {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
+                    </span>
+                    }
+                    <span class="ratio-val">{{ getRoceFormatted() }}</span>
+                  </div>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">ROE</span>
-                <div class="ratio-val-row">
-                  @if (getRoeYoY(); as roeY) {
-                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
-                    {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
-                  </span>
-                  }
-                  <span class="ratio-val">{{ getRoeFormatted() }}</span>
-                </div>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <div class="ratio-val-row">
+                    @if (getRoeYoY(); as roeY) {
+                    <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
+                      {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
+                    </span>
+                    }
+                    <span class="ratio-val">{{ getRoeFormatted() }}</span>
+                  </div>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Face Value</span>
-                <span class="ratio-val">{{ getFaceValueFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getFaceValueFormatted() }}</span>
+                }
               </div>
 
               <!-- Row 4 -->
               <div class="ratio-item">
                 <span class="ratio-lbl">Industry PE</span>
-                <span class="ratio-val">{{ getSectorPeFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getSectorPeFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Total Shares</span>
-                <span class="ratio-val">{{ getSharesCountFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getSharesCountFormatted() }}</span>
+                }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">P/B Ratio</span>
-                <span class="ratio-val">{{ getPbRatioFormatted() }}</span>
+                @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
+                  <span class="ratio-skeleton"></span>
+                } @else {
+                  <span class="ratio-val">{{ getPbRatioFormatted() }}</span>
+                }
               </div>
             </div>
           </div>
@@ -1203,8 +1263,7 @@
       </div>
       <div class="eval-modal-footer">
         <span class="eval-disclaimer">* Algorithmic assessment based on 23 financial and technical indicators. For
-          informational & research purposes only.</span>
-        <button class="eval-done-btn" (click)="closeEvaluationModal()">Close Scorecard</button>
+          informational &amp; research purposes only.</span>
       </div>
     </div>
   </div>
@@ -1283,7 +1342,6 @@
 
       <div class="eval-modal-footer">
         <span class="eval-disclaimer">* Disclosed corporate data from exchange filings &amp; public reports.</span>
-        <button class="eval-done-btn" (click)="closeAboutModal()">Close</button>
       </div>
     </div>
   </div>
