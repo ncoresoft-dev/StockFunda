@@ -48,12 +48,9 @@ builder.Services.AddHttpClient<IIndianApiBalanceSheetClient, IndianApiBalanceShe
 builder.Services.AddHttpClient<IIndianApiHistoricalDataClient, IndianApiHistoricalDataClient>(ConfigureIndianApiClient);
 builder.Services.AddHttpClient<IIndianApiRatiosClient, IndianApiRatiosClient>(ConfigureIndianApiClient);
 
-// Configure Backup In-Memory Providers (Strictly safe in-memory fallbacks to prevent 429 Rate Limits)
-builder.Services.Configure<BharatStockSettings>(builder.Configuration.GetSection(BharatStockSettings.SectionName));
-builder.Services.AddScoped<IShareholdingProvider, MockShareholdingProvider>();
-builder.Services.AddScoped<IFinancialProvider, MockFinancialProvider>();
-
 // Configure BharatStock Settings & Reusable Client Configuration
+builder.Services.Configure<BharatStockSettings>(builder.Configuration.GetSection(BharatStockSettings.SectionName));
+
 var bharatStockConfig = builder.Configuration.GetSection(BharatStockSettings.SectionName).Get<BharatStockSettings>() ?? new BharatStockSettings();
 var bharatStockBaseUrl = !string.IsNullOrWhiteSpace(bharatStockConfig.BaseUrl) ? bharatStockConfig.BaseUrl.TrimEnd('/') + "/" : "https://bharatstockapi.com/";
 var bharatStockTimeout = TimeSpan.FromSeconds(bharatStockConfig.TimeoutSeconds > 0 ? bharatStockConfig.TimeoutSeconds : 15);
@@ -65,7 +62,9 @@ void ConfigureBharatStockClient(HttpClient client)
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 }
 
-// Configure BharatStock HTTP Clients
+// Configure BharatStock HTTP Clients (Real providers with fallback to mock only on HTTP 429 rate limit)
+builder.Services.AddHttpClient<IShareholdingProvider, BharatStockShareholdingProvider>(ConfigureBharatStockClient);
+builder.Services.AddHttpClient<IFinancialProvider, BharatStockFinancialProvider>(ConfigureBharatStockClient);
 builder.Services.AddHttpClient<IDealsProvider, BharatStockDealsProvider>(ConfigureBharatStockClient);
 builder.Services.AddHttpClient<ICompareProvider, BharatStockCompareProvider>(ConfigureBharatStockClient);
 builder.Services.AddHttpClient<IIndicesProvider, BharatStockIndicesProvider>(ConfigureBharatStockClient);

@@ -92,9 +92,8 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
 
                 if (response.StatusCode == (HttpStatusCode)429) // Too Many Requests
                 {
-                    var retryAfter = response.Headers.RetryAfter?.Delta;
-                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for ticker {Ticker}. RetryAfter: {RetryAfter}", cleanTicker, retryAfter);
-                    throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API.", retryAfter);
+                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for ticker {Ticker}. Falling back to mock shareholding.", cleanTicker);
+                    return MockShareholdingProvider.GenerateMockHistory(cleanTicker);
                 }
 
                 if (!response.IsSuccessStatusCode)

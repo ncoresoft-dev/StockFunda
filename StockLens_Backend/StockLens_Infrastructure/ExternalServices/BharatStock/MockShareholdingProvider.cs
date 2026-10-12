@@ -33,7 +33,7 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
             return Task.FromResult<IReadOnlyList<BharatStockShareholdingRecord>>(list);
         }
 
-        private static List<BharatStockShareholdingRecord> GenerateMockHistory(string ticker)
+        public static List<BharatStockShareholdingRecord> GenerateMockHistory(string ticker)
         {
             // Tailored realistic baseline holdings for popular stocks
             (decimal promoter, decimal fii, decimal dii, decimal pub) baseHolding = ticker switch

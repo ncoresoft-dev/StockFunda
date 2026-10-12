@@ -240,6 +240,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.applyThemeToDom();
     this.loadAvailableStocks();
     this.setupSearch();
+
+    const routeSym = this.route.snapshot.paramMap.get('symbol');
+    if (routeSym) {
+      this.selectedSymbol.set(routeSym.toUpperCase());
+    }
+
     this.fetchAllData(false);
     this.startLivePricePolling();
 
@@ -536,7 +542,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.evaluationService.getEvaluation(symbol, exchange, isRefresh).subscribe({
       next: (data) => {
-        if (data && this.selectedSymbol() === symbol) {
+        if (this.selectedSymbol() !== symbol) return;
+        if (data) {
           this.evaluationResponse.set(data);
         } else {
           this.recomputeEvaluation();
@@ -544,6 +551,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         this.isEvaluationRefreshing.set(false);
       },
       error: () => {
+        if (this.selectedSymbol() !== symbol) return;
         this.recomputeEvaluation();
         this.isEvaluationRefreshing.set(false);
       }
@@ -614,11 +622,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.quartersService.getQuarterlyResultsBySymbol(symbol, exchange, isRefresh).subscribe({
       next: (data) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.quartersResponse.set(data);
         this.isQuartersRefreshing.set(false);
         this.quartersLoadingState.set(data && data.history && data.history.length > 0 ? 'success' : 'empty');
       },
       error: (err) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.isQuartersRefreshing.set(false);
         this.quartersLoadingState.set('error');
         this.quartersErrorMessage.set(err.error?.detail || err.error?.message || 'Failed to retrieve quarterly results.');
@@ -640,11 +650,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.financialsService.getBalanceSheet(symbol, exchange, isRefresh).subscribe({
       next: (response) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.assetsResponse.set(response);
         this.assetsLoadingState.set('success');
         this.isAssetsRefreshing.set(false);
       },
       error: (err) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.assetsErrorMessage.set(err.error?.message || 'Could not fetch balance sheet.');
         this.assetsLoadingState.set('error');
         this.isAssetsRefreshing.set(false);
@@ -665,11 +677,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.shareholdingService.getShareholdingBySymbol(symbol, exchange, isRefresh).subscribe({
       next: (data) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.shareholdingResponse.set(data);
         this.isShareholdingRefreshing.set(false);
         this.shareholdingLoadingState.set(data.currentPeriod ? 'success' : 'empty');
       },
       error: (err) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.isShareholdingRefreshing.set(false);
         this.shareholdingLoadingState.set('error');
         this.shareholdingErrorMessage.set(err.error?.detail || err.error?.message || 'Failed to retrieve shareholding data.');
@@ -690,6 +704,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.cashflowService.getCashflowBySymbol(symbol, exchange, isRefresh).subscribe({
       next: (data) => {
+        if (this.selectedSymbol() !== symbol) return;
         console.log(`[Cashflow API Response for ${symbol}]`, data);
         this.cashflowResponse.set(data);
         if (data?.ratios?.currentPrice) {
@@ -699,6 +714,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         this.cashflowLoadingState.set(data && data.summary ? 'success' : 'empty');
       },
       error: (err) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.isCashflowRefreshing.set(false);
         this.cashflowLoadingState.set('error');
         this.cashflowErrorMessage.set(err.error?.detail || err.error?.message || 'Failed to retrieve financial metrics.');
@@ -719,11 +735,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     this.newsService.getNewsBySymbol(symbol, exchange, 5, 1, isRefresh).subscribe({
       next: (data) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.newsResponse.set(data);
         this.isNewsRefreshing.set(false);
         this.newsLoadingState.set(data.news && data.news.length > 0 ? 'success' : 'empty');
       },
       error: (err) => {
+        if (this.selectedSymbol() !== symbol) return;
         this.isNewsRefreshing.set(false);
         this.newsLoadingState.set('error');
         this.newsErrorMessage.set(err.error?.detail || err.error?.message || 'Failed to retrieve market news.');
