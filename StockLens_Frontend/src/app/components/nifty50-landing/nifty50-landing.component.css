@@ -58,8 +58,13 @@
 }
 
 @keyframes reloadBarSlide {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 /* ==========================================================================
@@ -566,9 +571,20 @@
 }
 
 @keyframes pulse-green {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+  }
 }
 
 .title-with-tabs {
@@ -766,8 +782,13 @@
   border-radius: 50%;
 }
 
-.b-dot.green { background: #16a34a; }
-.b-dot.red { background: #dc2626; }
+.b-dot.green {
+  background: #16a34a;
+}
+
+.b-dot.red {
+  background: #dc2626;
+}
 
 .b-num {
   font-weight: 700;
@@ -993,16 +1014,49 @@
   color: #0284c7;
 }
 
-.th-star { width: 44px; text-align: center; }
-.th-rank { width: 50px; text-align: center; }
-.th-company { min-width: 220px; }
-.th-symbol { width: 110px; }
-.th-exchange { width: 85px; text-align: center; }
-.th-sector { min-width: 140px; }
-.th-industry { min-width: 140px; }
-.th-weightage { width: 140px; }
-.th-isin { width: 130px; }
-.th-action { width: 80px; text-align: right; }
+.th-star {
+  width: 44px;
+  text-align: center;
+}
+
+.th-rank {
+  width: 50px;
+  text-align: center;
+}
+
+.th-company {
+  min-width: 220px;
+}
+
+.th-symbol {
+  width: 110px;
+}
+
+.th-exchange {
+  width: 85px;
+  text-align: center;
+}
+
+.th-sector {
+  min-width: 140px;
+}
+
+.th-industry {
+  min-width: 140px;
+}
+
+.th-weightage {
+  width: 140px;
+}
+
+.th-isin {
+  width: 130px;
+}
+
+.th-action {
+  width: 80px;
+  text-align: right;
+}
 
 /* Table Rows */
 .stock-row {
@@ -1473,11 +1527,15 @@
     flex-direction: column;
     align-items: flex-start;
   }
+
   .market-summary-cards {
     width: 100%;
   }
-  .th-range, .td-range,
-  .th-weightage, .td-weightage {
+
+  .th-range,
+  .td-range,
+  .th-weightage,
+  .td-weightage {
     display: none;
   }
 }
@@ -1486,16 +1544,100 @@
   .cockpit-header {
     padding: 0 0.85rem;
   }
+
   .header-center {
     max-width: 180px;
   }
+
   .landing-main {
     padding: 1rem 0.75rem 2rem 0.75rem;
   }
-  .th-trend, .td-trend {
+
+  .th-trend,
+  .td-trend {
     display: none;
   }
+
   .comp-name {
     max-width: 120px;
   }
+}
+
+.th-num,
+.td-num {
+  text-align: center;
+  padding-right: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.company-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: contain;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.company-logo-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.company-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.company-link:hover {
+  text-decoration: underline;
+}
+
+.dark-theme .company-link {
+  color: #60a5fa;
+}
+
+.dark-theme .company-logo {
+  border-color: #334155;
+}
+
+.dark-theme .company-logo-placeholder {
+  background: linear-gradient(135deg, #3730a3, #312e81);
+  color: #e0e7ff;
+}
+
+.website-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.website-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.website-icon:hover {
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.dark-theme .website-icon {
+  color: #475569;
+}
+
+.dark-theme .website-icon:hover {
+  color: #38bdf8;
 }

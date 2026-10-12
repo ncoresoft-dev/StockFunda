@@ -20,6 +20,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<StockPriceHistory> StockPriceHistories => Set<StockPriceHistory>();
         public DbSet<StockDeal> StockDeals => Set<StockDeal>();
         public DbSet<StockPeer> StockPeers => Set<StockPeer>();
+        public DbSet<MarketIndexConstituent> MarketIndexConstituents => Set<MarketIndexConstituent>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,6 +91,35 @@ namespace StockLens_Infrastructure.DataContext
                     .WithMany(s => s.Peers)
                     .HasForeignKey(p => p.StockId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // MarketIndexConstituent configuration
+            modelBuilder.Entity<MarketIndexConstituent>(entity =>
+            {
+                entity.ToTable("MarketIndexConstituents");
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.IndexName)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(c => c.Symbol)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.HasOne(m => m.Company)
+                    .WithMany()
+                    .HasPrincipalKey(c => c.Symbol)
+                    .HasForeignKey(m => m.Symbol)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(c => c.Exchange)
+                    .HasMaxLength(10)
+                    .IsRequired();
+
+                entity.HasIndex(c => new { c.IndexName, c.Symbol })
+                    .IsUnique()
+                    .HasDatabaseName("IX_MarketIndexConstituents_Index_Symbol");
             });
 
             // Stock configuration

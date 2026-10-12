@@ -24,8 +24,19 @@ export interface Nifty50StockItem {
   industry?: string;
   isin?: string;
   exchange: string;
-  logoUrl?: string;
   websiteUrl?: string;
   weightagePercentage?: number;
+  logoUrl?: string;
+  
+  // API Fields
+  price?: number;
+  peRatio?: number;
+  marketCap?: number;
+  dividendYield?: number;
+  netProfitTtm?: number;
+  profitGrowthYoy?: number;
+  revenueTtm?: number;
+  revenueGrowthQoq?: number;
+  roce?: number;
 }
 

@@ -71,5 +71,30 @@ namespace StockLens_Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return existing;
         }
+        public async Task EnsureCompaniesExistAsync(IEnumerable<Company> companies, System.Threading.CancellationToken cancellationToken = default)
+        {
+            var symbols = companies.Select(c => c.Symbol.ToLower()).ToList();
+            var existingSymbols = await _context.CompanyMaster
+                .Where(c => symbols.Contains(c.Symbol.ToLower()))
+                .Select(c => c.Symbol.ToLower())
+                .ToListAsync(cancellationToken);
+
+            var missingCompanies = companies
+                .Where(c => !existingSymbols.Contains(c.Symbol.ToLower()))
+                .GroupBy(c => c.Symbol.ToLower())
+                .Select(g => g.First())
+                .ToList();
+
+            if (missingCompanies.Any())
+            {
+                foreach (var mc in missingCompanies)
+                {
+                    mc.CreatedAt = System.DateTime.UtcNow;
+                    mc.UpdatedAt = System.DateTime.UtcNow;
+                }
+                await _context.CompanyMaster.AddRangeAsync(missingCompanies, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
     }
 }

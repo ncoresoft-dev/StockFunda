@@ -9,5 +9,6 @@ namespace StockLens_DataLayer.Interfaces
         Task<IEnumerable<Company>> SearchCompaniesAsync(string query, int limit);
         Task<Company?> GetCompanyBySymbolAsync(string symbol);
         Task<Company> SaveOrUpdateCompanyAsync(Company company);
+        Task EnsureCompaniesExistAsync(IEnumerable<Company> companies, System.Threading.CancellationToken cancellationToken = default);
     }
 }

@@ -68,6 +68,7 @@ void ConfigureBharatStockClient(HttpClient client)
 // Configure BharatStock HTTP Clients
 builder.Services.AddHttpClient<IDealsProvider, BharatStockDealsProvider>(ConfigureBharatStockClient);
 builder.Services.AddHttpClient<ICompareProvider, BharatStockCompareProvider>(ConfigureBharatStockClient);
+builder.Services.AddHttpClient<IIndicesProvider, BharatStockIndicesProvider>(ConfigureBharatStockClient);
 
 // Register Yahoo Finance HTTP Client
 builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.YahooFinanceApi.IYahooFinanceClient, StockLens_Infrastructure.ExternalServices.YahooFinanceApi.YahooFinanceClient>(client =>
@@ -83,6 +84,7 @@ builder.Services.AddHttpClient<IGoogleNewsClient, GoogleNewsClient>(client =>
 
 // Register Repositories
 builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IMarketIndexConstituentRepository, MarketIndexConstituentRepository>();
 builder.Services.AddScoped<IStockNewsRepository, StockNewsRepository>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<IStockShareholdingRepository, StockShareholdingRepository>();
@@ -107,6 +109,7 @@ builder.Services.AddScoped<IStockPriceHistoryService, StockPriceHistoryService>(
 builder.Services.AddScoped<IStockQuarterlyResultsService, StockQuarterlyResultsService>();
 builder.Services.AddScoped<IStockEvaluationService, StockEvaluationService>();
 builder.Services.AddScoped<IStockDealsService, StockDealsService>();
+builder.Services.AddScoped<IMarketIndicesService, MarketIndicesService>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());

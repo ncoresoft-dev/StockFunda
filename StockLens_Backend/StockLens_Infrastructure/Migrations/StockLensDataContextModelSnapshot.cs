@@ -88,6 +88,70 @@ namespace StockLens_Infrastructure.Migrations
                     b.ToTable("CompanyMaster", (string)null);
                 });
 
+            modelBuilder.Entity("StockLens_DataLayer.Entities.MarketIndexConstituent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("DividendYield")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Exchange")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("IndexName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("MarketCap")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("NetProfitTtm")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PeRatio")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ProfitGrowthYoy")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("RevenueGrowthQoq")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("RevenueTtm")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Roce")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol");
+
+                    b.HasIndex("IndexName", "Symbol")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MarketIndexConstituents_Index_Symbol");
+
+                    b.ToTable("MarketIndexConstituents", (string)null);
+                });
+
             modelBuilder.Entity("StockLens_DataLayer.Entities.Stock", b =>
                 {
                     b.Property<int>("Id")
@@ -784,6 +848,18 @@ namespace StockLens_Infrastructure.Migrations
                         .HasDatabaseName("IX_StockShareholdings_StockId_PeriodKey");
 
                     b.ToTable("StockShareholdings", (string)null);
+                });
+
+            modelBuilder.Entity("StockLens_DataLayer.Entities.MarketIndexConstituent", b =>
+                {
+                    b.HasOne("StockLens_DataLayer.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("Symbol")
+                        .HasPrincipalKey("Symbol")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("StockLens_DataLayer.Entities.Stock", b =>
