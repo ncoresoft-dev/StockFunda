@@ -30,22 +30,39 @@ export class StockIndexService {
         logoUrl: item.logoUrl || item.logo_url,
         websiteUrl: item.websiteUrl || item.website_url,
         price: item.price,
-        peRatio: item.peRatio,
         marketCap: item.marketCap,
-        dividendYield: item.dividendYield,
-        netProfitTtm: item.netProfitTtm,
-        profitGrowthYoy: item.profitGrowthYoy,
-        revenueTtm: item.revenueTtm,
-        revenueGrowthQoq: item.revenueGrowthQoq,
-        roce: item.roce,
         exchange: 'NSE'
       } as Nifty50StockItem))),
       tap(mappedData => this.cachedNifty50List = mappedData),
       catchError(error => {
         console.error('Error fetching Nifty 50 companies:', error);
-        return of([]); // Return empty list on failure instead of dummy data
+        return of(this.cachedNifty50List || []); // Return cached list on failure or empty list
       })
     );
+  }
+
+  /**
+   * Updates price and market cap for a symbol in local cache
+   */
+  updateStockInCache(symbol: string, price?: number | null, marketCap?: number | null): void {
+    if (!this.cachedNifty50List || !symbol) return;
+    const cleanSym = symbol.trim().toUpperCase();
+    const item = this.cachedNifty50List.find(s => s.symbol?.toUpperCase() === cleanSym);
+    if (item) {
+      if (price !== undefined && price !== null && price > 0) {
+        item.price = price;
+      }
+      if (marketCap !== undefined && marketCap !== null && marketCap > 0) {
+        item.marketCap = marketCap;
+      }
+    }
+  }
+
+  /**
+   * Clears in-memory cache so next call always hits API
+   */
+  clearCache(): void {
+    this.cachedNifty50List = null;
   }
 
   /**
@@ -67,3 +84,4 @@ export class StockIndexService {
     return of(this.cachedNifty50List.filter(s => symbols.includes(s.symbol)));
   }
 }
+

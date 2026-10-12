@@ -161,7 +161,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.applyThemeToDom();
     this.setupHeaderSearch();
-    this.loadNifty50Stocks(false);
+    this.loadNifty50Stocks(true);
 
     // Read query params (e.g. ?tab=watchlist or ?view=watchlist)
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
@@ -179,7 +179,9 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   }
 
   loadNifty50Stocks(forceRefresh: boolean): void {
-    this.isLoading.set(true);
+    if (this.allStocks().length === 0) {
+      this.isLoading.set(true);
+    }
     this.indexService.getNifty50List(forceRefresh).subscribe({
       next: (stocks) => {
         this.allStocks.set(stocks);
@@ -188,7 +190,9 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.warn('Failed to load NIFTY 50 constituent data:', err);
-        this.allStocks.set([]);
+        if (this.allStocks().length === 0) {
+          this.allStocks.set([]);
+        }
         this.isLoading.set(false);
         this.isSyncing.set(false);
       }

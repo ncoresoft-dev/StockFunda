@@ -12,6 +12,7 @@ import { StockBalanceSheetService, BalanceSheetResponseDto } from '../../service
 import { StockQuarterlyResultsService } from '../../services/stock-quarterly-results.service';
 import { StockEvaluationService } from '../../services/stock-evaluation.service';
 import { StockPeerService } from '../../services/stock-peer.service';
+import { StockIndexService } from '../../services/stock-index.service';
 import { WatchlistService } from '../../services/watchlist.service';
 import { Stock, Company, StockNewsResponse, StockNewsItem, LoadingState } from '../../models/stock-news.model';
 import { CompanyOverview } from '../../models/company-overview.model';
@@ -59,6 +60,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   private readonly financialsService = inject(StockBalanceSheetService);
   private readonly quartersService = inject(StockQuarterlyResultsService);
   private readonly evaluationService = inject(StockEvaluationService);
+  private readonly indexService = inject(StockIndexService);
   private readonly cd = inject(ChangeDetectorRef);
 
   private routeSub?: Subscription;
@@ -281,6 +283,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.routeSub?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     this.stopLivePricePolling();
+    this.indexService.clearCache();
   }
 
   /**
@@ -309,6 +312,9 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
           next: (data) => {
             if (data && data.ratios && this.selectedSymbol() === symbol) {
               this.cashflowResponse.set(data);
+              if (data.ratios.currentPrice) {
+                this.indexService.updateStockInCache(symbol, data.ratios.currentPrice, data.ratios.marketCap);
+              }
             }
           },
           error: (err) => console.debug('[Polling skipped]:', err)
@@ -686,6 +692,9 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       next: (data) => {
         console.log(`[Cashflow API Response for ${symbol}]`, data);
         this.cashflowResponse.set(data);
+        if (data?.ratios?.currentPrice) {
+          this.indexService.updateStockInCache(symbol, data.ratios.currentPrice, data.ratios.marketCap);
+        }
         this.isCashflowRefreshing.set(false);
         this.cashflowLoadingState.set(data && data.summary ? 'success' : 'empty');
       },

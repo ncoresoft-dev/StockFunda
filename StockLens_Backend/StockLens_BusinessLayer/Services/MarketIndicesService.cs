@@ -1,14 +1,16 @@
+using Microsoft.EntityFrameworkCore;
 using StockLens_BusinessLayer.DTOs;
 using StockLens_BusinessLayer.Interfaces;
-using StockLens_Infrastructure.ExternalServices.BharatStock;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading;
-using System;
-using System.Threading.Tasks;
-using System.Linq;
 using StockLens_DataLayer.Entities;
 using StockLens_DataLayer.Interfaces;
+using StockLens_Infrastructure.DataContext;
+using StockLens_Infrastructure.ExternalServices.BharatStock;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace StockLens_BusinessLayer.Services
 {
@@ -17,41 +19,31 @@ namespace StockLens_BusinessLayer.Services
         private readonly IIndicesProvider _indicesProvider;
         private readonly IMarketIndexConstituentRepository _repository;
         private readonly ICompanyRepository _companyRepository;
+        private readonly StockLensDataContext _context;
 
-        public MarketIndicesService(IIndicesProvider indicesProvider, IMarketIndexConstituentRepository repository, ICompanyRepository companyRepository)
+        public MarketIndicesService(
+            IIndicesProvider indicesProvider,
+            IMarketIndexConstituentRepository repository,
+            ICompanyRepository companyRepository,
+            StockLensDataContext context)
         {
             _indicesProvider = indicesProvider;
             _repository = repository;
             _companyRepository = companyRepository;
+            _context = context;
         }
 
         public async Task<IEnumerable<MarketIndexCompanyDto>> GetTop50CompaniesAsync(CancellationToken cancellationToken = default)
         {
             // 1. Check DB first
-            var existingDbRecords = await _repository.GetByIndexNameAsync("NIFTY 50", cancellationToken);
+            var existingDbRecords = (await _repository.GetByIndexNameAsync("NIFTY 50", cancellationToken)).ToList();
             if (existingDbRecords.Any())
             {
                 var firstRecord = existingDbRecords.First();
                 if ((DateTime.UtcNow - firstRecord.LastUpdated).TotalDays <= 30)
                 {
-                    // Fresh enough, return from DB
-                    return existingDbRecords.Select(c => new MarketIndexCompanyDto
-                    {
-                        Symbol = c.Symbol,
-                        CompanyName = c.Company?.CompanyName ?? string.Empty,
-                        Sector = c.Company?.Sector ?? string.Empty,
-                        LogoUrl = c.Company?.LogoUrl,
-                        WebsiteUrl = c.Company?.WebsiteUrl,
-                        Price = c.Price,
-                        PeRatio = c.PeRatio,
-                        MarketCap = c.MarketCap,
-                        DividendYield = c.DividendYield,
-                        NetProfitTtm = c.NetProfitTtm,
-                        ProfitGrowthYoy = c.ProfitGrowthYoy,
-                        RevenueTtm = c.RevenueTtm,
-                        RevenueGrowthQoq = c.RevenueGrowthQoq,
-                        Roce = c.Roce
-                    }).ToList();
+                    // Fresh enough, return from DB (enriched with live stock financials if viewed individually)
+                    return await EnrichWithLiveStockFinancialsAsync(existingDbRecords, cancellationToken);
                 }
             }
 
@@ -94,40 +86,17 @@ namespace StockLens_BusinessLayer.Services
                         IndexName = "NIFTY 50",
                         Symbol = item.Symbol,
                         Price = item.Price,
-                        PeRatio = item.PeRatio,
                         MarketCap = item.MarketCap,
-                        DividendYield = item.DividendYield,
-                        NetProfitTtm = item.NetProfitTtm,
-                        ProfitGrowthYoy = item.ProfitGrowthYoy,
-                        RevenueTtm = item.RevenueTtm,
-                        RevenueGrowthQoq = item.RevenueGrowthQoq,
-                        Roce = item.Roce,
                         Exchange = "NSE",
                         LastUpdated = DateTime.UtcNow
                     });
                     
                     await _repository.ReplaceIndexConstituentsAsync("NIFTY 50", entities, cancellationToken);
 
-                    var updatedDbRecords = await _repository.GetByIndexNameAsync("NIFTY 50", cancellationToken);
+                    var updatedDbRecords = (await _repository.GetByIndexNameAsync("NIFTY 50", cancellationToken)).ToList();
                     if (updatedDbRecords.Any())
                     {
-                        return updatedDbRecords.Select(c => new MarketIndexCompanyDto
-                        {
-                            Symbol = c.Symbol,
-                            CompanyName = c.Company?.CompanyName ?? string.Empty,
-                            Sector = c.Company?.Sector ?? string.Empty,
-                            LogoUrl = c.Company?.LogoUrl,
-                            WebsiteUrl = c.Company?.WebsiteUrl,
-                            Price = c.Price,
-                            PeRatio = c.PeRatio,
-                            MarketCap = c.MarketCap,
-                            DividendYield = c.DividendYield,
-                            NetProfitTtm = c.NetProfitTtm,
-                            ProfitGrowthYoy = c.ProfitGrowthYoy,
-                            RevenueTtm = c.RevenueTtm,
-                            RevenueGrowthQoq = c.RevenueGrowthQoq,
-                            Roce = c.Roce
-                        }).ToList();
+                        return await EnrichWithLiveStockFinancialsAsync(updatedDbRecords, cancellationToken);
                     }
 
                     return list.OrderByDescending(x => x.MarketCap ?? 0).ToList();
@@ -138,30 +107,75 @@ namespace StockLens_BusinessLayer.Services
                 // Fallback below
             }
             
-            // If API fails and we have stale DB records, we could return them as fallback, 
-            // but for now, we just return what we have (even if stale) to avoid breaking the UI.
+            // If API fails and we have stale DB records, return them as fallback
             if (existingDbRecords.Any())
             {
-                return existingDbRecords.Select(c => new MarketIndexCompanyDto
+                return await EnrichWithLiveStockFinancialsAsync(existingDbRecords, cancellationToken);
+            }
+
+            return new List<MarketIndexCompanyDto>();
+        }
+
+        private async Task<List<MarketIndexCompanyDto>> EnrichWithLiveStockFinancialsAsync(
+            IEnumerable<MarketIndexConstituent> constituents,
+            CancellationToken cancellationToken)
+        {
+            var list = constituents.ToList();
+            if (!list.Any()) return new List<MarketIndexCompanyDto>();
+
+            var symbols = list.Select(c => c.Symbol.Trim().ToUpperInvariant()).ToList();
+
+            Dictionary<string, StockFinancial> latestBySymbol = new(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var liveFinancials = await _context.StockFinancials
+                    .AsNoTracking()
+                    .Include(f => f.Stock)
+                    .Where(f => symbols.Contains(f.Stock.Symbol.ToUpper()) && f.CurrentPrice != null && f.CurrentPrice > 0)
+                    .ToListAsync(cancellationToken);
+
+                latestBySymbol = liveFinancials
+                    .GroupBy(f => f.Stock.Symbol.Trim().ToUpperInvariant())
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderByDescending(x => x.LastSyncedAt)
+                              .ThenByDescending(x => x.PeriodEndDate ?? DateTime.MinValue)
+                              .First(),
+                        StringComparer.OrdinalIgnoreCase
+                    );
+            }
+            catch (Exception ex)
+            {
+                // In case of any query error, fall back gracefully to constituents' stored numbers
+                Console.WriteLine($"[MarketIndicesService] Error enriching with live financials: {ex.Message}");
+            }
+
+            return list.Select(c =>
+            {
+                var sym = c.Symbol.Trim().ToUpperInvariant();
+                var hasLive = latestBySymbol.TryGetValue(sym, out var sFin);
+
+                var finalPrice = (hasLive && sFin?.CurrentPrice != null && sFin.CurrentPrice > 0)
+                    ? sFin.CurrentPrice
+                    : c.Price;
+
+                var finalMarketCap = (hasLive && sFin?.MarketCap != null && sFin.MarketCap > 0)
+                    ? sFin.MarketCap
+                    : c.MarketCap;
+
+                return new MarketIndexCompanyDto
                 {
                     Symbol = c.Symbol,
                     CompanyName = c.Company?.CompanyName ?? string.Empty,
                     Sector = c.Company?.Sector ?? string.Empty,
                     LogoUrl = c.Company?.LogoUrl,
                     WebsiteUrl = c.Company?.WebsiteUrl,
-                    Price = c.Price,
-                    PeRatio = c.PeRatio,
-                    MarketCap = c.MarketCap,
-                    DividendYield = c.DividendYield,
-                    NetProfitTtm = c.NetProfitTtm,
-                    ProfitGrowthYoy = c.ProfitGrowthYoy,
-                    RevenueTtm = c.RevenueTtm,
-                    RevenueGrowthQoq = c.RevenueGrowthQoq,
-                    Roce = c.Roce
-                }).ToList();
-            }
-
-            return new List<MarketIndexCompanyDto>();
+                    Price = finalPrice,
+                    MarketCap = finalMarketCap
+                };
+            })
+            .OrderByDescending(x => x.MarketCap ?? 0)
+            .ToList();
         }
     }
 }

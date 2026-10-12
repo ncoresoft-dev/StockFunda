@@ -96,9 +96,6 @@ namespace StockLens_Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal?>("DividendYield")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Exchange")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -115,25 +112,7 @@ namespace StockLens_Infrastructure.Migrations
                     b.Property<decimal?>("MarketCap")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("NetProfitTtm")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("PeRatio")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal?>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("ProfitGrowthYoy")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("RevenueGrowthQoq")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("RevenueTtm")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("Roce")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Symbol")

@@ -291,14 +291,7 @@
                   }
                 </th>
                 <th class="th-num">CMP Rs.</th>
-                <th class="th-num">P/E</th>
                 <th class="th-num">Mar Cap (Cr)</th>
-                <th class="th-num">Div Yld %</th>
-                <th class="th-num">Net Profit(TTM)</th>
-                <th class="th-num">Profit Var(YoY)</th>
-                <th class="th-num">Sales(TTM)</th>
-                <th class="th-num">Sales Var(QoQ)</th>
-                <th class="th-num">ROCE %</th>
                 <th class="th-action"></th>
               </tr>
             </thead>
@@ -331,7 +324,7 @@
                   </div>
                 </td>
 
-                <!-- 3. Company Info -->
+                <!-- 2. Company Info -->
                 <td class="td-company">
                   <div class="company-cell" style="display: flex; align-items: center; gap: 10px;">
                     @if (stock.logoUrl) {
@@ -354,41 +347,13 @@
                   </div>
                 </td>
 
-                <!-- 4. Price -->
+                <!-- 3. CMP Price -->
                 <td class="td-num">₹{{ stock.price != null ? (stock.price | number:'1.2-2') : '—' }}</td>
 
-                <!-- 5. P/E Ratio -->
-                <td class="td-num">{{ stock.peRatio != null ? (stock.peRatio | number:'1.2-2') : '—' }}</td>
-
-                <!-- 6. Market Cap -->
+                <!-- 4. Market Cap -->
                 <td class="td-num">₹{{ stock.marketCap != null ? (stock.marketCap | number:'1.2-2') : '—' }}</td>
 
-                <!-- 7. Dividend Yield -->
-                <td class="td-num">{{ stock.dividendYield != null ? (stock.dividendYield | number:'1.2-2') : '—' }}%
-                </td>
-
-                <!-- 8. Net Profit TTM -->
-                <td class="td-num">₹{{ stock.netProfitTtm != null ? (stock.netProfitTtm | number:'1.2-2') : '—' }}</td>
-
-                <!-- 9. Profit Growth (Color coded) -->
-                <td class="td-num" [class.text-green]="(stock.profitGrowthYoy || 0) > 0"
-                  [class.text-red]="(stock.profitGrowthYoy || 0) < 0">
-                  {{ stock.profitGrowthYoy != null ? (stock.profitGrowthYoy | number:'1.2-2') : '—' }}%
-                </td>
-
-                <!-- 10. Sales TTM -->
-                <td class="td-num">₹{{ stock.revenueTtm != null ? (stock.revenueTtm | number:'1.2-2') : '—' }}</td>
-
-                <!-- 11. Sales Growth (Color coded) -->
-                <td class="td-num" [class.text-green]="(stock.revenueGrowthQoq || 0) > 0"
-                  [class.text-red]="(stock.revenueGrowthQoq || 0) < 0">
-                  {{ stock.revenueGrowthQoq != null ? (stock.revenueGrowthQoq | number:'1.2-2') : '—' }}%
-                </td>
-
-                <!-- 12. ROCE -->
-                <td class="td-num">{{ stock.roce != null ? (stock.roce | number:'1.2-2') : '—' }}%</td>
-
-                <!-- 13. Action Button -->
+                <!-- 5. Action Button -->
                 <td class="td-action">
                   <button type="button" class="view-stock-btn" (click)="navigateToStock(stock.symbol)"
                     title="View stock details">

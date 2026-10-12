@@ -22,29 +22,35 @@ namespace StockLens_BusinessLayer.DTOs
         [JsonPropertyName("price")]
         public decimal? Price { get; set; }
 
-        [JsonPropertyName("pe_ratio")]
-        public decimal? PeRatio { get; set; }
-
         [JsonPropertyName("market_cap")]
         public decimal? MarketCap { get; set; }
 
+        [JsonPropertyName("pe_ratio")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public decimal? PeRatio { get; set; }
+
         [JsonPropertyName("dividend_yield")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? DividendYield { get; set; }
 
         [JsonPropertyName("net_profit_ttm")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? NetProfitTtm { get; set; }
 
         [JsonPropertyName("profit_growth_yoy")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? ProfitGrowthYoy { get; set; }
 
         [JsonPropertyName("revenue_ttm")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? RevenueTtm { get; set; }
 
         [JsonPropertyName("revenue_growth_qoq")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? RevenueGrowthQoq { get; set; }
 
         [JsonPropertyName("roce")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? Roce { get; set; }
-
     }
 }
