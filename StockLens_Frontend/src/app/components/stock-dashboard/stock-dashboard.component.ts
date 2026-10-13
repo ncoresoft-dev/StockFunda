@@ -1413,9 +1413,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     diiPp: string;
     publicPp: string;
     promoterIsPos: boolean;
+    promoterIsNeg: boolean;
     fiiIsPos: boolean;
+    fiiIsNeg: boolean;
     diiIsPos: boolean;
+    diiIsNeg: boolean;
     publicIsPos: boolean;
+    publicIsNeg: boolean;
     totalInstitutional: string;
     history: { period: string, promoter: string, fii: string, dii: string, public: string }[];
   } {
@@ -1432,17 +1436,22 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     const dii = formatPct(curr?.dii);
     const pub = formatPct(curr?.public);
 
-    // Deltas
+    // Deltas: handles positive, negative, and neutral (0 / missing) cleanly
     const formatDelta = (val?: number | null) => {
       if (val === null || val === undefined || isNaN(val)) {
-        return { text: '—', isPos: true };
+        return { text: '—', isPos: false, isNeg: false };
       }
-      const isPos = val >= 0;
+      const rounded = Number(val.toFixed(2));
+      if (rounded === 0) {
+        return { text: '0.00%', isPos: false, isNeg: false };
+      }
+      const isPos = rounded > 0;
       const arrow = isPos ? '▲' : '▼';
       const sign = isPos ? '+' : '';
       return {
         text: `${arrow} ${sign}${Math.abs(val).toFixed(2)}%`,
-        isPos
+        isPos,
+        isNeg: !isPos
       };
     };
 
@@ -1479,9 +1488,13 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       diiPp: diiDelta.text,
       publicPp: pubDelta.text,
       promoterIsPos: promDelta.isPos,
+      promoterIsNeg: promDelta.isNeg,
       fiiIsPos: fiiDelta.isPos,
+      fiiIsNeg: fiiDelta.isNeg,
       diiIsPos: diiDelta.isPos,
+      diiIsNeg: diiDelta.isNeg,
       publicIsPos: pubDelta.isPos,
+      publicIsNeg: pubDelta.isNeg,
       totalInstitutional: totalInst,
       history: historyRows
     };
@@ -1491,23 +1504,23 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   getQuarterlyFinancialsData(): {
     sales: string;
-    salesQoQ: { text: string, isPositive: boolean };
-    salesYoY: { text: string, isPositive: boolean };
+    salesQoQ: { text: string, isPositive: boolean, isNegative: boolean };
+    salesYoY: { text: string, isPositive: boolean, isNegative: boolean };
     netProfit: string;
-    netProfitQoQ: { text: string, isPositive: boolean };
-    netProfitYoY: { text: string, isPositive: boolean };
+    netProfitQoQ: { text: string, isPositive: boolean, isNegative: boolean };
+    netProfitYoY: { text: string, isPositive: boolean, isNegative: boolean };
     operatingProfit: string;
-    operatingProfitQoQ: { text: string, isPositive: boolean };
-    operatingProfitYoY: { text: string, isPositive: boolean };
+    operatingProfitQoQ: { text: string, isPositive: boolean, isNegative: boolean };
+    operatingProfitYoY: { text: string, isPositive: boolean, isNegative: boolean };
     opMargin: string;
     eps: string;
-    epsQoQ: { text: string, isPositive: boolean };
+    epsQoQ: { text: string, isPositive: boolean, isNegative: boolean };
     interest: string;
-    interestQoQ: { text: string, isPositive: boolean };
+    interestQoQ: { text: string, isPositive: boolean, isNegative: boolean };
     tax: string;
-    taxQoQ: { text: string, isPositive: boolean };
+    taxQoQ: { text: string, isPositive: boolean, isNegative: boolean };
     depreciation: string;
-    depreciationQoQ: { text: string, isPositive: boolean };
+    depreciationQoQ: { text: string, isPositive: boolean, isNegative: boolean };
     depreciationType: string;
   } {
     const q = this.quartersResponse();
@@ -1515,13 +1528,18 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     const formatGrowth = (val?: number | null, prefix: string = 'QoQ') => {
       if (val === null || val === undefined || isNaN(val)) {
-        return { text: `${prefix}: —`, isPositive: true };
+        return { text: `${prefix}: —`, isPositive: false, isNegative: false };
       }
-      const isPositive = val >= 0;
+      const rounded = Number(val.toFixed(1));
+      if (rounded === 0) {
+        return { text: `${prefix}: 0.0%`, isPositive: false, isNegative: false };
+      }
+      const isPositive = rounded > 0;
       const sign = isPositive ? '+' : '';
       return {
         text: `${prefix}: ${sign}${val.toFixed(1)}%`,
-        isPositive
+        isPositive,
+        isNegative: !isPositive
       };
     };
 

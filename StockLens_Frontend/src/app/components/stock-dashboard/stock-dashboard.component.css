@@ -1453,6 +1453,13 @@
   padding: 0.08rem 0.35rem;
   border-radius: 4px;
   white-space: nowrap;
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.cockpit-container.dark-theme .qr-mini-delta {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.15);
 }
 
 .qr-mini-delta.positive {
@@ -2279,6 +2286,13 @@
   border-radius: 3px;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.cockpit-container.dark-theme .pill-delta {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.15);
 }
 
 .pill-delta.positive {

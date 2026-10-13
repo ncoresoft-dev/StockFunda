@@ -576,7 +576,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().sales }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().salesQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().salesQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().salesQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().salesQoQ.text }}
               </span>
             </div>
@@ -588,7 +588,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().operatingProfit }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().operatingProfitQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().operatingProfitQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().operatingProfitQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().operatingProfitQoQ.text }}
               </span>
               @if (getQuarterlyFinancialsData().opMargin) {
@@ -603,7 +603,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().netProfit }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().netProfitQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().netProfitQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().netProfitQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().netProfitQoQ.text }}
               </span>
             </div>
@@ -615,7 +615,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().eps }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().epsQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().epsQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().epsQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().epsQoQ.text }}
               </span>
             </div>
@@ -627,7 +627,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().interest }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().interestQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().interestQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().interestQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().interestQoQ.text }}
               </span>
             </div>
@@ -639,7 +639,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().tax }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().taxQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().taxQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().taxQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().taxQoQ.text }}
               </span>
             </div>
@@ -651,7 +651,7 @@
             <div class="metric-box-val-row">
               <span class="metric-box-val">{{ getQuarterlyFinancialsData().depreciation }}</span>
               <span class="qr-mini-delta" [class.positive]="getQuarterlyFinancialsData().depreciationQoQ.isPositive"
-                [class.negative]="!getQuarterlyFinancialsData().depreciationQoQ.isPositive">
+                [class.negative]="getQuarterlyFinancialsData().depreciationQoQ.isNegative">
                 {{ getQuarterlyFinancialsData().depreciationQoQ.text }}
               </span>
             </div>
@@ -662,7 +662,7 @@
             <span class="metric-box-lbl">Sales YoY Growth</span>
             <div class="metric-box-val-row">
               <span class="metric-box-val" [class.text-green]="getQuarterlyFinancialsData().salesYoY.isPositive"
-                [class.text-red]="!getQuarterlyFinancialsData().salesYoY.isPositive">
+                [class.text-red]="getQuarterlyFinancialsData().salesYoY.isNegative">
                 {{ getQuarterlyFinancialsData().salesYoY.text }}
               </span>
             </div>
@@ -699,7 +699,7 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().promoter }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().promoterIsPos"
-                  [class.negative]="!getOwnershipBreakdown().promoterIsPos">QoQ: {{ getOwnershipBreakdown().promoterPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().promoterIsNeg">QoQ: {{ getOwnershipBreakdown().promoterPp }}</span>
               </div>
             </div>
 
@@ -712,7 +712,7 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().fii }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().fiiIsPos"
-                  [class.negative]="!getOwnershipBreakdown().fiiIsPos">QoQ: {{ getOwnershipBreakdown().fiiPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().fiiIsNeg">QoQ: {{ getOwnershipBreakdown().fiiPp }}</span>
               </div>
             </div>
 
@@ -725,7 +725,7 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().dii }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().diiIsPos"
-                  [class.negative]="!getOwnershipBreakdown().diiIsPos">QoQ: {{ getOwnershipBreakdown().diiPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().diiIsNeg">QoQ: {{ getOwnershipBreakdown().diiPp }}</span>
               </div>
             </div>
 
@@ -738,7 +738,7 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().public }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().publicIsPos"
-                  [class.negative]="!getOwnershipBreakdown().publicIsPos">QoQ: {{ getOwnershipBreakdown().publicPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().publicIsNeg">QoQ: {{ getOwnershipBreakdown().publicPp }}</span>
               </div>
             </div>
           </div>

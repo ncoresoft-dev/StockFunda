@@ -258,6 +258,8 @@
   font-weight: 700;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
 }
 
 .growth-badge.positive {

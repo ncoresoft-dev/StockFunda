@@ -88,12 +88,12 @@
         <div class="kpi-value">{{ formatCurrency(current.sales) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.salesGrowthPercent !== null && quarters.qoQGrowth.salesGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.salesGrowthPercent >= 0" [class.negative]="quarters.qoQGrowth.salesGrowthPercent < 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.salesGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.salesGrowthPercent < 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.salesGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.salesGrowthPercent !== null && quarters.yoYGrowth.salesGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.salesGrowthPercent >= 0" [class.negative]="quarters.yoYGrowth.salesGrowthPercent < 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.salesGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.salesGrowthPercent < 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.salesGrowthPercent) }}
             </span>
           }
@@ -109,12 +109,12 @@
         <div class="kpi-value highlight-val">{{ formatCurrency(current.netProfit) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.netProfitGrowthPercent !== null && quarters.qoQGrowth.netProfitGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.netProfitGrowthPercent >= 0" [class.negative]="quarters.qoQGrowth.netProfitGrowthPercent < 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.netProfitGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.netProfitGrowthPercent < 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.netProfitGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.netProfitGrowthPercent !== null && quarters.yoYGrowth.netProfitGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.netProfitGrowthPercent >= 0" [class.negative]="quarters.yoYGrowth.netProfitGrowthPercent < 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.netProfitGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.netProfitGrowthPercent < 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.netProfitGrowthPercent) }}
             </span>
           }
@@ -130,12 +130,12 @@
         <div class="kpi-value">{{ formatEps(current.eps) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.epsGrowthPercent !== null && quarters.qoQGrowth.epsGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.epsGrowthPercent >= 0" [class.negative]="quarters.qoQGrowth.epsGrowthPercent < 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.epsGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.epsGrowthPercent < 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.epsGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.epsGrowthPercent !== null && quarters.yoYGrowth.epsGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.epsGrowthPercent >= 0" [class.negative]="quarters.yoYGrowth.epsGrowthPercent < 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.epsGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.epsGrowthPercent < 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.epsGrowthPercent) }}
             </span>
           }
@@ -151,12 +151,12 @@
         <div class="kpi-value">{{ formatCurrency(current.tax) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.taxGrowthPercent !== null && quarters.qoQGrowth.taxGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.taxGrowthPercent <= 0" [class.negative]="quarters.qoQGrowth.taxGrowthPercent > 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.taxGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.taxGrowthPercent > 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.taxGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.taxGrowthPercent !== null && quarters.yoYGrowth.taxGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.taxGrowthPercent <= 0" [class.negative]="quarters.yoYGrowth.taxGrowthPercent > 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.taxGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.taxGrowthPercent > 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.taxGrowthPercent) }}
             </span>
           }
@@ -172,12 +172,12 @@
         <div class="kpi-value">{{ formatCurrency(current.depreciation) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.depreciationGrowthPercent !== null && quarters.qoQGrowth.depreciationGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.depreciationGrowthPercent <= 0" [class.negative]="quarters.qoQGrowth.depreciationGrowthPercent > 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.depreciationGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.depreciationGrowthPercent > 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.depreciationGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.depreciationGrowthPercent !== null && quarters.yoYGrowth.depreciationGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.depreciationGrowthPercent <= 0" [class.negative]="quarters.yoYGrowth.depreciationGrowthPercent > 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.depreciationGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.depreciationGrowthPercent > 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.depreciationGrowthPercent) }}
             </span>
           }
@@ -193,12 +193,12 @@
         <div class="kpi-value">{{ formatCurrency(current.interest) }}</div>
         <div class="kpi-bottom">
           @if (quarters.qoQGrowth.interestGrowthPercent !== null && quarters.qoQGrowth.interestGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.interestGrowthPercent <= 0" [class.negative]="quarters.qoQGrowth.interestGrowthPercent > 0">
+            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.interestGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.interestGrowthPercent > 0">
               QoQ: {{ formatPercent(quarters.qoQGrowth.interestGrowthPercent) }}
             </span>
           }
           @if (quarters.yoYGrowth.interestGrowthPercent !== null && quarters.yoYGrowth.interestGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.interestGrowthPercent <= 0" [class.negative]="quarters.yoYGrowth.interestGrowthPercent > 0">
+            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.interestGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.interestGrowthPercent > 0">
               YoY: {{ formatPercent(quarters.yoYGrowth.interestGrowthPercent) }}
             </span>
           }
