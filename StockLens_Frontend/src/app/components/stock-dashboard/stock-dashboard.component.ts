@@ -273,6 +273,24 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/'], { queryParams: { view: 'watchlist' } });
   }
 
+  /**
+   * Checks if current selected stock is in user's personal watchlist
+   */
+  isCurrentStockStarred(): boolean {
+    const sym = this.selectedSymbol();
+    return !!sym && this.watchlistService.isInWatchlist(sym);
+  }
+
+  /**
+   * Toggles the current selected stock in/out of the user's personal watchlist
+   */
+  toggleCurrentStockStar(): void {
+    const sym = this.selectedSymbol();
+    if (sym) {
+      this.watchlistService.toggleWatchlist(sym);
+    }
+  }
+
   toggleTheme(): void {
     this.isLightTheme.update(v => !v);
     this.applyThemeToDom();

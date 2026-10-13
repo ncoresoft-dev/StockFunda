@@ -18,6 +18,7 @@ if (typeof HC_mouseWheelZoom === 'function') {
   (HC_mouseWheelZoom as any).default(Highcharts);
 }
 import { StockPriceHistoryService, PriceHistoryResponseDto } from '../../services/stock-price-history.service';
+import { DarvasBoxDetectorService, DarvasBox } from '../../services/darvas-box-detector.service';
 
 @Component({
   selector: 'app-stock-candlestick-chart',
@@ -37,12 +38,14 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
   @Output() priceDataLoaded = new EventEmitter<any>();
 
   private priceService = inject(StockPriceHistoryService);
+  private darvasBoxDetector = inject(DarvasBoxDetectorService);
   private cd = inject(ChangeDetectorRef);
   private el = inject(ElementRef);
 
   loadingState: 'loading' | 'success' | 'error' | 'empty' = 'loading';
   errorMessage = '';
   priceHistory: PriceHistoryResponseDto | null = null;
+  cachedDarvasBoxes: DarvasBox[] = [];
   updateFlag = false;
   chart: any;
 
@@ -51,7 +54,8 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
     'Candlestick': true,
     '50 DMA': false,
     '200 DMA': false,
-    'Volume': true
+    'Volume': true,
+    'Darvas Box': true
   };
 
   // Pattern filtering state (Granular)
@@ -100,6 +104,26 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
         const isCandlestick = name.includes('Engulfing');
         return isReversal || isCandlestick;
       });
+    }
+
+    // Check if currentDate matches a Darvas Box Breakout or Breakdown
+    if (!hoverPattern && this.activeSeriesState['Darvas Box'] && this.cachedDarvasBoxes.length > 0) {
+      const curTimestamp = new Date(currentDate).getTime();
+      const darvasEvent = this.cachedDarvasBoxes.find(b => b.breakoutTimestamp === curTimestamp);
+      if (darvasEvent) {
+        const volText = darvasEvent.breakoutVolume ? ` • Vol: ${(darvasEvent.breakoutVolume / 1000).toFixed(0)}K` : '';
+        if (darvasEvent.state === 'bullish_breakout') {
+          hoverPattern = {
+            patternName: `Darvas Box Breakout (₹${darvasEvent.breakoutPrice?.toFixed(1) || close.toFixed(1)})${volText}`,
+            signal: 'Bullish'
+          };
+        } else if (darvasEvent.state === 'bearish_breakdown') {
+          hoverPattern = {
+            patternName: `Darvas Box Breakdown (₹${darvasEvent.breakoutPrice?.toFixed(1) || close.toFixed(1)})${volText}`,
+            signal: 'Bearish'
+          };
+        }
+      }
     }
 
     this.legendData = { dateStr, open, high, low, close, volume, isUp, plotX, hoverPattern };
@@ -204,6 +228,7 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
   loadPriceHistory(refresh: boolean = false): void {
     this.loadingState = 'loading';
     this.priceHistory = null;
+    this.cachedDarvasBoxes = [];
     this.legendData = null;
     this.chartOptions = {};
     this.errorMessage = '';
@@ -218,6 +243,16 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           this.cd.detectChanges();
         } else {
           this.priceHistory = data;
+
+          // Pre-calculate Darvas Boxes once for this dataset to avoid recalculating on change detection
+          this.cachedDarvasBoxes = this.darvasBoxDetector.detectBoxes(
+            data.dates,
+            data.opens,
+            data.highs,
+            data.lows,
+            data.closePrices,
+            data.volumes
+          );
 
           // Pre-calculate pattern states for the template to prevent NG0100
           this.availablePatterns = {};
@@ -274,9 +309,18 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
     this.activeSeriesState[seriesName] = !this.activeSeriesState[seriesName];
     this.activeSeriesState = { ...this.activeSeriesState };
     if (this.chart && this.chart.series) {
-      const s = this.chart.series.find((x: any) => x.name === seriesName);
-      if (s) {
-        s.setVisible(this.activeSeriesState[seriesName], true);
+      const isVisible = this.activeSeriesState[seriesName];
+      let didUpdate = false;
+      this.chart.series.forEach((s: any) => {
+        const group = s.options?.customGroup || s.userOptions?.customGroup;
+        const name = s.name || '';
+        if (name === seriesName || group === seriesName || (seriesName === 'Darvas Box' && (name.includes('Darvas') || group === 'Darvas Box'))) {
+          s.setVisible(isVisible, false);
+          didUpdate = true;
+        }
+      });
+      if (didUpdate) {
+        this.chart.redraw();
       }
     }
     this.cd.detectChanges();
@@ -521,6 +565,159 @@ export class StockCandlestickChartComponent implements OnChanges, OnInit, AfterV
           marker: { enabled: false },
           zIndex: 3,
           shadow: { color: isLight ? 'rgba(147, 51, 234, 0.35)' : 'rgba(168, 85, 247, 0.6)', width: 4, offsetX: 0, offsetY: 0 }
+        } as any);
+      }
+    }
+
+    // Darvas Boxes (Nicolas Darvas Momentum Breakout Strategy)
+    if (this.chartType === 'candlestick') {
+      const isDarvasActive = this.activeSeriesState['Darvas Box'] !== false;
+      const darvasBoxes = this.cachedDarvasBoxes;
+
+      darvasBoxes.forEach((box, bIdx) => {
+        const boxId = 'darvas-' + p + '-' + bIdx;
+        const isUp = box.state === 'bullish_breakout';
+        const isDown = box.state === 'bearish_breakdown';
+
+        // Subtle, elegant boundaries and transparent background
+        const boxBorderColor = isLight
+          ? (isUp ? '#059669' : isDown ? '#dc2626' : '#6366f1')
+          : (isUp ? '#10b981' : isDown ? '#ef4444' : '#818cf8');
+
+        const boxFillColor = isLight
+          ? (isUp ? 'rgba(16, 185, 129, 0.07)' : isDown ? 'rgba(239, 68, 68, 0.05)' : 'rgba(99, 102, 241, 0.06)')
+          : (isUp ? 'rgba(16, 185, 129, 0.10)' : isDown ? 'rgba(239, 68, 68, 0.08)' : 'rgba(129, 140, 248, 0.09)');
+
+        const topColor = isLight ? '#059669' : '#10b981';
+        const bottomColor = isLight ? '#dc2626' : '#ef4444';
+
+        // 1. Shaded Box Rectangle (Polygon overlay: x1=start, x2=end, y1=low, y2=high)
+        chartSeries.push({
+          type: 'polygon',
+          id: boxId + '-rect',
+          name: 'Darvas Box',
+          customGroup: 'Darvas Box',
+          data: [
+            [box.startTimestamp, box.low],
+            [box.startTimestamp, box.high],
+            [box.endTimestamp, box.high],
+            [box.endTimestamp, box.low]
+          ],
+          color: boxBorderColor,
+          fillColor: boxFillColor,
+          lineWidth: 1,
+          dashStyle: 'Dot',
+          enableMouseTracking: false,
+          showInLegend: false,
+          zIndex: 1,
+          visible: isDarvasActive
+        } as any);
+
+        // 2. Box Upper Boundary (Top Line) - Subtle without cluttering labels
+        chartSeries.push({
+          type: 'line',
+          id: boxId + '-top',
+          name: 'Darvas Box Top',
+          customGroup: 'Darvas Box',
+          data: [
+            [box.startTimestamp, box.high],
+            [box.endTimestamp, box.high]
+          ],
+          color: topColor,
+          lineWidth: 1.5,
+          dashStyle: 'Solid',
+          enableMouseTracking: false,
+          showInLegend: false,
+          zIndex: 2,
+          visible: isDarvasActive
+        } as any);
+
+        // 3. Box Lower Boundary (Floor Line) - Subtle without cluttering labels
+        chartSeries.push({
+          type: 'line',
+          id: boxId + '-bottom',
+          name: 'Darvas Box Floor',
+          customGroup: 'Darvas Box',
+          data: [
+            [box.startTimestamp, box.low],
+            [box.endTimestamp, box.low]
+          ],
+          color: bottomColor,
+          lineWidth: 1.5,
+          dashStyle: 'ShortDash',
+          enableMouseTracking: false,
+          showInLegend: false,
+          zIndex: 2,
+          visible: isDarvasActive
+        } as any);
+      });
+
+      // 4. Breakout and Breakdown Markers
+      const breakoutBoxes = darvasBoxes.filter(b => b.state === 'bullish_breakout' && b.breakoutTimestamp);
+      if (breakoutBoxes.length > 0) {
+        chartSeries.push({
+          type: 'scatter',
+          name: 'Darvas Breakout',
+          customGroup: 'Darvas Box',
+          data: breakoutBoxes.map(b => ({
+            x: b.breakoutTimestamp,
+            y: b.high,
+            dataLabels: {
+              enabled: true,
+              useHTML: true,
+              format: `<div style="background:#10b981; color:white; font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; box-shadow:0 2px 4px rgba(0,0,0,0.25); white-space:nowrap;">▲ Breakout</div>`,
+              align: 'center',
+              verticalAlign: 'bottom',
+              y: -12,
+              allowOverlap: false
+            }
+          })),
+          marker: {
+            enabled: true,
+            symbol: 'triangle',
+            radius: 5,
+            fillColor: '#10b981',
+            lineColor: '#ffffff',
+            lineWidth: 1
+          },
+          enableMouseTracking: false,
+          showInLegend: false,
+          zIndex: 5,
+          visible: isDarvasActive
+        } as any);
+      }
+
+      const breakdownBoxes = darvasBoxes.filter(b => b.state === 'bearish_breakdown' && b.breakoutTimestamp);
+      if (breakdownBoxes.length > 0) {
+        chartSeries.push({
+          type: 'scatter',
+          name: 'Darvas Breakdown',
+          customGroup: 'Darvas Box',
+          data: breakdownBoxes.map(b => ({
+            x: b.breakoutTimestamp,
+            y: b.low,
+            dataLabels: {
+              enabled: true,
+              useHTML: true,
+              format: `<div style="background:#ef4444; color:white; font-size:9px; font-weight:700; padding:1px 5px; border-radius:3px; box-shadow:0 2px 4px rgba(0,0,0,0.25); white-space:nowrap;">▼ Breakdown</div>`,
+              align: 'center',
+              verticalAlign: 'top',
+              y: 12,
+              allowOverlap: false
+            }
+          })),
+          marker: {
+            enabled: true,
+            symbol: 'triangle-down',
+            radius: 5,
+            fillColor: '#ef4444',
+            lineColor: '#ffffff',
+            lineWidth: 1
+          },
+          enableMouseTracking: false,
+          showInLegend: false,
+          zIndex: 5,
+          visible: isDarvasActive
         } as any);
       }
     }

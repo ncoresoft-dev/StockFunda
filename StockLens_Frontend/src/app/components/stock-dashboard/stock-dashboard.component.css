@@ -3961,6 +3961,14 @@
   box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
 }
 
+/* 5. Darvas Box: Indigo / Violet */
+.custom-checkbox.cb-darvas.checked {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+}
+
 .cb-label {
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -6545,6 +6553,14 @@
   color: #ffffff !important;
 }
 
+:host-context(.light-theme) .custom-checkbox.cb-darvas.checked,
+:host-context([data-theme="light"]) .custom-checkbox.cb-darvas.checked {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.35) !important;
+}
+
 :host-context(.light-theme) .custom-checkbox svg,
 :host-context([data-theme="light"]) .custom-checkbox svg {
   stroke: #ffffff !important;
@@ -7252,6 +7268,59 @@
 
 .cockpit-container.dark-theme .company-name-text {
   color: #ffffff;
+}
+
+.company-name-star-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.header-star-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1;
+}
+
+.header-star-btn:hover {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  transform: scale(1.12);
+}
+
+.header-star-btn:active {
+  transform: scale(0.96);
+}
+
+.header-star-btn.starred {
+  color: #f59e0b;
+}
+
+.header-star-btn .star-icon {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.2s ease;
+}
+
+.cockpit-container.dark-theme .header-star-btn {
+  color: #64748b;
+}
+
+.cockpit-container.dark-theme .header-star-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.cockpit-container.dark-theme .header-star-btn.starred {
+  color: #fbbf24;
 }
 
 .hero-price-group {

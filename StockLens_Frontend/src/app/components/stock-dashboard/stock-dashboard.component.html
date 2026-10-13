@@ -255,7 +255,23 @@
 
             <div class="hero-title-group">
               <div class="company-title-row">
-                <h1 class="company-name-text">{{ getCompanyName() }}</h1>
+                <div class="company-name-star-wrap">
+                  <h1 class="company-name-text">{{ getCompanyName() }}</h1>
+                  <button type="button" class="header-star-btn" [class.starred]="isCurrentStockStarred()"
+                    (click)="toggleCurrentStockStar()"
+                    [title]="isCurrentStockStarred() ? 'Remove from Watchlist' : 'Add to Watchlist'"
+                    [attr.aria-label]="isCurrentStockStarred() ? 'Remove from Watchlist' : 'Add to Watchlist'">
+                    @if (isCurrentStockStarred()) {
+                    <svg class="star-icon filled" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    } @else {
+                    <svg class="star-icon outlined" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    }
+                  </button>
+                </div>
                 <div class="hero-price-group">
                   @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
                     <span class="hero-price-skeleton"></span>
@@ -824,6 +840,18 @@
                 </svg>
               </span>
               <span class="cb-label">Volume</span>
+            </label>
+
+            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Darvas Box')"
+              title="Toggle Nicolas Darvas Breakout Boxes">
+              <span class="custom-checkbox cb-darvas"
+                [class.checked]="candleComp.isSeriesActive('Darvas Box')">
+                <svg *ngIf="candleComp.isSeriesActive('Darvas Box')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="cb-label">📦 Darvas Box</span>
             </label>
           </div>
 
