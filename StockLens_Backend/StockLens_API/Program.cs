@@ -96,6 +96,14 @@ builder.Services.AddScoped<IStockPeerRepository, StockPeerRepository>();
 // Register Seeders
 builder.Services.AddTransient<CompanyMasterSeeder>();
 
+// Register Screener HTTP Client
+builder.Services.Configure<StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings>(builder.Configuration.GetSection(StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings.SectionName));
+builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.Screener.IScreenerClient, StockLens_Infrastructure.ExternalServices.Screener.ScreenerClient>(client =>
+{
+    client.BaseAddress = new Uri("https://www.screener.in/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
 // Register Business Services
 builder.Services.AddScoped<IStockNewsService, StockNewsService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
@@ -109,6 +117,7 @@ builder.Services.AddScoped<IStockQuarterlyResultsService, StockQuarterlyResultsS
 builder.Services.AddScoped<IStockEvaluationService, StockEvaluationService>();
 builder.Services.AddScoped<IStockDealsService, StockDealsService>();
 builder.Services.AddScoped<IMarketIndicesService, MarketIndicesService>();
+builder.Services.AddScoped<IStockAnnualReportService, StockAnnualReportService>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
