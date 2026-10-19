@@ -1,5 +1,5 @@
-<div class="cockpit-container" (scroll)="onCockpitScroll($event)" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()"
-  [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
+<div class="cockpit-container" (scroll)="onCockpitScroll($event)" [class.light-theme]="isLightTheme()"
+  [class.dark-theme]="!isLightTheme()" [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
   <!-- Top Animated Cyber Reload Progress Bar -->
   <div class="top-reload-bar" [class.active]="isLoadingStock()"></div>
 
@@ -28,8 +28,8 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input type="text" class="search-input" placeholder="Search company (e.g. RELIANCE, TCS, etc...)"
-          [value]="searchQuery()" (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()"
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          [value]="searchQuery()" (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()" autocomplete="off"
+          autocorrect="off" autocapitalize="off" spellcheck="false" />
 
         <!-- Autocomplete Menu -->
         @if (searchResults().length > 0 || isSearching()) {
@@ -69,11 +69,13 @@
       <!-- ⭐ Watchlist Button -->
       <button type="button" class="nav-watchlist-btn" (click)="navigateToWatchlist()" title="View My Watchlist">
         <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          <polygon
+            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+          </polygon>
         </svg>
         <span>Watchlist</span>
         @if (watchlistService.watchlistCount() > 0) {
-          <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
+        <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
         }
       </button>
 
@@ -239,7 +241,7 @@
                 <img [src]="getCompanyLogoUrl()" [alt]="getCompanyName() + ' Logo'" class="company-logo-img"
                   (error)="onLogoError($event)" loading="lazy" />
               </div>
-} @else {
+              } @else {
               <div class="company-gold-avatar" [class.reliance-brand]="selectedSymbol().toUpperCase() === 'RELIANCE'">
                 @if (selectedSymbol().toUpperCase() === 'RELIANCE') {
                 <svg viewBox="0 0 32 32" fill="currentColor" class="reliance-r-icon">
@@ -263,24 +265,29 @@
                     [attr.aria-label]="isCurrentStockStarred() ? 'Remove from Watchlist' : 'Add to Watchlist'">
                     @if (isCurrentStockStarred()) {
                     <svg class="star-icon filled" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                      </polygon>
                     </svg>
                     } @else {
-                    <svg class="star-icon outlined" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    <svg class="star-icon outlined" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2">
+                      <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                      </polygon>
                     </svg>
                     }
                   </button>
                 </div>
                 <div class="hero-price-group">
                   @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                    <span class="hero-price-skeleton"></span>
+                  <span class="hero-price-skeleton"></span>
                   } @else {
-                    <span class="hero-price-val">{{ getCurrentPriceFormatted() }}</span>
-                    <span class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive"
-                      [class.negative]="!getPriceChangeDisplay().isPositive">
-                      {{ getPriceChangeDisplay().text }}
-                    </span>
+                  <span class="hero-price-val">{{ getCurrentPriceFormatted() }}</span>
+                  <span class="hero-price-change" [class.positive]="getPriceChangeDisplay().isPositive"
+                    [class.negative]="!getPriceChangeDisplay().isPositive">
+                    {{ getPriceChangeDisplay().text }}
+                  </span>
                   }
                 </div>
               </div>
@@ -312,7 +319,8 @@
             <div class="quick-verdict-pill {{ getEvaluationVerdict().class }}" (click)="openEvaluationModal()"
               title="View 23-Metric Comprehensive Scorecard">
               <span class="quick-verdict-label">Investment Verdict:</span>
-              <span class="quick-verdict-signal {{ getEvaluationVerdict().class }}">{{ getEvaluationVerdict().text }}</span>
+              <span class="quick-verdict-signal {{ getEvaluationVerdict().class }}">{{ getEvaluationVerdict().text
+                }}</span>
               <span class="quick-verdict-score">
                 <span class="qvs-main">{{ getEvaluationVerdict().score }}</span>
                 <span class="qvs-sub">/100 ↗</span>
@@ -331,25 +339,25 @@
               <div class="ratio-item">
                 <span class="ratio-lbl">Market Cap</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getMarketCapFormatted() }}</span>
+                <span class="ratio-val">{{ getMarketCapFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Current Price</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getCurrentPriceFormatted() }}</span>
+                <span class="ratio-val">{{ getCurrentPriceFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">High / Low</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ get52WHighFormatted() }} / {{ get52WLowFormatted() }}</span>
+                <span class="ratio-val">{{ get52WHighFormatted() }} / {{ get52WLowFormatted() }}</span>
                 }
               </div>
 
@@ -357,25 +365,25 @@
               <div class="ratio-item">
                 <span class="ratio-lbl">Stock P/E</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getPeRatioFormatted() }}</span>
+                <span class="ratio-val">{{ getPeRatioFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Book Value</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getBookValueFormatted() }}</span>
+                <span class="ratio-val">{{ getBookValueFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Dividend Yield</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getDividendYieldFormatted() }}</span>
+                <span class="ratio-val">{{ getDividendYieldFormatted() }}</span>
                 }
               </div>
 
@@ -383,39 +391,39 @@
               <div class="ratio-item">
                 <span class="ratio-lbl">ROCE</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <div class="ratio-val-row">
-                    @if (getRoceYoY(); as roceY) {
-                    <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
-                      {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
-                    </span>
-                    }
-                    <span class="ratio-val">{{ getRoceFormatted() }}</span>
-                  </div>
+                <div class="ratio-val-row">
+                  @if (getRoceYoY(); as roceY) {
+                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
+                    {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
+                  </span>
+                  }
+                  <span class="ratio-val">{{ getRoceFormatted() }}</span>
+                </div>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">ROE</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <div class="ratio-val-row">
-                    @if (getRoeYoY(); as roeY) {
-                    <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
-                      {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
-                    </span>
-                    }
-                    <span class="ratio-val">{{ getRoeFormatted() }}</span>
-                  </div>
+                <div class="ratio-val-row">
+                  @if (getRoeYoY(); as roeY) {
+                  <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
+                    {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
+                  </span>
+                  }
+                  <span class="ratio-val">{{ getRoeFormatted() }}</span>
+                </div>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Face Value</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getFaceValueFormatted() }}</span>
+                <span class="ratio-val">{{ getFaceValueFormatted() }}</span>
                 }
               </div>
 
@@ -423,25 +431,25 @@
               <div class="ratio-item">
                 <span class="ratio-lbl">Industry PE</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getSectorPeFormatted() }}</span>
+                <span class="ratio-val">{{ getSectorPeFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">Total Shares</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getSharesCountFormatted() }}</span>
+                <span class="ratio-val">{{ getSharesCountFormatted() }}</span>
                 }
               </div>
               <div class="ratio-item">
                 <span class="ratio-lbl">P/B Ratio</span>
                 @if (cashflowLoadingState() === 'loading' || !cashflowResponse()) {
-                  <span class="ratio-skeleton"></span>
+                <span class="ratio-skeleton"></span>
                 } @else {
-                  <span class="ratio-val">{{ getPbRatioFormatted() }}</span>
+                <span class="ratio-val">{{ getPbRatioFormatted() }}</span>
                 }
               </div>
             </div>
@@ -501,7 +509,8 @@
           <div class="mini-loading-box"
             style="padding: 2.5rem 1rem; text-align: center; color: #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;">
             <div class="mini-spinner"></div>
-            <span style="font-size: 0.85rem; font-weight: 500;">Fetching live market news &amp; corporate filings...</span>
+            <span style="font-size: 0.85rem; font-weight: 500;">Fetching live market news &amp; corporate
+              filings...</span>
           </div>
           }
 
@@ -513,7 +522,8 @@
           </div>
           }
 
-          @if ((newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getDisplayNewsList().length === 0)) && newsLoadingState() !== 'loading') {
+          @if ((newsLoadingState() === 'empty' || (newsLoadingState() === 'success' && getDisplayNewsList().length ===
+          0)) && newsLoadingState() !== 'loading') {
           <div class="mini-empty-box"
             style="padding: 2.5rem 1rem; text-align: center; color: #64748b; font-size: 0.85rem;">
             <span>No corporate news or filings found for {{ selectedSymbol() }}.</span>
@@ -592,7 +602,8 @@
                 {{ getQuarterlyFinancialsData().operatingProfitQoQ.text }}
               </span>
               @if (getQuarterlyFinancialsData().opMargin) {
-              <span class="qr-margin-badge" title="Operating Profit Margin (OPM)">OPM: {{ getQuarterlyFinancialsData().opMargin }}</span>
+              <span class="qr-margin-badge" title="Operating Profit Margin (OPM)">OPM: {{
+                getQuarterlyFinancialsData().opMargin }}</span>
               }
             </div>
           </div>
@@ -699,7 +710,8 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().promoter }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().promoterIsPos"
-                  [class.negative]="getOwnershipBreakdown().promoterIsNeg">QoQ: {{ getOwnershipBreakdown().promoterPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().promoterIsNeg">QoQ: {{ getOwnershipBreakdown().promoterPp
+                  }}</span>
               </div>
             </div>
 
@@ -738,7 +750,8 @@
               <div class="owner-stat-number">{{ getOwnershipBreakdown().public }}</div>
               <div class="owner-stat-sub">
                 <span class="pill-delta" [class.positive]="getOwnershipBreakdown().publicIsPos"
-                  [class.negative]="getOwnershipBreakdown().publicIsNeg">QoQ: {{ getOwnershipBreakdown().publicPp }}</span>
+                  [class.negative]="getOwnershipBreakdown().publicIsNeg">QoQ: {{ getOwnershipBreakdown().publicPp
+                  }}</span>
               </div>
             </div>
           </div>
@@ -784,382 +797,383 @@
       <!-- ========================================================================= -->
       <section class="cockpit-row-full chart-full-row" id="section-chart">
         <div class="cockpit-card candlestick-card">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M7 10v4M7 8v2M7 14v2"></path>
-              <path d="M12 6v10M12 4v2M12 16v2"></path>
-              <path d="M17 8v6M17 5v3M17 14v4"></path>
-              <line x1="3" y1="21" x2="21" y2="21"></line>
-            </svg>
-            <span class="card-title">{{ selectedChartType() === 'candlestick' ? 'OHLC CANDLESTICK CHART' : 'PRICE /
-              TECHNICAL CHART' }}</span>
-            <!-- Chart Type Toggle (Candle / Line) -->
-            <div class="chart-type-toggle">
-              <button type="button" class="type-btn" (click)="setChartType('candlestick')"
-                [class.active]="selectedChartType() === 'candlestick'">
-                🕯️ Candle
-              </button>
-              <button type="button" class="type-btn" (click)="setChartType('area')"
-                [class.active]="selectedChartType() === 'area'">
-                📈 Line
-              </button>
+          <div class="card-top-bar">
+            <div class="card-title-group">
+              <svg class="card-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 10v4M7 8v2M7 14v2"></path>
+                <path d="M12 6v10M12 4v2M12 16v2"></path>
+                <path d="M17 8v6M17 5v3M17 14v4"></path>
+                <line x1="3" y1="21" x2="21" y2="21"></line>
+              </svg>
+              <span class="card-title">{{ selectedChartType() === 'candlestick' ? 'OHLC CANDLESTICK CHART' : 'PRICE /
+                TECHNICAL CHART' }}</span>
+              <!-- Chart Type Toggle (Candle / Line) -->
+              <div class="chart-type-toggle">
+                <button type="button" class="type-btn" (click)="setChartType('candlestick')"
+                  [class.active]="selectedChartType() === 'candlestick'">
+                  🕯️ Candle
+                </button>
+                <button type="button" class="type-btn" (click)="setChartType('area')"
+                  [class.active]="selectedChartType() === 'area'">
+                  📈 Line
+                </button>
+              </div>
+            </div>
+
+            <!-- Candlestick Series Checkboxes -->
+            <div class="chart-checkbox-group">
+              <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
+                <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.isSeriesActive('50 DMA')">
+                  <svg *ngIf="candleComp.isSeriesActive('50 DMA')" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+                <span class="cb-label">50 DMA</span>
+              </label>
+
+              <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('200 DMA')"
+                title="Toggle 200 DMA Line">
+                <span class="custom-checkbox cb-dma200" [class.checked]="candleComp.isSeriesActive('200 DMA')">
+                  <svg *ngIf="candleComp.isSeriesActive('200 DMA')" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+                <span class="cb-label">200 DMA</span>
+              </label>
+
+              <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
+                title="Toggle Volume Histogram">
+                <span class="custom-checkbox cb-volume" [class.checked]="candleComp.isSeriesActive('Volume')">
+                  <svg *ngIf="candleComp.isSeriesActive('Volume')" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+                <span class="cb-label">Volume</span>
+              </label>
+
+              <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Darvas Box')"
+                title="Toggle Nicolas Darvas Breakout Boxes">
+                <span class="custom-checkbox cb-darvas" [class.checked]="candleComp.isSeriesActive('Darvas Box')">
+                  <svg *ngIf="candleComp.isSeriesActive('Darvas Box')" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+                <span class="cb-label">📦 Darvas Box</span>
+              </label>
+            </div>
+
+            <!-- Candlestick Timeframe Selector Pills (1M, 3M, 1Y, 3Y, 5Y) -->
+            <div class="chart-timeframe-pills">
+              <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '1m'"
+                (click)="setCandlestickPeriod('1m')">1M</button>
+              <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3m'"
+                (click)="setCandlestickPeriod('3m')">3M</button>
+              <button type="button" class="tf-pill"
+                [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
+                (click)="setCandlestickPeriod('1yr')">1Y</button>
+              <button type="button" class="tf-pill"
+                [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
+                (click)="setCandlestickPeriod('3yr')">3Y</button>
+              <button type="button" class="tf-pill"
+                [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
+                (click)="setCandlestickPeriod('5yr')">5Y</button>
             </div>
           </div>
 
-          <!-- Candlestick Series Checkboxes -->
-          <div class="chart-checkbox-group">
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('50 DMA')" title="Toggle 50 DMA Line">
-              <span class="custom-checkbox cb-dma50" [class.checked]="candleComp.isSeriesActive('50 DMA')">
-                <svg *ngIf="candleComp.isSeriesActive('50 DMA')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              <span class="cb-label">50 DMA</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('200 DMA')" title="Toggle 200 DMA Line">
-              <span class="custom-checkbox cb-dma200"
-                [class.checked]="candleComp.isSeriesActive('200 DMA')">
-                <svg *ngIf="candleComp.isSeriesActive('200 DMA')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              <span class="cb-label">200 DMA</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Volume')"
-              title="Toggle Volume Histogram">
-              <span class="custom-checkbox cb-volume"
-                [class.checked]="candleComp.isSeriesActive('Volume')">
-                <svg *ngIf="candleComp.isSeriesActive('Volume')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              <span class="cb-label">Volume</span>
-            </label>
-
-            <label class="chart-checkbox-item" (click)="candleComp.toggleSeries('Darvas Box')"
-              title="Toggle Nicolas Darvas Breakout Boxes">
-              <span class="custom-checkbox cb-darvas"
-                [class.checked]="candleComp.isSeriesActive('Darvas Box')">
-                <svg *ngIf="candleComp.isSeriesActive('Darvas Box')" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-              <span class="cb-label">📦 Darvas Box</span>
-            </label>
-          </div>
-
-          <!-- Candlestick Timeframe Selector Pills (1M, 3M, 1Y, 3Y, 5Y) -->
-          <div class="chart-timeframe-pills">
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '1m'"
-              (click)="setCandlestickPeriod('1m')">1M</button>
-            <button type="button" class="tf-pill" [class.active]="candlestickPeriod() === '3m'"
-              (click)="setCandlestickPeriod('3m')">3M</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '1yr' || candlestickPeriod() === '1y'"
-              (click)="setCandlestickPeriod('1yr')">1Y</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '3yr' || candlestickPeriod() === '3y'"
-              (click)="setCandlestickPeriod('3yr')">3Y</button>
-            <button type="button" class="tf-pill"
-              [class.active]="candlestickPeriod() === '5yr' || candlestickPeriod() === '5y'"
-              (click)="setCandlestickPeriod('5yr')">5Y</button>
+          <div class="chart-canvas-wrapper" style="position: relative;">
+            <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+              [period]="candlestickPeriod()" [chartType]="selectedChartType()" [isLightTheme]="isLightTheme()"
+              (priceDataLoaded)="onPriceDataLoaded($event)" customHeight="100%"></app-stock-candlestick-chart>
           </div>
         </div>
-
-        <div class="chart-canvas-wrapper" style="position: relative;">
-          <app-stock-candlestick-chart #candleComp [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-            [period]="candlestickPeriod()" [chartType]="selectedChartType()" [isLightTheme]="isLightTheme()"
-            (priceDataLoaded)="onPriceDataLoaded($event)" customHeight="100%"></app-stock-candlestick-chart>
-        </div>
-      </div>
-    </section>
+      </section>
 
       <!-- ========================================================================= -->
       <!-- SECTION 6: VOLUME & BREAKOUT ANALYSIS                                     -->
       <!-- ========================================================================= -->
       <section class="volume-breakout-row" id="section-volume" [class.has-breakout]="hasActiveBreakouts()">
-      <app-stock-volume-delivery-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-        [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()" [isLightTheme]="isLightTheme()">
-      </app-stock-volume-delivery-card>
-      <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
-        [refreshTrigger]="technicalRefreshTrigger()" [isLightTheme]="isLightTheme()" (breakoutStateChange)="onBreakoutStateChange($event)"
-        [style.display]="hasActiveBreakouts() ? 'block' : 'none'">
-      </app-stock-technical-analysis>
-    </section>
+        <app-stock-volume-delivery-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+          [companyName]="getCompanyName()" [analysisData]="deliveryAnalysisData()" [isLightTheme]="isLightTheme()">
+        </app-stock-volume-delivery-card>
+        <app-stock-technical-analysis [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+          [refreshTrigger]="technicalRefreshTrigger()" [isLightTheme]="isLightTheme()"
+          (breakoutStateChange)="onBreakoutStateChange($event)"
+          [style.display]="hasActiveBreakouts() ? 'block' : 'none'">
+        </app-stock-technical-analysis>
+      </section>
 
-    <!-- ===================================================================== -->
-    <!-- ROW: CASH FLOW & BORROWINGS (100% FULL-WIDTH ROW)                     -->
-    <!-- ===================================================================== -->
-    <section class="cockpit-row-full fundamental-row" id="section-cashflow">
-      <div class="cockpit-card fundamental-card full-width-fundamental">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-            <span class="card-title">CASH FLOW &amp; BORROWINGS</span>
+      <!-- ===================================================================== -->
+      <!-- ROW: CASH FLOW & BORROWINGS (100% FULL-WIDTH ROW)                     -->
+      <!-- ===================================================================== -->
+      <section class="cockpit-row-full fundamental-row" id="section-cashflow">
+        <div class="cockpit-card fundamental-card full-width-fundamental">
+          <div class="card-top-bar">
+            <div class="card-title-group">
+              <svg class="card-icon text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <span class="card-title">CASH FLOW &amp; BORROWINGS</span>
+            </div>
+
+            @if (cashflowResponse()?.latestFiscalYear; as fy) {
+            <span class="period-tag">{{ fy }}</span>
+            }
           </div>
 
-          @if (cashflowResponse()?.latestFiscalYear; as fy) {
-          <span class="period-tag">{{ fy }}</span>
-          }
-        </div>
+          <div class="card-inner-content">
+            <div class="cashflow-full-grid">
 
-        <div class="card-inner-content">
-          <div class="cashflow-full-grid">
-            
-            <!-- SECTION A: CASH FLOW STATEMENTS -->
-            <div class="sub-section">
-              <div class="sub-section-heading">
-                <span>CASH FLOW STATEMENTS</span>
-                <span class="sub-heading-pill">Annual</span>
-              </div>
-              <div class="cflow-list">
-                <!-- FCF -->
-                <div class="cflow-item">
-                  <div class="cf-left">
-                    <span class="cf-name">Free Cash Flow (FCF)</span>
-                    @if (cashflowResponse()?.summary?.yoYChange?.freeCashFlowGrowth; as g) {
-                    <span class="mini-delta" [ngClass]="getChangeClass(g)">YoY: {{ formatPercent(g) }}</span>
-                    }
-                  </div>
-                  <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{
-                    formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
+              <!-- SECTION A: CASH FLOW STATEMENTS -->
+              <div class="sub-section">
+                <div class="sub-section-heading">
+                  <span>CASH FLOW STATEMENTS</span>
+                  <span class="sub-heading-pill">Annual</span>
                 </div>
-
-                <!-- Net Cash Flow -->
-                <div class="cflow-item">
-                  <div class="cf-left">
-                    <span class="cf-name">Net Cash Flow</span>
+                <div class="cflow-list">
+                  <!-- FCF -->
+                  <div class="cflow-item">
+                    <div class="cf-left">
+                      <span class="cf-name">Free Cash Flow (FCF)</span>
+                      @if (cashflowResponse()?.summary?.yoYChange?.freeCashFlowGrowth; as g) {
+                      <span class="mini-delta" [ngClass]="getChangeClass(g)">YoY: {{ formatPercent(g) }}</span>
+                      }
+                    </div>
+                    <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.freeCashFlow)">{{
+                      formatCrores(cashflowResponse()?.summary?.freeCashFlow) }}</span>
                   </div>
-                  <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{
-                    formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
-                </div>
 
-                <!-- CFO / OP -->
-                <div class="cflow-item">
-                  <div class="cf-left">
-                    <span class="cf-name">CFO / OP</span>
-                    @if (getCfoToOpRatio(); as ratio) {
-                    <span class="mini-delta"
-                      [ngClass]="(ratio >= 0.8 || ratio >= 80) ? 'positive' : ((ratio >= 0.5 || ratio >= 50) ? 'neutral' : 'negative')">
-                      {{ (ratio >= 0.8 || ratio >= 80) ? 'High Conv.' : ((ratio >= 0.5 || ratio >= 50) ? 'Moderate' :
-                      'Low') }}
-                    </span>
-                    }
+                  <!-- Net Cash Flow -->
+                  <div class="cflow-item">
+                    <div class="cf-left">
+                      <span class="cf-name">Net Cash Flow</span>
+                    </div>
+                    <span class="cf-val" [ngClass]="getValueColorClass(cashflowResponse()?.summary?.netCashFlow)">{{
+                      formatCrores(cashflowResponse()?.summary?.netCashFlow) }}</span>
                   </div>
-                  <span class="cf-val text-accent">{{ formatCfoToOp() }}</span>
+
+                  <!-- CFO / OP -->
+                  <div class="cflow-item">
+                    <div class="cf-left">
+                      <span class="cf-name">CFO / OP</span>
+                      @if (getCfoToOpRatio(); as ratio) {
+                      <span class="mini-delta"
+                        [ngClass]="(ratio >= 0.8 || ratio >= 80) ? 'positive' : ((ratio >= 0.5 || ratio >= 50) ? 'neutral' : 'negative')">
+                        {{ (ratio >= 0.8 || ratio >= 80) ? 'High Conv.' : ((ratio >= 0.5 || ratio >= 50) ? 'Moderate' :
+                        'Low') }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-accent">{{ formatCfoToOp() }}</span>
+                  </div>
                 </div>
               </div>
+
+              <!-- SECTION B: BORROWINGS & LIABILITIES -->
+              <div class="sub-section">
+                <div class="sub-section-heading">
+                  <span>BORROWINGS &amp; LIABILITIES</span>
+                  <span class="sub-heading-pill">Balance Sheet</span>
+                </div>
+                <div class="cflow-list">
+                  <!-- Long term borrowing -->
+                  <div class="cflow-item">
+                    <div class="cf-left">
+                      <span class="cf-name">Long Term Borrowing</span>
+                      @if (getLongTermBorrowingsYoY() !== null) {
+                      <span class="mini-delta" [ngClass]="getInvertedChangeClass(getLongTermBorrowingsYoY())">
+                        YoY: {{ formatPercent(getLongTermBorrowingsYoY()) }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-purple">{{ formatCrores(getLatestLongTermBorrowings()) }}</span>
+                  </div>
+
+                  <!-- Short term borrowing -->
+                  <div class="cflow-item">
+                    <div class="cf-left">
+                      <span class="cf-name">Short Term Borrowing</span>
+                      @if (getShortTermBorrowingsYoY() !== null) {
+                      <span class="mini-delta" [ngClass]="getInvertedChangeClass(getShortTermBorrowingsYoY())">
+                        YoY: {{ formatPercent(getShortTermBorrowingsYoY()) }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-cyan">{{ formatCrores(getLatestShortTermBorrowings()) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECTION C: EFFICIENCY RATIOS -->
+              <div class="sub-section">
+                <div class="sub-section-heading">
+                  <span>EFFICIENCY RATIOS</span>
+                  <span class="sub-heading-pill">Working Capital</span>
+                </div>
+                <div class="cflow-list efficiency-list">
+                  <!-- Debtor Days -->
+                  <div class="cflow-item efficiency-item">
+                    <div class="cf-left">
+                      <span class="dot dot-amber"></span>
+                      <span class="cf-name">Debtor Days</span>
+                      @if (cashflowResponse()?.ratios?.debtorDaysYoY; as g) {
+                      <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
+                        {{ getArrow(g) }} {{ formatPercent(g) }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-amber">{{ cashflowResponse()?.ratios?.debtorDays != null ?
+                      cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
+                  </div>
+
+                  <!-- Inventory Days -->
+                  <div class="cflow-item efficiency-item">
+                    <div class="cf-left">
+                      <span class="dot dot-emerald"></span>
+                      <span class="cf-name">Inventory Days</span>
+                      @if (cashflowResponse()?.ratios?.inventoryDaysYoY; as g) {
+                      <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
+                        {{ getArrow(g) }} {{ formatPercent(g) }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-emerald">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
+                      cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
+                  </div>
+
+                  <!-- Payable Days -->
+                  <div class="cflow-item efficiency-item">
+                    <div class="cf-left">
+                      <span class="dot dot-cyan"></span>
+                      <span class="cf-name">Payable Days</span>
+                      @if (cashflowResponse()?.ratios?.payableDaysYoY; as g) {
+                      <span class="mini-delta" [ngClass]="getChangeClass(g)">
+                        {{ getArrow(g) }} {{ formatPercent(g) }}
+                      </span>
+                      }
+                    </div>
+                    <span class="cf-val text-cyan">{{ cashflowResponse()?.ratios?.payableDays != null ?
+                      cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
-
-            <!-- SECTION B: BORROWINGS & LIABILITIES -->
-            <div class="sub-section">
-              <div class="sub-section-heading">
-                <span>BORROWINGS &amp; LIABILITIES</span>
-                <span class="sub-heading-pill">Balance Sheet</span>
-              </div>
-              <div class="cflow-list">
-                <!-- Long term borrowing -->
-                <div class="cflow-item">
-                  <div class="cf-left">
-                    <span class="cf-name">Long Term Borrowing</span>
-                    @if (getLongTermBorrowingsYoY() !== null) {
-                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(getLongTermBorrowingsYoY())">
-                      YoY: {{ formatPercent(getLongTermBorrowingsYoY()) }}
-                    </span>
-                    }
-                  </div>
-                  <span class="cf-val text-purple">{{ formatCrores(getLatestLongTermBorrowings()) }}</span>
-                </div>
-
-                <!-- Short term borrowing -->
-                <div class="cflow-item">
-                  <div class="cf-left">
-                    <span class="cf-name">Short Term Borrowing</span>
-                    @if (getShortTermBorrowingsYoY() !== null) {
-                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(getShortTermBorrowingsYoY())">
-                      YoY: {{ formatPercent(getShortTermBorrowingsYoY()) }}
-                    </span>
-                    }
-                  </div>
-                  <span class="cf-val text-cyan">{{ formatCrores(getLatestShortTermBorrowings()) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION C: EFFICIENCY RATIOS -->
-            <div class="sub-section">
-              <div class="sub-section-heading">
-                <span>EFFICIENCY RATIOS</span>
-                <span class="sub-heading-pill">Working Capital</span>
-              </div>
-              <div class="cflow-list efficiency-list">
-                <!-- Debtor Days -->
-                <div class="cflow-item efficiency-item">
-                  <div class="cf-left">
-                    <span class="dot dot-amber"></span>
-                    <span class="cf-name">Debtor Days</span>
-                    @if (cashflowResponse()?.ratios?.debtorDaysYoY; as g) {
-                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
-                      {{ getArrow(g) }} {{ formatPercent(g) }}
-                    </span>
-                    }
-                  </div>
-                  <span class="cf-val text-amber">{{ cashflowResponse()?.ratios?.debtorDays != null ?
-                    cashflowResponse()?.ratios?.debtorDays + ' Days' : '—' }}</span>
-                </div>
-
-                <!-- Inventory Days -->
-                <div class="cflow-item efficiency-item">
-                  <div class="cf-left">
-                    <span class="dot dot-emerald"></span>
-                    <span class="cf-name">Inventory Days</span>
-                    @if (cashflowResponse()?.ratios?.inventoryDaysYoY; as g) {
-                    <span class="mini-delta" [ngClass]="getInvertedChangeClass(g)">
-                      {{ getArrow(g) }} {{ formatPercent(g) }}
-                    </span>
-                    }
-                  </div>
-                  <span class="cf-val text-emerald">{{ cashflowResponse()?.ratios?.inventoryDays != null ?
-                    cashflowResponse()?.ratios?.inventoryDays + ' Days' : '—' }}</span>
-                </div>
-
-                <!-- Payable Days -->
-                <div class="cflow-item efficiency-item">
-                  <div class="cf-left">
-                    <span class="dot dot-cyan"></span>
-                    <span class="cf-name">Payable Days</span>
-                    @if (cashflowResponse()?.ratios?.payableDaysYoY; as g) {
-                    <span class="mini-delta" [ngClass]="getChangeClass(g)">
-                      {{ getArrow(g) }} {{ formatPercent(g) }}
-                    </span>
-                    }
-                  </div>
-                  <span class="cf-val text-cyan">{{ cashflowResponse()?.ratios?.payableDays != null ?
-                    cashflowResponse()?.ratios?.payableDays + ' Days' : '—' }}</span>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ===================================================================== -->
-    <!-- ROW: BALANCE SHEET & VALUATION (100% FULL-WIDTH ROW)                  -->
-    <!-- ===================================================================== -->
-<section class="cockpit-row-full fundamental-row" id="section-balancesheet">
-      <div class="cockpit-card fundamental-card full-width-fundamental">
-        <div class="card-top-bar">
-          <div class="card-title-group">
-            <svg class="card-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="3" y1="9" x2="21" y2="9"></line>
-              <line x1="9" y1="21" x2="9" y2="9"></line>
-            </svg>
-            <span class="card-title">BALANCE SHEET &amp; VALUATION</span>
-          </div>
-
-          <span class="period-tag">ANNUAL</span>
-        </div>
-
-        <div class="card-inner-content">
-          <div class="balancesheet-full-grid">
-            
-            <!-- BALANCE SHEET ESSENTIALS -->
-            <div class="sub-section bs-section-block">
-              <span class="sub-section-heading">BALANCE SHEET ESSENTIALS</span>
-              <div class="bs-feature-banner">
-                <div class="bs-feature-left">
-                  <div class="bs-feature-icon-box">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path
-                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-                      </path>
-                      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                    </svg>
-                  </div>
-                  <div class="bs-feature-text">
-                    <span class="bs-feature-title">Fixed Assets / Total</span>
-                    <span class="bs-feature-desc">Tangible &amp; Capital Asset Base</span>
-                  </div>
-                </div>
-                <div class="bs-feature-right">
-                  <span class="bs-feature-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
-                </div>
-              </div>
+      <!-- ===================================================================== -->
+      <!-- ROW: BALANCE SHEET & VALUATION (100% FULL-WIDTH ROW)                  -->
+      <!-- ===================================================================== -->
+      <section class="cockpit-row-full fundamental-row" id="section-balancesheet">
+        <div class="cockpit-card fundamental-card full-width-fundamental">
+          <div class="card-top-bar">
+            <div class="card-title-group">
+              <svg class="card-icon text-purple" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              <span class="card-title">BALANCE SHEET &amp; VALUATION</span>
             </div>
 
-            <!-- VALUATION MULTIPLES & 5Y TRENDS -->
-            <div class="sub-section bs-section-block">
-              <span class="sub-section-heading">VALUATION MULTIPLES &amp; 5Y TRENDS</span>
-              <div class="bs-duo-grid">
-                <!-- PEG Ratio -->
-                <div class="quad-box bs-stat-card">
-                  <div class="quad-label-row">
-                    <span class="quad-label"><span class="dot dot-indigo"></span>PEG Ratio</span>
-                    <span class="mini-delta neutral">Valuation</span>
-                  </div>
-                  <div class="bs-stat-main">
-                    <span class="quad-value text-accent">{{ getPegRatio() !== null && getPegRatio() !== undefined ?
-                      (getPegRatio() + 'x') : '—' }}</span>
-                  </div>
-                  <div class="bs-stat-footnote">
-                    <span class="bs-sub-tag">P/E to Growth</span>
-                  </div>
-                </div>
+            <span class="period-tag">ANNUAL</span>
+          </div>
 
-                <!-- 5Y Asset Growth -->
-                <div class="quad-box bs-stat-card">
-                  <div class="quad-label-row">
-                    <span class="quad-label"><span class="dot dot-emerald"></span>5Y Asset Growth</span>
-                    @if (assetsResponse()?.assetGrowthPercentage; as g) {
-                    <span class="delta-tag" [ngClass]="getChangeClass(g)">
-                      {{ getArrow(g) }} {{ formatPercent(g) }}
-                    </span>
-                    }
+          <div class="card-inner-content">
+            <div class="balancesheet-full-grid">
+
+              <!-- BALANCE SHEET ESSENTIALS -->
+              <div class="sub-section bs-section-block">
+                <span class="sub-section-heading">BALANCE SHEET ESSENTIALS</span>
+                <div class="bs-feature-banner">
+                  <div class="bs-feature-left">
+                    <div class="bs-feature-icon-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                          d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+                        </path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                    </div>
+                    <div class="bs-feature-text">
+                      <span class="bs-feature-title">Fixed Assets / Total</span>
+                      <span class="bs-feature-desc">Tangible &amp; Capital Asset Base</span>
+                    </div>
                   </div>
-                  <div class="bs-stat-main">
-                    <span class="quad-value text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage)
-                      }}</span>
-                  </div>
-                  <div class="bs-stat-footnote">
-                    <span class="bs-sub-tag">5-Year Trend</span>
+                  <div class="bs-feature-right">
+                    <span class="bs-feature-val text-cyan">{{ formatCrores(getLatestFixedAssets()) }}</span>
                   </div>
                 </div>
               </div>
-            </div>
 
+              <!-- VALUATION MULTIPLES & 5Y TRENDS -->
+              <div class="sub-section bs-section-block">
+                <span class="sub-section-heading">VALUATION MULTIPLES &amp; 5Y TRENDS</span>
+                <div class="bs-duo-grid">
+                  <!-- PEG Ratio -->
+                  <div class="quad-box bs-stat-card">
+                    <div class="quad-label-row">
+                      <span class="quad-label"><span class="dot dot-indigo"></span>PEG Ratio</span>
+                      <span class="mini-delta neutral">Valuation</span>
+                    </div>
+                    <div class="bs-stat-main">
+                      <span class="quad-value text-accent">{{ getPegRatio() !== null && getPegRatio() !== undefined ?
+                        (getPegRatio() + 'x') : '—' }}</span>
+                    </div>
+                    <div class="bs-stat-footnote">
+                      <span class="bs-sub-tag">P/E to Growth</span>
+                    </div>
+                  </div>
+
+                  <!-- 5Y Asset Growth -->
+                  <div class="quad-box bs-stat-card">
+                    <div class="quad-label-row">
+                      <span class="quad-label"><span class="dot dot-emerald"></span>5Y Asset Growth</span>
+                      @if (assetsResponse()?.assetGrowthPercentage; as g) {
+                      <span class="delta-tag" [ngClass]="getChangeClass(g)">
+                        {{ getArrow(g) }} {{ formatPercent(g) }}
+                      </span>
+                      }
+                    </div>
+                    <div class="bs-stat-main">
+                      <span class="quad-value text-green">{{ formatPercent(assetsResponse()?.assetGrowthPercentage)
+                        }}</span>
+                    </div>
+                    <div class="bs-stat-footnote">
+                      <span class="bs-sub-tag">5-Year Trend</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ===================================================================== -->
-    <!-- ROW: INSIDER & BULK/BLOCK DEALS (100% FULL WIDTH)                     -->
-    <!-- ===================================================================== -->
-    <section class="cockpit-row-full deals-row" id="section-deals">
-      <app-stock-deals-card [symbol]="selectedSymbol()" [isLightTheme]="isLightTheme()"></app-stock-deals-card>
-    </section>
+      <!-- ===================================================================== -->
+      <!-- ROW: INSIDER & BULK/BLOCK DEALS (100% FULL WIDTH)                     -->
+      <!-- ===================================================================== -->
+      <section class="cockpit-row-full deals-row" id="section-deals">
+        <app-stock-deals-card [symbol]="selectedSymbol()" [isLightTheme]="isLightTheme()"></app-stock-deals-card>
+      </section>
 
-    <!-- ===================================================================== -->
-    <!-- ROW 6: PEER COMPARISON                                                -->
-    <!-- ===================================================================== -->
-    <section class="cockpit-row-full peer-comparison-row" id="section-peers">
-      <app-stock-peer-comparison-card [symbol]="selectedSymbol()" [companyName]="companyOverview()?.companyName || ''" [exchange]="selectedExchange()"
-        [peers]="companyPeers()" [isLoading]="isPeersLoading()" [hasError]="hasPeersError()"
-        [industry]="companyOverview()?.industry" [isLightTheme]="isLightTheme()"></app-stock-peer-comparison-card>
-    </section>
+      <!-- ===================================================================== -->
+      <!-- ROW 6: PEER COMPARISON                                                -->
+      <!-- ===================================================================== -->
+      <section class="cockpit-row-full peer-comparison-row" id="section-peers">
+        <app-stock-peer-comparison-card [symbol]="selectedSymbol()" [companyName]="companyOverview()?.companyName || ''"
+          [exchange]="selectedExchange()" [peers]="companyPeers()" [isLoading]="isPeersLoading()"
+          [hasError]="hasPeersError()" [industry]="companyOverview()?.industry"
+          [isLightTheme]="isLightTheme()"></app-stock-peer-comparison-card>
+      </section>
     </div>
   </div>
 
@@ -1176,7 +1190,7 @@
               <span class="eval-symbol-badge">{{ eval.symbol }}</span>
               <span class="eval-exchange-badge">{{ eval.exchange }}</span>
             </div>
-            <span class="eval-subtitle">23-Metric Comprehensive Stock Purchase Scoring Model</span>
+            <span class="eval-subtitle">{{ eval.totalApplicableMetrics || 20 }}-Metric Comprehensive Stock Purchase Scoring Model</span>
           </div>
         </div>
         <div class="eval-header-actions">
@@ -1290,7 +1304,7 @@
 
       </div>
       <div class="eval-modal-footer">
-        <span class="eval-disclaimer">* Algorithmic assessment based on 23 financial and technical indicators. For
+        <span class="eval-disclaimer">* Algorithmic assessment based on {{ eval.totalApplicableMetrics || 20 }} financial and technical indicators. For
           informational &amp; research purposes only.</span>
       </div>
     </div>

@@ -24,5 +24,12 @@ export interface StockHealthScoreResponse {
   pros: string[];
   cons: string[];
   redFlags: string[];
+  totalApplicableMetrics?: number;
+  availableMetricsCount?: number;
+  dataCoveragePercent?: number;
+  dataConfidence?: string;
+  missingMetrics?: string[];
+  inapplicableMetrics?: string[];
+  rawTotalScore?: number;
   evaluatedAt: string;
 }

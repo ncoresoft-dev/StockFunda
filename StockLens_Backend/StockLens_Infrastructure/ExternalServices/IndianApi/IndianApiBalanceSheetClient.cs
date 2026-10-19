@@ -311,8 +311,15 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
                     dto.DividendYield = divVal;
                 }
 
-                // 10. Direct Sector PE check
-                if (TryGetPropertyDecimal(scopes, new[] { "sectorPE", "sectorPe", "industryPE", "industryPe", "sector_pe", "industry_pe", "SectorPE", "IndustryPE", "sectorPeRatio", "industryPeRatio" }, out var secPe) && secPe > 0)
+                if (TryGetPropertyDecimal(scopes, new[] {
+                    "sectorPriceToEarningsValueRatio",
+                    "sectorPE", "sectorPe",
+                    "industryPE", "industryPe",
+                    "sector_pe", "industry_pe",
+                    "SectorPE", "IndustryPE",
+                    "sectorPeRatio", "industryPeRatio",
+                    "sector_price_to_earnings_value_ratio"
+                }, out var secPe) && secPe > 0)
                 {
                     dto.SectorPe = secPe;
                 }

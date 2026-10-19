@@ -97,8 +97,14 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
 
                 if (response.StatusCode == (HttpStatusCode)429) // Too Many Requests
                 {
-                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for financials of ticker {Ticker}. Falling back to mock financials.", cleanTicker);
-                    return MockFinancialProvider.GenerateMockFinancials(cleanTicker);
+                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for financials of ticker {Ticker}. Response: {ErrorBody}.", cleanTicker, errorBody);
+                    if (_settings.UseMockData)
+                    {
+                        return MockFinancialProvider.GenerateMockFinancials(cleanTicker);
+                    }
+                    var retryAfter = response.Headers.RetryAfter?.Delta;
+                    throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API. {errorBody}", retryAfter);
                 }
 
                 if (!response.IsSuccessStatusCode)
@@ -174,8 +180,14 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
 
                 if (response.StatusCode == (HttpStatusCode)429) // Too Many Requests
                 {
-                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for ratios of ticker {Ticker}. Falling back to mock ratios.", cleanTicker);
-                    return MockFinancialProvider.GenerateMockRatios(cleanTicker);
+                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for ratios of ticker {Ticker}. Response: {ErrorBody}.", cleanTicker, errorBody);
+                    if (_settings.UseMockData)
+                    {
+                        return MockFinancialProvider.GenerateMockRatios(cleanTicker);
+                    }
+                    var retryAfter = response.Headers.RetryAfter?.Delta;
+                    throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API. {errorBody}", retryAfter);
                 }
 
                 if (!response.IsSuccessStatusCode)
@@ -251,8 +263,14 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
 
                 if (response.StatusCode == (HttpStatusCode)429)
                 {
-                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for stock details of ticker {Ticker}. Falling back to mock stock details.", cleanTicker);
-                    return MockFinancialProvider.GenerateMockStockDetails(cleanTicker, cleanExchange);
+                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for stock details of ticker {Ticker}. Response: {ErrorBody}.", cleanTicker, errorBody);
+                    if (_settings.UseMockData)
+                    {
+                        return MockFinancialProvider.GenerateMockStockDetails(cleanTicker, cleanExchange);
+                    }
+                    var retryAfter = response.Headers.RetryAfter?.Delta;
+                    throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API. {errorBody}", retryAfter);
                 }
 
                 if (!response.IsSuccessStatusCode)
@@ -327,8 +345,14 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
 
                 if (response.StatusCode == (HttpStatusCode)429)
                 {
-                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for screener data of ticker {Ticker}. Falling back to mock screener.", cleanTicker);
-                    return MockFinancialProvider.GenerateMockScreenerData(cleanTicker, cleanExchange);
+                    var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for screener data of ticker {Ticker}. Response: {ErrorBody}.", cleanTicker, errorBody);
+                    if (_settings.UseMockData)
+                    {
+                        return MockFinancialProvider.GenerateMockScreenerData(cleanTicker, cleanExchange);
+                    }
+                    var retryAfter = response.Headers.RetryAfter?.Delta;
+                    throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API. {errorBody}", retryAfter);
                 }
 
                 if (!response.IsSuccessStatusCode)

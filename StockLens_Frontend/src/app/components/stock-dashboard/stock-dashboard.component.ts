@@ -568,58 +568,39 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         if (data) {
           this.evaluationResponse.set(data);
         } else {
-          this.recomputeEvaluation();
+        
         }
         this.isEvaluationRefreshing.set(false);
       },
       error: () => {
         if (this.selectedSymbol() !== symbol) return;
-        this.recomputeEvaluation();
+       
         this.isEvaluationRefreshing.set(false);
       }
     });
   }
 
-  recomputeEvaluation(): void {
-    const evalData = this.evaluationService.computeClientEvaluation(
-      this.selectedSymbol(),
-      this.selectedExchange(),
-      this.cashflowResponse(),
-      this.quartersResponse(),
-      this.shareholdingResponse(),
-      this.assetsResponse()
-    );
-    this.evaluationResponse.set(evalData);
-  }
+  
 
   getEvaluation(): StockHealthScoreResponse {
     const existing = this.evaluationResponse();
     if (existing && existing.symbol === this.selectedSymbol().toUpperCase()) {
       return existing;
     }
-    if (!this.cashflowResponse()) {
-      return {
-        symbol: this.selectedSymbol(),
-        exchange: this.selectedExchange(),
-        companyName: this.getCompanyName(),
-        totalScore: 0,
-        signal: 'Evaluating...',
-        signalClass: 'badge-analyzing',
-        pros: [],
-        cons: [],
-        redFlags: [],
-        summaryText: 'Evaluating stock metrics...',
-        categoryScores: []
-      } as any;
-    }
-    return this.evaluationService.computeClientEvaluation(
-      this.selectedSymbol(),
-      this.selectedExchange(),
-      this.cashflowResponse(),
-      this.quartersResponse(),
-      this.shareholdingResponse(),
-      this.assetsResponse()
-    );
+    // Return placeholder while backend evaluation loads - do not compute score in UI
+    return {
+      symbol: this.selectedSymbol(),
+      exchange: this.selectedExchange(),
+      companyName: this.getCompanyName(),
+      totalScore: 0,
+      signal: 'Evaluating...',
+      signalClass: 'badge-analyzing',
+      pros: [],
+      cons: [],
+      redFlags: [],
+      summaryText: 'Fetching sector-adaptive algorithmic evaluation from backend...',
+      categoryScores: []
+    } as any;
   }
 
   openEvaluationModal(): void {
@@ -1311,7 +1292,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   getEvaluationVerdict(): { text: string, score: number | string, class: string, progressWidth: number, isLoading: boolean } {
-    if (this.cashflowLoadingState() === 'loading' || !this.cashflowResponse()) {
+    const evalData = this.evaluationResponse();
+    if (this.isEvaluationRefreshing() || !evalData || evalData.symbol !== this.selectedSymbol().toUpperCase()) {
       return {
         text: 'Evaluating...',
         score: '—',
@@ -1321,13 +1303,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       };
     }
 
-    const evalData = this.getEvaluation();
-    const score = evalData.totalScore || 70;
-    const text = evalData.signal || 'Good for Buy';
+    const score = evalData.totalScore ?? 0;
+    const text = evalData.signal || 'Neutral';
     return {
       text,
       score,
-      class: evalData.signalClass || 'badge-success',
+      class: evalData.signalClass || 'badge-good',
       progressWidth: Math.min(100, Math.max(0, score)),
       isLoading: false
     };
