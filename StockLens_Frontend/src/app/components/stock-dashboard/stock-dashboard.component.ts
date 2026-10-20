@@ -30,7 +30,7 @@ import { StockPeerComparisonCardComponent } from '../stock-peer-comparison-card/
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
-export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | 'chart' | 'volume' | 'cashflow' | 'balancesheet' | 'deals' | 'peers';
+export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | 'chart' | 'volume' | 'cashflow' | 'balancesheet' | 'deals' | 'peers' | 'reports';
 
 @Component({
   selector: 'app-stock-dashboard',
@@ -43,7 +43,8 @@ export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | '
     StockTechnicalAnalysis,
     StockVolumeDeliveryCardComponent,
     StockDealsCardComponent,
-    StockPeerComparisonCardComponent
+    StockPeerComparisonCardComponent,
+    StockCompanyAboutCardComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -193,7 +194,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       'cashflow',
       'balancesheet',
       'deals',
-      'peers'
+      'peers',
+      'reports'
     ];
 
     const containerRect = container.getBoundingClientRect();
@@ -202,12 +204,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     // 1. Check if user is scrolled near the bottom of the scroll container
     const isAtBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 80;
     
-    // 2. Check if Peer Comparison section is prominently visible on screen
-    const peersEl = document.getElementById('section-peers');
-    const isPeersVisible = peersEl ? (peersEl.getBoundingClientRect().top - containerRect.top <= containerRect.height * 0.6) : false;
+    // 2. Check if Annual Report section is prominently visible on screen
+    const reportsEl = document.getElementById('section-reports');
+    const isReportsVisible = reportsEl ? (reportsEl.getBoundingClientRect().top - containerRect.top <= containerRect.height * 0.6) : false;
 
-    if (isAtBottom && isPeersVisible) {
-      detectedSection = 'peers';
+    if (isAtBottom && isReportsVisible) {
+      detectedSection = 'reports';
     } else {
       for (const id of sections) {
         const el = document.getElementById('section-' + id);
@@ -753,6 +755,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     const symbol = this.selectedSymbol();
     const exchange = this.selectedExchange();
 
+    // Fetch top 5 freshest news items sorted strictly by time
     this.newsService.getNewsBySymbol(symbol, exchange, 5, 1, isRefresh).subscribe({
       next: (data) => {
         if (this.selectedSymbol() !== symbol) return;

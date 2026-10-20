@@ -7599,3 +7599,16 @@
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
+
+/* Screener Annual Report Section Row */
+.annual-report-section-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.85rem;
+}
+
+.annual-report-section-row app-stock-company-about-card {
+  width: 100%;
+  display: block;
+}

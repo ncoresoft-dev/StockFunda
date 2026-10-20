@@ -92,6 +92,7 @@ builder.Services.AddScoped<IStockBalanceSheetRepository, StockBalanceSheetReposi
 builder.Services.AddScoped<IStockPriceHistoryRepository, StockPriceHistoryRepository>();
 builder.Services.AddScoped<IStockDealsRepository, StockDealsRepository>();
 builder.Services.AddScoped<IStockPeerRepository, StockPeerRepository>();
+builder.Services.AddScoped<IStockAnnualReportRepository, StockAnnualReportRepository>();
 
 // Register Seeders
 builder.Services.AddTransient<CompanyMasterSeeder>();
@@ -102,6 +103,14 @@ builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.Screene
 {
     client.BaseAddress = new Uri("https://www.screener.in/");
     client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+// Register Gemini & Annual Report AI Extractor
+builder.Services.Configure<StockLens_Infrastructure.ExternalServices.AnnualReportInsights.GeminiSettings>(
+    builder.Configuration.GetSection(StockLens_Infrastructure.ExternalServices.AnnualReportInsights.GeminiSettings.SectionName));
+builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.AnnualReportInsights.IAnnualReportInsightExtractor, StockLens_Infrastructure.ExternalServices.AnnualReportInsights.AnnualReportInsightExtractor>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(120);
 });
 
 // Register Business Services

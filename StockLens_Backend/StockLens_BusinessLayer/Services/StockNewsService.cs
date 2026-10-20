@@ -114,7 +114,7 @@ namespace StockLens_BusinessLayer.Services
             if (forceRefresh || !isCacheFresh)
             {
                 _logger.LogInformation(
-                    "News cache stale or refresh requested for Stock {Symbol} (StockId: {StockId}, ForceRefresh: {ForceRefresh}). Fetching from IndianAPI.",
+                    "News cache stale or refresh requested for Stock {Symbol} (StockId: {StockId}, ForceRefresh: {ForceRefresh}). Fetching from Google News.",
                     stock.Symbol, stock.Id, forceRefresh);
 
                 await SyncNewsFromIndianApiAsync(stock, cancellationToken);
@@ -126,7 +126,16 @@ namespace StockLens_BusinessLayer.Services
                     stock.Symbol, stock.Id, lastFetchedAt);
             }
 
-            var newsEntities = await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page);
+            var newsEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
+
+            // If cache was considered fresh but DB has 0 items, auto-sync to fetch news
+            if (!forceRefresh && isCacheFresh && newsEntities.Count == 0)
+            {
+                _logger.LogInformation("Stock {Symbol} has 0 news in DB. Triggering fresh sync from Google News.", stock.Symbol);
+                await SyncNewsFromIndianApiAsync(stock, cancellationToken);
+                newsEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
+            }
+
             var newsDtos = _mapper.Map<List<StockNewsItemDto>>(newsEntities);
 
             // Restore the full URL (which is stored in Content to avoid DB limits)

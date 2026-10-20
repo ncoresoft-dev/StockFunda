@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -32,11 +33,31 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
 
             try
             {
-                //var query = Uri.EscapeDataString($"{symbol} share price");
-                var query = Uri.EscapeDataString($"{symbol} {companyName}");
+                // Clean company name (remove legal suffixes like Limited, Ltd, etc.)
+                var cleanCompanyName = companyName?.Trim() ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(cleanCompanyName))
+                {
+                    cleanCompanyName = Regex.Replace(
+                        cleanCompanyName,
+                        @"\b(Limited|Ltd\.?|L\.?P\.?|Corp\.?|Corporation|Inc\.?)\b",
+                        "",
+                        RegexOptions.IgnoreCase).Trim();
+                }
+
+                // Wrap in quotes to force Google News to match the exact entity name
+                string query;
+                if (!string.IsNullOrWhiteSpace(cleanCompanyName) && !cleanCompanyName.Equals(symbol, StringComparison.OrdinalIgnoreCase))
+                {
+                    query = Uri.EscapeDataString($"\"{cleanCompanyName}\"");
+                }
+                else
+                {
+                    query = Uri.EscapeDataString($"\"{symbol}\"");
+                }
+
                 var rssUrl = $"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en";
 
-                _logger.LogInformation("Fetching Google News RSS for {Symbol}: {Url}", symbol, rssUrl);
+                _logger.LogInformation("Fetching Google News RSS for {Symbol} (Query: {Query}): {Url}", symbol, query, rssUrl);
 
                 var response = await _httpClient.GetAsync(rssUrl, cancellationToken);
                 if (!response.IsSuccessStatusCode)
@@ -47,8 +68,46 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
 
                 var xmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 var doc = XDocument.Parse(xmlContent);
-
                 var items = doc.Descendants("item");
+
+                var junkSources = new[]
+                {
+                    "ad-hoc-news", "stock titan", "siam.in", "techgraph", "univest",
+                    "kalkine", "finanzen", "marketscreener", "ticker report",
+                    "defense world", "zacks", "investorplace", "gurufocus", "marketbeat"
+                };
+
+                var spamPatterns = new[]
+                {
+                    "share price - live",
+                    "live nse/bse",
+                    "forecast — price target",
+                    "forecast - price target",
+                    "price to sales forward",
+                    "option chain",
+                    "technical analysis and expert forecasts",
+                    "share price news: fundamentals",
+                    "share price nse",
+                    "share price bse"
+                };
+
+                // Stopwords for deduplication comparison (ignore common generic stock terms)
+                var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "share", "shares", "price", "prices", "stock", "stocks", "today", "market", "markets",
+                    "limited", "target", "india", "live", "about", "after", "before", "under", "ahead", "outlook"
+                };
+                if (!string.IsNullOrWhiteSpace(symbol))
+                {
+                    stopWords.Add(symbol.ToLowerInvariant());
+                }
+                if (!string.IsNullOrWhiteSpace(cleanCompanyName))
+                {
+                    foreach (var w in cleanCompanyName.ToLowerInvariant().Split(new[] { ' ', '.', ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (w.Length > 2) stopWords.Add(w);
+                    }
+                }
 
                 foreach (var item in items)
                 {
@@ -65,22 +124,48 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
                         publishedAt = parsedDate.ToUniversalTime();
                     }
 
-                    // Extract actual source from the title if available (Google News appends it often like "Headline - SourceName")
+                    // Extract actual source from the title if available (Google News appends it like "Headline - SourceName")
                     var sourceName = source;
-                    if (title.Contains(" - "))
+                    var lastDashIndex = title.LastIndexOf(" - ", StringComparison.Ordinal);
+                    if (lastDashIndex > 0)
                     {
-                        var parts = title.Split(" - ");
-                        sourceName = parts.Last().Trim();
-                        // Clean up title
-                        title = string.Join(" - ", parts.Take(parts.Length - 1)).Trim();
+                        sourceName = title.Substring(lastDashIndex + 3).Trim();
+                        title = title.Substring(0, lastDashIndex).Trim();
+                    }
+
+                    var titleLower = title.ToLowerInvariant();
+                    var srcLower = sourceName.ToLowerInvariant();
+                    var linkLower = link.ToLowerInvariant();
+
+                    // 1. Filter out known foreign aggregators & junk bot scrapers
+                    if (junkSources.Any(j => srcLower.Contains(j) || linkLower.Contains(j)))
+                    {
+                        continue;
+                    }
+
+                    // 2. Filter out generic live ticker & chart spam pages
+                    if (spamPatterns.Any(p => titleLower.Contains(p)))
+                    {
+                        continue;
+                    }
+
+                    // 3. Title relevance guard: Reject any article where the headline does not mention the company name or symbol
+                    if (!IsArticleRelevant(title, symbol, cleanCompanyName))
+                    {
+                        continue;
                     }
 
                     // --- SMART NEWS CLASSIFIER ---
-                    var titleLower = title.ToLowerInvariant();
                     string smartCategory = "Market News";
-
-                    if (new[] { "resign", "step down", "quits", "fired", "sacked", "ousted", "fraud", "scam", "sebi", "cbi", "ed raid", "it raid", "auditor quits", "default", "bankrupt", "promoter sells" }.Any(k => titleLower.Contains(k)))
+                    if (new[] { 
+                        "resign", "step down", "quits", "fired", "sacked", "ousted", 
+                        "fraud", "scam", "sebi", "cbi", "ed raid", "it raid", "auditor quits", 
+                        "default", "bankrupt", "promoter sells", "promoter stake", "stake sale", 
+                        "stake acquisition", "acquisition", "acquire", "takeover", "merger", "order win" 
+                    }.Any(k => titleLower.Contains(k)))
+                    {
                         smartCategory = "Key Update";
+                    }
 
                     var article = new IndianApiStandardArticle
                     {
@@ -98,29 +183,37 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
                     articles.Add(article);
                 }
 
+                // Sort by PublishedAt descending
                 var sortedArticles = articles
                     .OrderByDescending(a => a.PublishedAt)
                     .ToList();
 
                 var distinctArticles = new List<IndianApiStandardArticle>();
-                
+
                 foreach (var article in sortedArticles)
                 {
                     bool isDuplicate = false;
+                    var aWords = article.Title.ToLowerInvariant()
+                        .Split(new[] { ' ', '-', ':', ',', ';', '(', ')', '"', '\'', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => w.Length > 3 && !stopWords.Contains(w))
+                        .ToList();
+
                     foreach (var existing in distinctArticles)
                     {
-                        if (article.Category != "Market News" && article.Category == existing.Category && article.PublishedAt.Date == existing.PublishedAt.Date)
+                        // Duplicate check only applies if published on the exact same date
+                        if (article.PublishedAt.Date == existing.PublishedAt.Date)
                         {
-                            isDuplicate = true;
-                            break;
-                        }
-                        
-                        var words1 = article.Title.ToLower().Split(new[] { ' ', '-', ':', ',' }, StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length > 4);
-                        var words2 = existing.Title.ToLower().Split(new[] { ' ', '-', ':', ',' }, StringSplitOptions.RemoveEmptyEntries).Where(w => w.Length > 4);
-                        if (words1.Intersect(words2).Count() >= 3)
-                        {
-                            isDuplicate = true;
-                            break;
+                            var exWords = existing.Title.ToLowerInvariant()
+                                .Split(new[] { ' ', '-', ':', ',', ';', '(', ')', '"', '\'', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Where(w => w.Length > 3 && !stopWords.Contains(w))
+                                .ToList();
+
+                            var overlap = aWords.Intersect(exWords).Count();
+                            if (overlap >= 3)
+                            {
+                                isDuplicate = true;
+                                break;
+                            }
                         }
                     }
 
@@ -130,20 +223,34 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
                     }
                 }
 
-                // 1 Day Filter Logic for Normal News, 15 Day Filter for Key Updates
-                var recentNews = distinctArticles.Where(a => 
-                    (DateTime.UtcNow - a.PublishedAt).TotalDays <= 1 || 
-                    (a.Category == "Key Update" && (DateTime.UtcNow - a.PublishedAt).TotalDays <= 15)
-                ).ToList();
-                
-                // Fallback: If not enough recent news, take the top 5 absolute latest available
-                var finalNews = recentNews.Count >= 5 ? recentNews.Take(5).ToList() : distinctArticles.Take(5).ToList();
-
-                // Out of the final 5, force any Key Updates to the very top
-                return finalNews
-                    .OrderByDescending(a => a.Category == "Key Update" ? 1 : 0)
-                    .ThenByDescending(a => a.PublishedAt)
+                // Selection: Prioritize top-tier Indian financial & national media if available (within last 7 days)
+                var cutoff = DateTime.UtcNow.AddDays(-7);
+                var recentPreferred = distinctArticles
+                    .Where(a => GetSourcePriority(a.SourceName, a.Content) >= 1 && a.PublishedAt >= cutoff)
+                    .OrderByDescending(a => a.PublishedAt)
                     .ToList();
+
+                List<IndianApiStandardArticle> finalSelection;
+                if (recentPreferred.Count >= 5)
+                {
+                    finalSelection = recentPreferred.Take(5).ToList();
+                }
+                else
+                {
+                    // If fewer than 5 preferred sources, take all preferred and backfill with freshest genuine articles
+                    var filled = new List<IndianApiStandardArticle>(recentPreferred);
+                    foreach (var other in distinctArticles.OrderByDescending(a => a.PublishedAt))
+                    {
+                        if (!filled.Any(f => f.ExternalNewsId == other.ExternalNewsId))
+                        {
+                            filled.Add(other);
+                            if (filled.Count == 5) break;
+                        }
+                    }
+                    finalSelection = filled.OrderByDescending(a => a.PublishedAt).ToList();
+                }
+
+                return finalSelection;
             }
             catch (Exception ex)
             {
@@ -151,6 +258,76 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
             }
 
             return articles;
+        }
+
+        private static int GetSourcePriority(string sourceName, string url)
+        {
+            var text = (sourceName + " " + url).ToLowerInvariant();
+
+            // Tier 2: Top Indian Financial Media
+            if (text.Contains("economic times") || text.Contains("economictimes") ||
+                text.Contains("moneycontrol") ||
+                text.Contains("livemint") || text.Contains("mint") ||
+                text.Contains("ndtv profit") || text.Contains("ndtv") ||
+                text.Contains("business today") || text.Contains("businesstoday") ||
+                text.Contains("business standard") || text.Contains("business-standard") ||
+                text.Contains("cnbc") || text.Contains("cnbctv18") ||
+                text.Contains("zee business") || text.Contains("zeebiz") ||
+                text.Contains("businessline") || text.Contains("thehindubusinessline") ||
+                text.Contains("financial express") || text.Contains("financialexpress"))
+            {
+                return 2;
+            }
+
+            // Tier 1: Reputable General Indian National Media
+            if (text.Contains("the hindu") || text.Contains("thehindu") ||
+                text.Contains("indian express") || text.Contains("indianexpress") ||
+                text.Contains("times of india") || text.Contains("timesofindia") ||
+                text.Contains("hindustan times") || text.Contains("hindustantimes") ||
+                text.Contains("deccan") || text.Contains("reuters") || text.Contains("bloomberg"))
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        private static bool IsArticleRelevant(string title, string symbol, string? cleanCompanyName)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return false;
+
+            var titleLower = title.ToLowerInvariant();
+            var symLower = symbol.ToLowerInvariant();
+
+            // 1. Exact ticker symbol in title (e.g. "HDFCBANK", "BANDHANBNK", "RELIANCE")
+            if (titleLower.Contains(symLower)) return true;
+
+            // 2. Full clean company name in title (e.g. "hdfc bank", "bandhan bank", "tata motors")
+            if (!string.IsNullOrWhiteSpace(cleanCompanyName))
+            {
+                var cleanLower = cleanCompanyName.ToLowerInvariant();
+                if (cleanLower.Length >= 3 && titleLower.Contains(cleanLower)) return true;
+
+                // 3. Significant keywords from company name (excluding generic words)
+                var genericWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "bank", "india", "limited", "ltd", "corporation", "corp", "company", "co",
+                    "industries", "industry", "services", "service", "technologies", "tech",
+                    "holdings", "holding", "finance", "financial", "solutions", "enterprises",
+                    "international", "global", "group"
+                };
+
+                var words = cleanLower.Split(new[] { ' ', '-', '.', '&', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(w => w.Length >= 3 && !genericWords.Contains(w))
+                    .ToList();
+
+                if (words.Any(w => titleLower.Contains(w)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static string ComputeSha256Hash(string rawData)

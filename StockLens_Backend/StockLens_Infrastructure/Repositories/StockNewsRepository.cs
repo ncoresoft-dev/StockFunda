@@ -20,17 +20,22 @@ namespace StockLens_Infrastructure.Repositories
 
         public async Task<IEnumerable<StockNews>> GetNewsByStockIdAsync(int stockId, int limit = 5, int page = 1)
         {
-            if (page < 1) page = 1;
-            if (limit < 1) limit = 5;
-            if (limit > 100) limit = 100;
-
-            return await _context.StockNews
+            var query = _context.StockNews
                 .AsNoTracking()
                 .Where(sn => sn.StockId == stockId)
-                .OrderByDescending(sn => sn.PublishedAt)
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToListAsync();
+                .OrderByDescending(sn => sn.PublishedAt);
+
+            // If limit > 0, paginate. If limit <= 0 (for testing), return all news without limit.
+            if (limit > 0)
+            {
+                if (page < 1) page = 1;
+                return await query
+                    .Skip((page - 1) * limit)
+                    .Take(limit)
+                    .ToListAsync();
+            }
+
+            return await query.ToListAsync();
         }
 
         public async Task<DateTime?> GetLatestFetchedAtByStockIdAsync(int stockId)
@@ -78,7 +83,10 @@ namespace StockLens_Infrastructure.Repositories
 
         public async Task DeleteOldNewsAsync(int stockId, int keepCount)
         {
-            // DB mein strictly `keepCount` (e.g. 5) items hi rakhne ke liye baki sab delete karo
+            // If keepCount <= 0, do not delete any news (for testing / unlimited retention)
+            if (keepCount <= 0) return;
+
+            // DB mein strictly `keepCount` items hi rakhne ke liye baki sab delete karo
             var oldNews = await _context.StockNews
                 .Where(sn => sn.StockId == stockId)
                 .OrderByDescending(sn => sn.PublishedAt)

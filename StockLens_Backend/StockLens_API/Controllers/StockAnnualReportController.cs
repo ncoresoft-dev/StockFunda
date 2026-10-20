@@ -51,35 +51,5 @@ namespace StockLens_API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to fetch annual reports.", error = ex.Message });
             }
         }
-
-        /// <summary>
-        /// Retrieves Annual Report by Stock ID.
-        /// </summary>
-        /// <param name="stockId">The database ID of the stock.</param>
-        /// <param name="refresh">Force cache refresh if needed (defaults to false).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        [HttpGet("id/{stockId:int}/annual-reports")]
-        [ProducesResponseType(typeof(StockAnnualReportsResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetAnnualReportsByStockId(
-            [FromRoute] int stockId,
-            [FromQuery] bool refresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var response = await _annualReportService.GetAnnualReportsByStockIdAsync(stockId, refresh, cancellationToken);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to fetch annual reports.", error = ex.Message });
-            }
-        }
     }
 }

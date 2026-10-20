@@ -218,6 +218,19 @@
           </svg>
           <span>Peer Comparison</span>
         </button>
+
+        <!-- Tab 11: Annual Report Insights -->
+        <button type="button" class="screener-tab-item" [class.active]="activeOverviewTab() === 'reports'"
+          (click)="scrollToSection('reports')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>Annual Report</span>
+        </button>
       </div>
     </div>
   </nav>
@@ -476,9 +489,16 @@
                   <span class="kp-val">{{ getCompanyCapCategory() }}</span>
                 </div>
               </div>
-              <button type="button" class="screener-readmore-btn" (click)="openAboutModal()">
-                READ MORE &gt;
-              </button>
+              <div class="about-side-actions"
+                style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.4rem;">
+                <button type="button" class="screener-readmore-btn" (click)="openAboutModal()">
+                  READ MORE &gt;
+                </button>
+                <button type="button" class="screener-readmore-btn" style="color: #10b981;"
+                  (click)="scrollToSection('reports')" title="Jump to Annual Report & AI Insights">
+                  ANNUAL REPORT &gt;
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -500,6 +520,12 @@
               </svg>
             </div>
             <span class="card-title-text">Latest News</span>
+            @if (getDisplayNewsList().length > 0) {
+            <span class="news-count-badge"
+              style="font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 600;">
+              {{ getDisplayNewsList().length }}
+            </span>
+            }
           </div>
         </div>
 
@@ -1174,6 +1200,15 @@
           [hasError]="hasPeersError()" [industry]="companyOverview()?.industry"
           [isLightTheme]="isLightTheme()"></app-stock-peer-comparison-card>
       </section>
+
+      <!-- ===================================================================== -->
+      <!-- SECTION 11: ANNUAL REPORT & MANAGEMENT INSIGHTS (AI EXTRACTED)        -->
+      <!-- ===================================================================== -->
+      <section class="cockpit-row-full annual-report-section-row" id="section-reports">
+        <app-stock-company-about-card [symbol]="selectedSymbol()" [exchange]="selectedExchange()"
+          [companyName]="getCompanyName()" [isLightTheme]="isLightTheme()">
+        </app-stock-company-about-card>
+      </section>
     </div>
   </div>
 
@@ -1190,7 +1225,8 @@
               <span class="eval-symbol-badge">{{ eval.symbol }}</span>
               <span class="eval-exchange-badge">{{ eval.exchange }}</span>
             </div>
-            <span class="eval-subtitle">{{ eval.totalApplicableMetrics || 20 }}-Metric Comprehensive Stock Purchase Scoring Model</span>
+            <span class="eval-subtitle">{{ eval.totalApplicableMetrics || 20 }}-Metric Comprehensive Stock Purchase
+              Scoring Model</span>
           </div>
         </div>
         <div class="eval-header-actions">
@@ -1304,7 +1340,8 @@
 
       </div>
       <div class="eval-modal-footer">
-        <span class="eval-disclaimer">* Algorithmic assessment based on {{ eval.totalApplicableMetrics || 20 }} financial and technical indicators. For
+        <span class="eval-disclaimer">* Algorithmic assessment based on {{ eval.totalApplicableMetrics || 20 }}
+          financial and technical indicators. For
           informational &amp; research purposes only.</span>
       </div>
     </div>

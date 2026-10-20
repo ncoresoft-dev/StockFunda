@@ -21,6 +21,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<StockDeal> StockDeals => Set<StockDeal>();
         public DbSet<StockPeer> StockPeers => Set<StockPeer>();
         public DbSet<MarketIndexConstituent> MarketIndexConstituents => Set<MarketIndexConstituent>();
+        public DbSet<StockAnnualReport> StockAnnualReports => Set<StockAnnualReport>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -529,6 +530,29 @@ namespace StockLens_Infrastructure.DataContext
 
                 entity.HasIndex(d => new { d.StockId, d.DealCategory, d.DealDate })
                     .HasDatabaseName("IX_StockDeals_StockId_Category_Date");
+            });
+
+            // StockAnnualReports configuration
+            modelBuilder.Entity<StockAnnualReport>(entity =>
+            {
+                entity.ToTable("StockAnnualReports");
+                entity.HasKey(r => r.Id);
+
+                entity.Property(r => r.Title).HasMaxLength(300).IsRequired();
+                entity.Property(r => r.Year).HasMaxLength(20);
+                entity.Property(r => r.PdfUrl).HasMaxLength(2000).IsRequired();
+                entity.Property(r => r.Source).HasMaxLength(100);
+                entity.Property(r => r.ExtractedInsightsJson).HasColumnType("nvarchar(max)");
+                entity.Property(r => r.ExtractionStatus).HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(r => r.SchemaVersion).HasDefaultValue(1);
+
+                entity.HasOne(r => r.Stock)
+                    .WithMany(s => s.AnnualReports)
+                    .HasForeignKey(r => r.StockId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(r => new { r.StockId, r.Year })
+                    .HasDatabaseName("IX_StockAnnualReports_StockId_Year");
             });
         }
     }

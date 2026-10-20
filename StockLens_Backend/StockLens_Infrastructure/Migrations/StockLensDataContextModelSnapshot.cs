@@ -169,6 +169,70 @@ namespace StockLens_Infrastructure.Migrations
                     b.ToTable("Stocks", (string)null);
                 });
 
+            modelBuilder.Entity("StockLens_DataLayer.Entities.StockAnnualReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExtractedInsightsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtractionStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PdfUrl")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("StockId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Year")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StockId", "Year")
+                        .HasDatabaseName("IX_StockAnnualReports_StockId_Year");
+
+                    b.ToTable("StockAnnualReports", (string)null);
+                });
+
             modelBuilder.Entity("StockLens_DataLayer.Entities.StockBalanceSheet", b =>
                 {
                     b.Property<int>("Id")
@@ -852,6 +916,17 @@ namespace StockLens_Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("StockLens_DataLayer.Entities.StockAnnualReport", b =>
+                {
+                    b.HasOne("StockLens_DataLayer.Entities.Stock", "Stock")
+                        .WithMany("AnnualReports")
+                        .HasForeignKey("StockId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Stock");
+                });
+
             modelBuilder.Entity("StockLens_DataLayer.Entities.StockBalanceSheet", b =>
                 {
                     b.HasOne("StockLens_DataLayer.Entities.Stock", "Stock")
@@ -936,6 +1011,8 @@ namespace StockLens_Infrastructure.Migrations
 
             modelBuilder.Entity("StockLens_DataLayer.Entities.Stock", b =>
                 {
+                    b.Navigation("AnnualReports");
+
                     b.Navigation("Financials");
 
                     b.Navigation("News");

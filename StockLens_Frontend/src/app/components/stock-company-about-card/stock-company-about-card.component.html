@@ -1,133 +1,306 @@
-<div class="company-about-card">
-  <!-- Loading Skeleton -->
-  @if (isLoading() && !companyOverview()) {
-  <div class="skeleton-wrapper">
-    <div class="skeleton-header shimmer"></div>
-    <div class="skeleton-line shimmer full"></div>
-    <div class="skeleton-line shimmer three-quarter"></div>
-    <div class="skeleton-line shimmer half"></div>
-  </div>
-  }
+<div class="company-about-card growth-insights-card" [class.light-mode]="isLightTheme">
+  <div class="card-section-block annual-report-block">
 
-  <!-- Error State -->
-  @if (hasError() && !companyOverview()) {
-  <div class="error-box">
-    <span class="error-msg">{{ errorMessage() }}</span>
-    <button type="button" class="retry-btn" (click)="fetchCompanyOverview(true)">Retry</button>
-  </div>
-  }
-
-  <!-- Main Content Display -->
-  @if (companyOverview(); as data) {
-  <!-- ========================================================================= -->
-  <!-- 1. ABOUT COMPANY BLOCK                                                    -->
-  <!-- ========================================================================= -->
-  <div class="card-section-block about-block">
+    <!-- Top Header Bar -->
     <div class="section-top-header">
       <div class="header-title-group">
-        @if (data.logoUrl) {
-        <div class="about-company-logo-badge">
-          <img [src]="data.logoUrl" [alt]="data.companyName + ' Logo'" class="about-logo-img"
-            (error)="$any($event.target).parentElement.style.display='none'" />
+        <div class="icon-ring text-blue">
+          <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
         </div>
-        } @else {
-        <svg class="header-icon text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 21h18"></path>
-          <path d="M5 21V7l8-4v18"></path>
-          <path d="M19 21V11l-6-4"></path>
-          <path d="M9 9v.01"></path>
-          <path d="M9 13v.01"></path>
-          <path d="M9 17v.01"></path>
-        </svg>
-        }
-        <span class="section-title-text">ABOUT {{ data.companyName ? data.companyName.toUpperCase() : 'COMPANY'
-          }}</span>
+        <div class="header-texts">
+          <div class="title-with-badge">
+            <h3 class="section-title-text">Company Growth Insights</h3>
+            @if (annualReportResponse()?.reports?.[0]?.year; as yr) {
+            <span class="ar-year-badge">FY {{ yr }}</span>
+            }
+          </div>
+          <p class="section-subtitle-text">Verified business expansion, capex, deals, subsidies, and strategic
+            initiatives from official Annual Report filings.</p>
+        </div>
       </div>
 
       <div class="header-actions-group">
-        <span class="source-badge" [title]="'Data Source: ' + data.source">
-          <span class="source-dot"></span>
-          {{ data.source === 'Hybrid' ? 'HYBRID (INDIAN API + YAHOO)' : (data.source | uppercase) }}
-        </span>
-        @if (isLoading()) {
-        <div class="mini-spinner"></div>
+        @if (annualReportResponse()?.reports?.[0]?.pdfUrl; as pdfLink) {
+        <button type="button" class="official-pdf-btn" (click)="openPdf(pdfLink)"
+          title="Open official Annual Report PDF">
+          <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>OFFICIAL PDF</span>
+        </button>
         }
+        <button type="button" class="refresh-ar-btn" (click)="fetchAnnualReport(true)" [disabled]="isReportLoading()"
+          title="Refresh / Re-extract Report">
+          <svg class="refresh-icon" [class.spinning]="isReportLoading()" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <div class="about-text-wrapper">
-      <p class="about-paragraph">
-        {{ getTruncatedAbout(data.about) }}
-      </p>
-      @if (data.about && data.about.length > 600) {
-      <button type="button" class="read-more-btn" (click)="toggleExpand()">
-        <span>[{{ isExpanded() ? 'Show less' : 'Read more' }}]</span>
-        <svg class="expand-icon" [class.rotated]="isExpanded()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2.5">
-          <path d="M6 9l6 6 6-6"></path>
-        </svg>
+    <!-- ========================================================================= -->
+    <!-- 1. LOADING STATE                                                          -->
+    <!-- ========================================================================= -->
+    @if (isReportLoading()) {
+    <div class="ar-loading-box">
+      <div class="mini-spinner text-blue"></div>
+      <div class="loading-labels">
+        <span class="loading-title">Analyzing Annual Report with AI for {{ symbol }}...</span>
+        <span class="loading-sub">Extracting verified business expansion, order awards, capex plans, and strategic
+          initiatives.</span>
+      </div>
+    </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- 2. NOT AVAILABLE FALLBACK                                                  -->
+    <!-- ========================================================================= -->
+    @if (!isReportLoading() && annualReportResponse()?.extractionStatus === 'NotAvailable') {
+    <div class="ar-info-box not-available-box">
+      <svg class="info-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+      <span>{{ annualReportResponse()?.message || 'Annual report document is currently not filed or available for this
+        equity.' }}</span>
+    </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- 3. PENDING / PROCESSING FALLBACK                                          -->
+    <!-- ========================================================================= -->
+    @if (!isReportLoading() && !annualReportResponse()?.insights && annualReportResponse()?.extractionStatus !==
+    'NotAvailable') {
+    <div class="ar-info-box pending-box">
+      <svg class="info-icon text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="pending-text">
+        <strong>Annual report filing retrieved.</strong> Click 'OFFICIAL PDF' above to inspect the filing, or click the
+        refresh button to trigger deep AI extraction.
+      </div>
+    </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- 4. INSIGHTS DISPLAY (DATA LOADED)                                         -->
+    <!-- ========================================================================= -->
+    @if (!isReportLoading() && annualReportResponse()?.insights; as insights) {
+
+    <!-- Executive Summary Card -->
+    @if (insights.executiveSummary) {
+    <div class="executive-summary-banner">
+      <div class="exec-summary-icon">💡</div>
+      <div class="exec-summary-content">
+        <span class="exec-summary-label">Executive Strategic Summary</span>
+        <p class="exec-summary-text">{{ insights.executiveSummary }}</p>
+      </div>
+    </div>
+    }
+
+    <!-- Display Group Navigation Pills -->
+    <div class="display-groups-nav">
+      @for (group of getDisplayGroupMetaList(); track group.key) {
+      <button type="button" class="group-nav-pill" [class.active]="activeDisplayGroup() === group.key"
+        (click)="setDisplayGroup(group.key)">
+        <span class="pill-icon">{{ group.icon }}</span>
+        <span class="pill-label">{{ group.shortLabel }}</span>
+        <span class="pill-count">{{ group.count }}</span>
+      </button>
+      }
+
+      <button type="button" class="group-nav-pill view-all-pill" [class.active]="activeDisplayGroup() === 'all'"
+        (click)="setDisplayGroup('all')">
+        <span class="pill-icon">📂</span>
+        <span class="pill-label">All Insights</span>
+        <span class="pill-count">{{ getAllInsightsList().length }}</span>
+      </button>
+    </div>
+
+    <!-- Active Filter Header -->
+    <div class="active-group-header">
+      <span class="active-group-title">
+        @if (activeDisplayGroup() === 'top') {
+        ⚡ Showing Top {{ getCurrentDisplayItems().length }} High-Impact Growth Insights (Ranked by Material Impact)
+        } @else if (activeDisplayGroup() === 'all') {
+        📂 Showing All {{ getCurrentDisplayItems().length }} Verified Growth Insights Across All Categories
+        } @else {
+        Showing {{ getCurrentDisplayItems().length }} items in this category
+        }
+      </span>
+      @if (activeDisplayGroup() === 'top' && getAllInsightsList().length > 6) {
+      <button type="button" class="btn-link-all" (click)="setDisplayGroup('all')">
+        View all {{ getAllInsightsList().length }} insights &rarr;
       </button>
       }
     </div>
-  </div>
 
-  <!-- ========================================================================= -->
-  <!-- 2. CORPORATE PROFILE BLOCK                                                -->
-  <!-- ========================================================================= -->
-  <div class="card-section-block profile-block">
-    <div class="section-top-header profile-header-bar">
-      <div class="header-title-group">
-        <svg class="header-icon text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
+    <!-- Insights Grid -->
+    @if (getCurrentDisplayItems().length > 0) {
+    <div class="insights-cards-grid">
+      @for (item of getCurrentDisplayItems(); track $index) {
+      <div class="growth-insight-card">
+        <!-- Card Header Badges -->
+        <div class="card-meta-row">
+          <div class="meta-left">
+            <span class="category-tag">{{ item.category }}</span>
+            @if (item.reportingPeriod) {
+            <span class="period-tag">{{ item.reportingPeriod }}</span>
+            }
+          </div>
+          @if (item.status) {
+          <span [class]="getStatusClass(item.status)">
+            <span class="status-dot"></span>
+            {{ item.status }}
+          </span>
+          }
+        </div>
+
+        <!-- Card Title -->
+        <h4 class="insight-title">{{ item.title }}</h4>
+
+        <!-- Card Summary -->
+        <p class="insight-summary">{{ item.summary }}</p>
+
+        <!-- Optional Expected Benefit -->
+        @if (item.expectedBenefit) {
+        <div class="benefit-box">
+          <span class="benefit-label">Expected Benefit:</span>
+          <span class="benefit-text">{{ item.expectedBenefit }}</span>
+        </div>
+        }
+
+        <!-- Card Footer Meta Details -->
+        <div class="card-footer-row">
+          <div class="footer-indicators">
+            <!-- Financial Value (₹ / $ / %) -->
+            @if (formatFinancialValue(item); as finVal) {
+            <span class="financial-val-badge">
+              <svg class="val-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              {{ finVal }}
+            </span>
+            }
+
+            <!-- Expected Completion Date -->
+            @if (item.expectedDate) {
+            <span class="target-date-badge">
+              <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              {{ item.expectedDate }}
+            </span>
+            }
+          </div>
+
+          <!-- Source Traceability Action -->
+          <div class="footer-source-actions">
+            @if (item.sourceText || item.sourcePage) {
+            <button type="button" class="source-inspect-btn" (click)="openSourceSnippet(item)"
+              title="Verify source excerpt in Annual Report">
+              <svg class="verify-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <span>{{ item.sourcePage ? ('Page ' + item.sourcePage) : 'Verify Source' }}</span>
+            </button>
+            }
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    } @else {
+    <!-- Empty State for filtered category (NO dummy data created!) -->
+    <div class="empty-category-box">
+      <div class="empty-icon">📂</div>
+      <h4 class="empty-title">No specific disclosures found for this category</h4>
+      <p class="empty-desc">The company's official Annual Report did not contain material disclosed events or concrete
+        figures for this dimension.</p>
+      <button type="button" class="empty-reset-btn" (click)="setDisplayGroup('top')">
+        Back to Top High-Impact Highlights
+      </button>
+    </div>
+    }
+
+    }
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: PDF VERIFICATION EXCERPT & SOURCE TRACEABILITY                    -->
+<!-- ========================================================================= -->
+@if (activeSourceModalItem(); as modalItem) {
+<div class="source-modal-backdrop" (click)="closeSourceSnippet()">
+  <div class="source-modal-card" (click)="$event.stopPropagation()">
+    <div class="source-modal-header">
+      <div class="modal-header-title">
+        <svg class="modal-verified-icon text-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span class="section-title-text">CORPORATE PROFILE</span>
+        <span>Annual Report Source Verification</span>
+      </div>
+      <button type="button" class="source-modal-close" (click)="closeSourceSnippet()">&times;</button>
+    </div>
+
+    <div class="source-modal-body">
+      <div class="source-item-meta">
+        <span class="source-category-badge">{{ modalItem.category }}</span>
+        @if (modalItem.sourcePage) {
+        <span class="source-page-badge">📄 Page {{ modalItem.sourcePage }}</span>
+        }
+        @if (modalItem.status) {
+        <span [class]="getStatusClass(modalItem.status)">{{ modalItem.status }}</span>
+        }
       </div>
 
-      @if (data.websiteUrl) {
-      <button type="button" class="official-website-btn" (click)="openWebsite(data.websiteUrl)"
-        title="Visit official company website">
-        <span>OFFICIAL WEBSITE</span>
-        <svg class="ext-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <h3 class="source-item-title">{{ modalItem.title }}</h3>
+
+      <div class="excerpt-quote-box">
+        <span class="excerpt-label">Verbatim Extract from Official Filing:</span>
+        <blockquote class="verbatim-quote">
+          "{{ modalItem.sourceText || modalItem.summary }}"
+        </blockquote>
+      </div>
+
+      <p class="source-disclaimer">
+        * Extracted strictly from {{ symbol }}'s official Annual Report filing ({{ getFinancialYear() }}). Values and
+        statements reflect management disclosures as published.
+      </p>
+    </div>
+
+    <div class="source-modal-footer">
+      @if (annualReportResponse()?.reports?.[0]?.pdfUrl; as pdfLink) {
+      <button type="button" class="btn-open-pdf-page" (click)="openPdf(pdfLink, modalItem.sourcePage)">
+        <svg class="btn-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
           <polyline points="15 3 21 3 21 9"></polyline>
           <line x1="10" y1="14" x2="21" y2="3"></line>
         </svg>
+        <span>Open PDF at {{ modalItem.sourcePage ? ('Page ' + modalItem.sourcePage) : 'Document' }}</span>
       </button>
       }
-    </div>
-
-    <div class="profile-details-grid">
-      <!-- Sector -->
-      <div class="profile-row">
-        <span class="profile-field-label">Sector</span>
-        <span class="profile-field-value text-indigo-light">{{ getSector(data) }}</span>
-      </div>
-
-      <!-- Industry -->
-      <div class="profile-row">
-        <span class="profile-field-label">Industry</span>
-        <span class="profile-field-value text-cyan-light">{{ getIndustry(data) }}</span>
-      </div>
-
-      <!-- Founded -->
-      <div class="profile-row">
-        <span class="profile-field-label">Founded</span>
-        <span class="profile-field-value">{{ getFounded(data) }}</span>
-      </div>
-
-      <!-- Employees -->
-      <div class="profile-row">
-        <span class="profile-field-label">Employees</span>
-        <span class="profile-field-value">{{ formatProfileEmployees(data) }}</span>
-      </div>
-
-      <!-- HQ -->
-      <div class="profile-row">
-        <span class="profile-field-label">HQ</span>
-        <span class="profile-field-value">{{ getHeadquarters(data) }}</span>
-      </div>
+      <button type="button" class="btn-dismiss" (click)="closeSourceSnippet()">Done</button>
     </div>
   </div>
-  }
 </div>
+}

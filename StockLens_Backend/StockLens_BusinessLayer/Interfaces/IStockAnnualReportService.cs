@@ -7,6 +7,5 @@ namespace StockLens_BusinessLayer.Interfaces
     public interface IStockAnnualReportService
     {
         Task<StockAnnualReportsResponseDto> GetAnnualReportsBySymbolAsync(string symbol, bool refresh = false, CancellationToken cancellationToken = default);
-        Task<StockAnnualReportsResponseDto> GetAnnualReportsByStockIdAsync(int stockId, bool refresh = false, CancellationToken cancellationToken = default);
     }
 }
