@@ -1,0 +1,268 @@
+<div class="directory-page-container">
+  <!-- Top Navigation Header -->
+  <header class="directory-top-header">
+    <div class="header-left">
+      <div class="brand-box" (click)="navigateToHome()" title="StockLens Home">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M3 3v18h18" stroke-linecap="round"></path>
+            <path d="M18 9l-5 5-4-4-6 6" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <span class="brand-title">Stock<span class="brand-highlight">Lens</span></span>
+      </div>
+      <div class="header-divider"></div>
+      <span class="header-page-tag">Annual Reports Directory</span>
+    </div>
+
+    <div class="header-right">
+      <!-- Admin Bell Component (Only visible to Hetvi) -->
+      <app-admin-notification-bell></app-admin-notification-bell>
+
+      <button type="button" class="btn-back-home" (click)="navigateToHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+        <span>Back to NIFTY 50</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span>Verified Corporate Filings</span>
+      </div>
+      <h1 class="hero-title">Companies with Annual Reports</h1>
+      <p class="hero-subtitle">
+        Access structured AI growth insights extracted from official BSE/NSE annual reports. If a company's insights are not yet generated, request it and our team will extract it.
+      </p>
+    </div>
+
+    <!-- Quick Stats Cards (Only for Admin) -->
+    @if (authService.isAdmin()) {
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-value text-emerald">{{ totalCompletedCount() }}</span>
+          <span class="stat-label">AI Insights Ready</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value text-amber">{{ totalRequestedCount() }}</span>
+          <span class="stat-label">Pending Requests</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value text-blue">{{ totalAllCount() }}</span>
+          <span class="stat-label">Total Records Tracked</span>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- Controls & Filter Bar -->
+  <section class="controls-bar">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by company or symbol (e.g. RELIANCE, TCS, TATASTEEL)..."
+        [(ngModel)]="searchQuery"
+      />
+      @if (searchQuery()) {
+        <button type="button" class="clear-search-btn" (click)="searchQuery.set('')">&times;</button>
+      }
+    </div>
+
+    <!-- Admin Filter Tabs & Add Report Button (Only for Admin) -->
+    @if (authService.isAdmin()) {
+      <div class="filters-and-actions">
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeFilter() === 'All'"
+            (click)="setFilter('All')"
+          >
+            All ({{ totalAllCount() }})
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeFilter() === 'Completed'"
+            (click)="setFilter('Completed')"
+          >
+            Ready ({{ totalCompletedCount() }})
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeFilter() === 'Requested'"
+            (click)="setFilter('Requested')"
+          >
+            Requested ({{ totalRequestedCount() }})
+          </button>
+        </div>
+
+        <!-- Admin Add Report Button -->
+        <button type="button" class="btn-admin-add" (click)="openAdminNewReport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Add Annual Report</span>
+        </button>
+      </div>
+    }
+  </section>
+
+  <!-- Content Grid -->
+  <section class="directory-grid-section">
+    @if (isLoading()) {
+      <div class="loading-grid-box">
+        <div class="mini-spinner text-blue"></div>
+        <span>Loading company annual report filings...</span>
+      </div>
+    } @else if (filteredReports().length === 0) {
+      <div class="empty-grid-card">
+        <div class="empty-icon-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <h3 class="empty-grid-title">No Annual Reports Found</h3>
+        <p class="empty-grid-sub">
+          @if (searchQuery()) {
+            No companies matching "{{ searchQuery() }}" were found in the directory.
+          } @else {
+            No annual reports currently added. As users request reports or Admin extracts them, they will appear here.
+          }
+        </p>
+        @if (authService.isAdmin()) {
+          <button type="button" class="btn-empty-add" (click)="openAdminNewReport()">
+            <span>+ Add First Annual Report</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="reports-grid">
+        @for (item of filteredReports(); track (item.symbol + '_' + (item.year || ''))) {
+        <div class="company-report-card" [class.status-ready]="(item.extractionStatus || '').toLowerCase() === 'completed'">
+          <!-- Top Row: Avatar & Status Badge -->
+          <div class="card-top-row">
+            <div class="avatar-box">
+              @if (item.logoUrl && !failedLogos()[item.symbol]) {
+                <img
+                  [src]="item.logoUrl"
+                  [alt]="item.symbol"
+                  class="avatar-img"
+                  (error)="onLogoError(item.symbol)"
+                />
+              } @else {
+                <span class="avatar-fallback">{{ item.symbol.substring(0, 2) }}</span>
+              }
+            </div>
+            <div class="status-badge-container">
+              @if ((item.extractionStatus || '').toLowerCase() === 'completed') {
+                <span class="badge-ready">
+                  <span class="badge-dot-green"></span>
+                  Insights Ready
+                </span>
+              } @else if ((item.extractionStatus || '').toLowerCase() === 'requested') {
+                <span class="badge-requested">
+                  <span class="badge-dot-amber"></span>
+                  User Requested
+                </span>
+              } @else {
+                <span class="badge-pending">Pending</span>
+              }
+            </div>
+          </div>
+
+          <!-- Middle: Info -->
+          <div class="card-info">
+            <div class="title-symbol-row">
+              <h3 class="company-name" (click)="viewInsights(item.symbol)">{{ item.companyName }}</h3>
+              <span class="symbol-pill">{{ item.symbol }}</span>
+            </div>
+            @if (item.industry || item.sector) {
+              <span class="industry-tag">{{ item.industry || item.sector }}</span>
+            }
+
+            <div class="report-meta-row">
+              @if (item.year) {
+                <span class="meta-tag">FY {{ item.year }}</span>
+              }
+              @if (item.source) {
+                <span class="meta-tag source-tag">{{ item.source }}</span>
+              }
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="card-actions">
+            @if ((item.extractionStatus || '').toLowerCase() === 'completed') {
+              <button type="button" class="btn-card-action view-btn" (click)="viewInsights(item.symbol)">
+                <span>View Insights</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14M12 5l7 7-7 7"></path>
+                </svg>
+              </button>
+            } @else {
+              <!-- Request Button for Normal User -->
+              <button
+                type="button"
+                class="btn-card-action req-btn"
+                (click)="requestReport(item.symbol)"
+                [disabled]="requestedFeedback()[item.symbol] === 'Requested!'"
+              >
+                <span>{{ requestedFeedback()[item.symbol] || 'Request Report' }}</span>
+              </button>
+            }
+
+            <!-- Official PDF link if present -->
+            @if (item.pdfUrl) {
+              <button type="button" class="btn-pdf-link" (click)="openPdf(item.pdfUrl)" title="Open official PDF filing">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </button>
+            }
+
+            <!-- Admin Extract Action Button -->
+            @if (authService.isAdmin()) {
+              <button
+                type="button"
+                class="btn-admin-extract-card"
+                (click)="openAdminExtract(item)"
+                title="Admin: Fill/Extract Insights via Gemini"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
+                </svg>
+                <span>Extract</span>
+              </button>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+<!-- Global Admin Form & PIN Modals -->
+<app-admin-annual-report-modal></app-admin-annual-report-modal>

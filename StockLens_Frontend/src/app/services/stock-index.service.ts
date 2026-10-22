@@ -66,22 +66,36 @@ export class StockIndexService {
   }
 
   /**
-   * Finds stock items matching a list of symbols (for Watchlist tab)
+   * Finds stock items matching a list of symbols (for Watchlist tab or custom queries).
+   * Queries the dedicated backend endpoint so non-Nifty stocks (e.g. BANDHANBNK) return real logo, CMP, and market cap.
    */
   getStocksBySymbols(symbols: string[]): Observable<Nifty50StockItem[]> {
     if (!symbols || symbols.length === 0) {
       return of([]);
     }
 
-    if (!this.cachedNifty50List) {
-      // If no cache, fetch first then filter
-      return this.getNifty50List().pipe(
-        map(stocks => stocks.filter(s => symbols.includes(s.symbol)))
-      );
-    }
-    
-    // Filter from cache
-    return of(this.cachedNifty50List.filter(s => symbols.includes(s.symbol)));
+    const cleanSymbols = symbols.map(s => s.trim().toUpperCase()).filter(Boolean);
+    const joined = cleanSymbols.join(',');
+
+    return this.http.get<any[]>(`${this.apiUrl}/stocks-by-symbols?symbols=${encodeURIComponent(joined)}`).pipe(
+      map(data => data.map(item => ({
+        symbol: item.symbol,
+        companyName: item.companyName || item.company_name,
+        sector: item.sector || 'Equities',
+        logoUrl: item.logoUrl || item.logo_url,
+        websiteUrl: item.websiteUrl || item.website_url,
+        price: item.price,
+        marketCap: item.marketCap || item.market_cap,
+        exchange: 'NSE'
+      } as Nifty50StockItem))),
+      catchError(error => {
+        console.warn('Error fetching stocks by symbols from API, falling back to cache:', error);
+        if (this.cachedNifty50List) {
+          return of(this.cachedNifty50List.filter(s => cleanSymbols.includes(s.symbol?.toUpperCase())));
+        }
+        return of([]);
+      })
+    );
   }
 }
 

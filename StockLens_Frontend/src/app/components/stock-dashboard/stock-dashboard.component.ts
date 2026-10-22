@@ -14,6 +14,7 @@ import { StockEvaluationService } from '../../services/stock-evaluation.service'
 import { StockPeerService } from '../../services/stock-peer.service';
 import { StockIndexService } from '../../services/stock-index.service';
 import { WatchlistService } from '../../services/watchlist.service';
+import { StockAnnualReportService } from '../../services/stock-annual-report.service';
 import { Stock, Company, StockNewsResponse, StockNewsItem, LoadingState } from '../../models/stock-news.model';
 import { CompanyOverview } from '../../models/company-overview.model';
 import { StockShareholdingResponse } from '../../models/stock-shareholding.model';
@@ -27,6 +28,9 @@ import { StockVolumeDeliveryCardComponent } from '../stock-volume-delivery-card/
 import { StockCompanyAboutCardComponent } from '../stock-company-about-card/stock-company-about-card.component';
 import { StockDealsCardComponent } from '../stock-deals-card/stock-deals-card.component';
 import { StockPeerComparisonCardComponent } from '../stock-peer-comparison-card/stock-peer-comparison-card.component';
+
+import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
+import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -44,7 +48,9 @@ export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | '
     StockVolumeDeliveryCardComponent,
     StockDealsCardComponent,
     StockPeerComparisonCardComponent,
-    StockCompanyAboutCardComponent
+    StockCompanyAboutCardComponent,
+    AdminNotificationBellComponent,
+    AdminAnnualReportModalComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -62,6 +68,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   private readonly quartersService = inject(StockQuarterlyResultsService);
   private readonly evaluationService = inject(StockEvaluationService);
   private readonly indexService = inject(StockIndexService);
+  readonly annualReportService = inject(StockAnnualReportService);
   private readonly cd = inject(ChangeDetectorRef);
 
   private routeSub?: Subscription;
@@ -275,6 +282,10 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/'], { queryParams: { view: 'watchlist' } });
   }
 
+  navigateToAnnualReports(): void {
+    this.router.navigate(['/annual-reports']);
+  }
+
   /**
    * Checks if current selected stock is in user's personal watchlist
    */
@@ -289,7 +300,16 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   toggleCurrentStockStar(): void {
     const sym = this.selectedSymbol();
     if (sym) {
-      this.watchlistService.toggleWatchlist(sym);
+      const price = this.cashflowResponse()?.ratios?.currentPrice;
+      const marketCap = this.cashflowResponse()?.ratios?.marketCap;
+      this.watchlistService.toggleWatchlist(sym, {
+        symbol: sym,
+        companyName: this.getCompanyName(),
+        logoUrl: this.getCompanyLogoUrl() || undefined,
+        price: price != null ? Number(price) : undefined,
+        marketCap: marketCap != null ? Number(marketCap) : undefined,
+        sector: this.getSector()
+      });
     }
   }
 
@@ -347,6 +367,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
               this.cashflowResponse.set(data);
               if (data.ratios.currentPrice) {
                 this.indexService.updateStockInCache(symbol, data.ratios.currentPrice, data.ratios.marketCap);
+                if (this.watchlistService.isInWatchlist(symbol)) {
+                  this.watchlistService.setMeta(symbol, {
+                    price: Number(data.ratios.currentPrice),
+                    marketCap: data.ratios.marketCap ? Number(data.ratios.marketCap) : undefined
+                  });
+                }
               }
             }
           },
@@ -441,6 +467,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.companyOverview.set(null);
     this.isLogoFailed.set(false);
     this.hasActiveBreakouts.set(false);
+    this.headerArFeedback.set('');
+    this.annualReportService.activeReport.set(null);
 
     this.shareholdingLoadingState.set('loading');
     this.quartersLoadingState.set('loading');
@@ -514,6 +542,36 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.fetchQuarterlyResults(isRefresh);
     this.fetchNews(isRefresh);
     this.fetchEvaluation(isRefresh);
+    this.fetchAnnualReport(isRefresh);
+  }
+
+  headerArFeedback = signal<string>('');
+  isHeaderArRequesting = signal<boolean>(false);
+
+  fetchAnnualReport(isRefresh: boolean = false): void {
+    const symbol = this.selectedSymbol();
+    if (!symbol) return;
+    this.annualReportService.getAnnualReports(symbol, isRefresh).subscribe();
+  }
+
+  requestAnnualReportFromHeader(): void {
+    const symbol = this.selectedSymbol();
+    if (!symbol || this.isHeaderArRequesting()) return;
+
+    this.isHeaderArRequesting.set(true);
+    this.headerArFeedback.set('');
+
+    this.annualReportService.requestAnnualReport(symbol).subscribe({
+      next: () => {
+        this.isHeaderArRequesting.set(false);
+        this.headerArFeedback.set('Requested!');
+      },
+      error: () => {
+        this.isHeaderArRequesting.set(false);
+        this.headerArFeedback.set('Failed');
+        setTimeout(() => this.headerArFeedback.set(''), 3000);
+      }
+    });
   }
 
   fetchCompanyOverview(isRefresh: boolean = false): void {
@@ -729,6 +787,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         this.cashflowResponse.set(data);
         if (data?.ratios?.currentPrice) {
           this.indexService.updateStockInCache(symbol, data.ratios.currentPrice, data.ratios.marketCap);
+          if (this.watchlistService.isInWatchlist(symbol)) {
+            this.watchlistService.setMeta(symbol, {
+              price: Number(data.ratios.currentPrice),
+              marketCap: data.ratios.marketCap ? Number(data.ratios.marketCap) : undefined
+            });
+          }
         }
         this.isCashflowRefreshing.set(false);
         this.isLoadingStock.set(false);

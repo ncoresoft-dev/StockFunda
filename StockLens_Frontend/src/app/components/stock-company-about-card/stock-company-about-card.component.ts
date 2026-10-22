@@ -1,11 +1,14 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StockCompanyService } from '../../services/stock-company.service';
 import { StockAnnualReportService } from '../../services/stock-annual-report.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
+import { AdminModalService } from '../../services/admin-modal.service';
 import { CompanyOverview } from '../../models/company-overview.model';
 import { StockAnnualReportsResponse, AnnualReportInsights, AnnualReportInsightItem } from '../../models/stock-annual-report.model';
+import { Subscription } from 'rxjs';
 
-export type GrowthDisplayGroupKey = 'top' | 'expansion' | 'deals' | 'govt' | 'newbiz' | 'growth' | 'risks' | 'all';
+export type GrowthDisplayGroupKey = 'top' | 'expansion' | 'deals' | 'govt' | 'newbiz' | 'growth' | 'risks';
 
 export interface GrowthDisplayGroupMeta {
   key: GrowthDisplayGroupKey;
@@ -22,9 +25,11 @@ export interface GrowthDisplayGroupMeta {
   templateUrl: './stock-company-about-card.component.html',
   styleUrls: ['./stock-company-about-card.component.css']
 })
-export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
+export class StockCompanyAboutCardComponent implements OnInit, OnChanges, OnDestroy {
   private readonly companyService = inject(StockCompanyService);
   private readonly annualReportService = inject(StockAnnualReportService);
+  readonly authService = inject(AdminAuthService);
+  readonly modalService = inject(AdminModalService);
 
   @Input() symbol: string = 'RELIANCE';
   @Input() exchange: string = 'NSE';
@@ -40,18 +45,39 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
   // Annual Report & AI Insights State
   annualReportResponse = signal<StockAnnualReportsResponse | null>(null);
   isReportLoading = signal<boolean>(false);
+  isRequesting = signal<boolean>(false);
+  requestFeedback = signal<string>('');
 
   // Growth Insights Display Group Filter
   activeDisplayGroup = signal<GrowthDisplayGroupKey>('top');
 
-  // Modal / Drawer state for full PDF excerpt verification & View All
+  // Modal / Drawer state for full PDF excerpt verification
   activeSourceModalItem = signal<AnnualReportInsightItem | null>(null);
-  isAllInsightsModalOpen = signal<boolean>(false);
+
+  private extractSub?: Subscription;
+  private reportUpdatedSub?: Subscription;
 
   ngOnInit(): void {
     if (!this.annualReportResponse() && !this.isReportLoading()) {
       this.fetchAnnualReport();
     }
+
+    this.extractSub = this.modalService.reportExtracted$.subscribe((res) => {
+      if (this.symbol && res.symbol.toUpperCase() === this.symbol.toUpperCase()) {
+        this.annualReportResponse.set(res);
+      }
+    });
+
+    this.reportUpdatedSub = this.annualReportService.reportUpdated$.subscribe((res) => {
+      if (this.symbol && res.symbol.toUpperCase() === this.symbol.toUpperCase()) {
+        this.annualReportResponse.set(res);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.extractSub?.unsubscribe();
+    this.reportUpdatedSub?.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -61,7 +87,6 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
       this.companyOverview.set(null);
       this.activeDisplayGroup.set('top');
       this.activeSourceModalItem.set(null);
-      this.isAllInsightsModalOpen.set(false);
       this.fetchAnnualReport();
     }
   }
@@ -119,6 +144,35 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
     });
   }
 
+  requestAnnualReport(): void {
+    if (!this.symbol || this.isRequesting()) return;
+
+    this.isRequesting.set(true);
+    this.requestFeedback.set('');
+
+    const targetSymbol = this.symbol;
+    this.annualReportService.requestAnnualReport(targetSymbol).subscribe({
+      next: (data) => {
+        if (this.symbol && targetSymbol.toUpperCase() === this.symbol.toUpperCase()) {
+          this.annualReportResponse.set(data);
+          this.requestFeedback.set('Annual report requested! Admin Hetvi has been notified.');
+        }
+        this.isRequesting.set(false);
+      },
+      error: () => {
+        this.isRequesting.set(false);
+        this.requestFeedback.set('Failed to submit request. Please try again.');
+      }
+    });
+  }
+
+  openAdminModal(): void {
+    const yr = this.annualReportResponse()?.reports?.[0]?.year || '2026';
+    const title = this.annualReportResponse()?.reports?.[0]?.title || `${this.symbol} Annual Report ${yr}`;
+    const pdf = this.annualReportResponse()?.reports?.[0]?.pdfUrl || '';
+    this.modalService.open(this.symbol, yr, title, pdf);
+  }
+
   setDisplayGroup(groupKey: GrowthDisplayGroupKey): void {
     this.activeDisplayGroup.set(groupKey);
   }
@@ -144,14 +198,6 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
     this.activeSourceModalItem.set(null);
   }
 
-  openAllInsightsModal(): void {
-    this.isAllInsightsModalOpen.set(true);
-  }
-
-  closeAllInsightsModal(): void {
-    this.isAllInsightsModalOpen.set(false);
-  }
-
   getFinancialYear(): string {
     const yr = this.annualReportResponse()?.reports?.[0]?.year;
     if (yr) return `FY ${yr}`;
@@ -171,7 +217,6 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
     const newbizCount = this.getGroupItems('newbiz').length;
     const growthCount = this.getGroupItems('growth').length;
     const risksCount = this.getGroupItems('risks').length;
-    const allCount = this.getAllInsightsList().length;
 
     const list: GrowthDisplayGroupMeta[] = [
       { key: 'top', label: 'Top High-Impact Insights', shortLabel: 'Top Highlights', icon: '⚡', count: topCount },
@@ -234,9 +279,6 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges {
 
     if (groupKey === 'top') {
       return this.getTopHighImpactInsights();
-    }
-    if (groupKey === 'all') {
-      return this.getAllInsightsList();
     }
 
     const items: AnnualReportInsightItem[] = [];

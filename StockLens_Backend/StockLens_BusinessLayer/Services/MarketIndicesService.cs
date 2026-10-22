@@ -5,6 +5,7 @@ using StockLens_DataLayer.Entities;
 using StockLens_DataLayer.Interfaces;
 using StockLens_Infrastructure.DataContext;
 using StockLens_Infrastructure.ExternalServices.BharatStock;
+using StockLens_Infrastructure.ExternalServices.IndianApi;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,17 +21,20 @@ namespace StockLens_BusinessLayer.Services
         private readonly IMarketIndexConstituentRepository _repository;
         private readonly ICompanyRepository _companyRepository;
         private readonly StockLensDataContext _context;
+        private readonly IIndianApiBalanceSheetClient? _indianApiClient;
 
         public MarketIndicesService(
             IIndicesProvider indicesProvider,
             IMarketIndexConstituentRepository repository,
             ICompanyRepository companyRepository,
-            StockLensDataContext context)
+            StockLensDataContext context,
+            IIndianApiBalanceSheetClient? indianApiClient = null)
         {
             _indicesProvider = indicesProvider;
             _repository = repository;
             _companyRepository = companyRepository;
             _context = context;
+            _indianApiClient = indianApiClient;
         }
 
         public async Task<IEnumerable<MarketIndexCompanyDto>> GetTop50CompaniesAsync(CancellationToken cancellationToken = default)
@@ -132,7 +136,8 @@ namespace StockLens_BusinessLayer.Services
                 var liveFinancials = await _context.StockFinancials
                     .AsNoTracking()
                     .Include(f => f.Stock)
-                    .Where(f => symbols.Contains(f.Stock.Symbol.ToUpper()) && f.CurrentPrice != null && f.CurrentPrice > 0)
+                    .Where(f => symbols.Contains(f.Stock.Symbol.ToUpper()) &&
+                                ((f.CurrentPrice != null && f.CurrentPrice > 0) || (f.MarketCap != null && f.MarketCap > 0)))
                     .ToListAsync(cancellationToken);
 
                 latestBySymbol = liveFinancials
@@ -177,6 +182,138 @@ namespace StockLens_BusinessLayer.Services
             })
             .OrderByDescending(x => x.MarketCap ?? 0)
             .ToList();
+        }
+
+        public async Task<IEnumerable<MarketIndexCompanyDto>> GetStocksBySymbolsAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
+        {
+            if (symbols == null)
+            {
+                return Enumerable.Empty<MarketIndexCompanyDto>();
+            }
+
+            var cleanSymbols = symbols
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Select(s => s.Trim().ToUpperInvariant())
+                .Distinct()
+                .ToList();
+
+            if (!cleanSymbols.Any())
+            {
+                return Enumerable.Empty<MarketIndexCompanyDto>();
+            }
+
+            // 1. Query NIFTY 50 constituents in DB (which already have logo, price, and market cap cached)
+            var constituents = await _context.MarketIndexConstituents
+                .AsNoTracking()
+                .Include(m => m.Company)
+                .Where(m => cleanSymbols.Contains(m.Symbol.ToUpper()))
+                .ToListAsync(cancellationToken);
+
+            var constituentsDict = constituents
+                .GroupBy(c => c.Symbol.Trim().ToUpperInvariant())
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            // 2. Query Stocks + CompanyMaster for any non-index stocks (like BANDHANBNK, etc.)
+            var dbStocks = await _context.Stocks
+                .AsNoTracking()
+                .Include(s => s.Company)
+                .Where(s => cleanSymbols.Contains(s.Symbol.ToUpper()))
+                .ToListAsync(cancellationToken);
+
+            var stocksDict = dbStocks
+                .GroupBy(s => s.Symbol.Trim().ToUpperInvariant())
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            // 3. Also query CompanyMaster directly in case stock is not yet in Stocks table
+            var companies = await _context.CompanyMaster
+                .AsNoTracking()
+                .Where(c => cleanSymbols.Contains(c.Symbol.ToUpper()))
+                .ToListAsync(cancellationToken);
+
+            var companiesDict = companies
+                .GroupBy(c => c.Symbol.Trim().ToUpperInvariant())
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            // 4. Query live financials for these symbols to get latest CurrentPrice and MarketCap from DB
+            var liveFinancials = await _context.StockFinancials
+                .AsNoTracking()
+                .Include(f => f.Stock)
+                .Where(f => cleanSymbols.Contains(f.Stock.Symbol.ToUpper()) &&
+                            ((f.CurrentPrice != null && f.CurrentPrice > 0) || (f.MarketCap != null && f.MarketCap > 0)))
+                .ToListAsync(cancellationToken);
+
+            var latestFinancialsBySymbol = liveFinancials
+                .GroupBy(f => f.Stock.Symbol.Trim().ToUpperInvariant())
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.LastSyncedAt)
+                          .ThenByDescending(x => x.PeriodEndDate ?? DateTime.MinValue)
+                          .First(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+            // 5. Assemble response list
+            var results = new List<MarketIndexCompanyDto>();
+
+            foreach (var sym in cleanSymbols)
+            {
+                constituentsDict.TryGetValue(sym, out var constituent);
+                stocksDict.TryGetValue(sym, out var stock);
+                companiesDict.TryGetValue(sym, out var company);
+                latestFinancialsBySymbol.TryGetValue(sym, out var fin);
+
+                var comp = constituent?.Company ?? stock?.Company ?? company;
+
+                // Priority 1: DB StockFinancials (what is saved and shown inside the stock details view)
+                // Priority 2: MarketIndexConstituents (from cached 3rd party index screener)
+                var price = (fin?.CurrentPrice != null && fin.CurrentPrice > 0) ? fin.CurrentPrice : constituent?.Price;
+                var marketCap = (fin?.MarketCap != null && fin.MarketCap > 0) ? fin.MarketCap : constituent?.MarketCap;
+                var companyName = comp?.CompanyName ?? constituent?.Symbol ?? sym;
+                var logoUrl = comp?.LogoUrl;
+                var sector = comp?.Sector ?? "Equities";
+                var websiteUrl = comp?.WebsiteUrl;
+
+                // Priority 3 (Fallback): If stock is not in DB StockFinancials AND not in constituents, query 3rd party API (IndianAPI)
+                if ((!price.HasValue || !marketCap.HasValue) && _indianApiClient != null)
+                {
+                    try
+                    {
+                        var overview = await _indianApiClient.GetStockFinancialsAndOverviewAsync(sym, "NSE", cancellationToken);
+                        if (overview != null)
+                        {
+                            if (!price.HasValue && overview.CurrentPrice.HasValue && overview.CurrentPrice > 0)
+                            {
+                                price = overview.CurrentPrice;
+                            }
+                            if (!marketCap.HasValue && overview.MarketCap.HasValue && overview.MarketCap > 0)
+                            {
+                                marketCap = overview.MarketCap;
+                            }
+                            if (string.IsNullOrWhiteSpace(companyName) || companyName == sym)
+                            {
+                                companyName = !string.IsNullOrWhiteSpace(overview.CompanyName) ? overview.CompanyName : sym;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback failure handled gracefully
+                    }
+                }
+
+                results.Add(new MarketIndexCompanyDto
+                {
+                    Symbol = sym,
+                    CompanyName = companyName,
+                    Sector = sector,
+                    LogoUrl = logoUrl,
+                    WebsiteUrl = websiteUrl,
+                    Price = price.HasValue ? Math.Round(price.Value, 2) : null,
+                    MarketCap = marketCap.HasValue ? Math.Round(marketCap.Value, 2) : null
+                });
+            }
+
+            return results;
         }
     }
 }

@@ -1,6 +1,16 @@
 import { Injectable, signal, computed } from '@angular/core';
 
 const WATCHLIST_STORAGE_KEY = 'stocklens_watchlist';
+const WATCHLIST_META_STORAGE_KEY = 'stocklens_watchlist_meta';
+
+export interface WatchlistStockMeta {
+  symbol: string;
+  companyName?: string;
+  logoUrl?: string;
+  price?: number;
+  marketCap?: number;
+  sector?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -8,6 +18,9 @@ const WATCHLIST_STORAGE_KEY = 'stocklens_watchlist';
 export class WatchlistService {
   // Reactive signal containing the list of starred stock symbols
   readonly watchlistSymbols = signal<string[]>(this.loadFromStorage());
+
+  // Cached metadata for stocks in watchlist
+  readonly metaMap = signal<Record<string, WatchlistStockMeta>>(this.loadMetaFromStorage());
 
   // Set for O(1) membership lookup
   readonly watchlistSet = computed(() => new Set(this.watchlistSymbols().map(s => s.toUpperCase())));
@@ -23,6 +36,31 @@ export class WatchlistService {
   }
 
   /**
+   * Returns cached metadata for a symbol if available
+   */
+  getMeta(symbol: string): WatchlistStockMeta | undefined {
+    if (!symbol) return undefined;
+    return this.metaMap()[symbol.toUpperCase()];
+  }
+
+  /**
+   * Saves or merges metadata for a symbol
+   */
+  setMeta(symbol: string, meta: Partial<WatchlistStockMeta>): void {
+    if (!symbol) return;
+    const clean = symbol.trim().toUpperCase();
+    const existing = this.metaMap()[clean] || { symbol: clean };
+    const merged: WatchlistStockMeta = {
+      ...existing,
+      ...meta,
+      symbol: clean
+    };
+    const updated = { ...this.metaMap(), [clean]: merged };
+    this.metaMap.set(updated);
+    this.saveMetaToStorage(updated);
+  }
+
+  /**
    * Checks if a symbol is in the user's personal watchlist
    */
   isInWatchlist(symbol: string): boolean {
@@ -31,9 +69,9 @@ export class WatchlistService {
   }
 
   /**
-   * Adds a symbol to the user's personal watchlist
+   * Adds a symbol to the user's personal watchlist with optional metadata
    */
-  addToWatchlist(symbol: string): void {
+  addToWatchlist(symbol: string, meta?: Partial<WatchlistStockMeta>): void {
     if (!symbol) return;
     const clean = symbol.trim().toUpperCase();
     const current = this.watchlistSymbols();
@@ -41,6 +79,9 @@ export class WatchlistService {
       const updated = [...current, clean];
       this.watchlistSymbols.set(updated);
       this.saveToStorage(updated);
+    }
+    if (meta) {
+      this.setMeta(clean, meta);
     }
   }
 
@@ -62,14 +103,14 @@ export class WatchlistService {
    * Toggles the presence of a symbol in the personal watchlist.
    * Returns true if newly added, false if removed.
    */
-  toggleWatchlist(symbol: string): boolean {
+  toggleWatchlist(symbol: string, meta?: Partial<WatchlistStockMeta>): boolean {
     if (!symbol) return false;
     const clean = symbol.trim().toUpperCase();
     if (this.isInWatchlist(clean)) {
       this.removeFromWatchlist(clean);
       return false;
     } else {
-      this.addToWatchlist(clean);
+      this.addToWatchlist(clean, meta);
       return true;
     }
   }
@@ -99,6 +140,30 @@ export class WatchlistService {
       }
     } catch (e) {
       console.warn('Could not write watchlist to localStorage:', e);
+    }
+  }
+
+  private loadMetaFromStorage(): Record<string, WatchlistStockMeta> {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const data = localStorage.getItem(WATCHLIST_META_STORAGE_KEY);
+        if (data) {
+          return JSON.parse(data);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read watchlist meta from localStorage:', e);
+    }
+    return {};
+  }
+
+  private saveMetaToStorage(meta: Record<string, WatchlistStockMeta>): void {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(WATCHLIST_META_STORAGE_KEY, JSON.stringify(meta));
+      }
+    } catch (e) {
+      console.warn('Could not write watchlist meta to localStorage:', e);
     }
   }
 }

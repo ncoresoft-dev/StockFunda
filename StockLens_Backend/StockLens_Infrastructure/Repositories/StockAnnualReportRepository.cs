@@ -35,9 +35,31 @@ namespace StockLens_Infrastructure.Repositories
             return await _context.StockAnnualReports
                 .AsNoTracking()
                 .Include(r => r.Stock)
+                    .ThenInclude(s => s.Company)
                 .Where(r => r.Stock.Symbol == cleanSymbol)
                 .OrderByDescending(r => r.Year)
                 .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<StockAnnualReport>> GetAllReportsAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.StockAnnualReports
+                .AsNoTracking()
+                .Include(r => r.Stock)
+                    .ThenInclude(s => s.Company)
+                .OrderByDescending(r => r.UpdatedAt)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<StockAnnualReport>> GetRequestedReportsAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.StockAnnualReports
+                .AsNoTracking()
+                .Include(r => r.Stock)
+                    .ThenInclude(s => s.Company)
+                .Where(r => r.ExtractionStatus == "Requested")
+                .OrderByDescending(r => r.UpdatedAt)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task AddAsync(StockAnnualReport report, CancellationToken cancellationToken = default)

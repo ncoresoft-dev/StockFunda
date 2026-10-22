@@ -30,7 +30,7 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
             _logger = logger;
         }
 
-        public async Task<string?> ExtractInsightsJsonAsync(string symbol, string pdfUrl, CancellationToken cancellationToken = default)
+        public async Task<string?> ExtractInsightsJsonAsync(string symbol, string pdfUrl, string? reportYear = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(pdfUrl))
             {
@@ -42,7 +42,7 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
 
             try
             {
-                _logger.LogInformation("Downloading Annual Report PDF for {Symbol} from {Url} to temp file", symbol, pdfUrl);
+                _logger.LogInformation("Downloading Annual Report PDF for {Symbol} (Year: {Year}) from {Url} to temp file", symbol, reportYear, pdfUrl);
 
                 // 1. Download PDF to temp file with browser headers
                 var downloaded = await DownloadPdfToTempFileAsync(pdfUrl, tempFilePath, cancellationToken);
@@ -71,8 +71,8 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
                     return BuildFallbackJson("Gemini API Key is not configured yet. Configure 'Gemini:ApiKey' in secret manager to enable AI insights.");
                 }
 
-                _logger.LogInformation("Calling Gemini AI to generate structured insights for {Symbol}", symbol);
-                var insightsJson = await CallGeminiGenerateInsightsAsync(symbol, targetedText, cancellationToken);
+                _logger.LogInformation("Calling Gemini AI to generate structured insights for {Symbol} (Year: {Year})", symbol, reportYear);
+                var insightsJson = await CallGeminiGenerateInsightsAsync(symbol, targetedText, reportYear, cancellationToken);
 
                 return insightsJson;
             }
@@ -100,32 +100,42 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
 
         private async Task<bool> DownloadPdfToTempFileAsync(string pdfUrl, string destinationPath, CancellationToken cancellationToken)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, pdfUrl);
-            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-            request.Headers.Add("Accept", "application/pdf,*/*");
-
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                _logger.LogWarning("PDF download failed with status {StatusCode} for URL {Url}", response.StatusCode, pdfUrl);
+                using var request = new HttpRequestMessage(HttpMethod.Get, pdfUrl);
+                request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+                request.Headers.Add("Accept", "application/pdf,*/*");
+
+                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("PDF download failed with status {StatusCode} for URL {Url}", response.StatusCode, pdfUrl);
+                    return false;
+                }
+
+                await using var streamToReadFrom = await response.Content.ReadAsStreamAsync(cancellationToken);
+                await using var streamToWriteTo = File.Create(destinationPath);
+                await streamToReadFrom.CopyToAsync(streamToWriteTo, cancellationToken);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Exception while downloading PDF from {Url}", pdfUrl);
                 return false;
             }
-
-            await using var streamToReadFrom = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var streamToWriteTo = File.Create(destinationPath);
-            await streamToReadFrom.CopyToAsync(streamToWriteTo, cancellationToken);
-
-            return true;
         }
 
         private string ExtractTargetedTextFromPdf(string pdfFilePath, string symbol)
         {
-            var textBuilder = new StringBuilder();
-            const int maxCharacters = 35000;
+            try
+            {
+                var textBuilder = new StringBuilder();
+                const int maxCharacters = 35000;
 
-            using var document = PdfDocument.Open(pdfFilePath);
-            var totalPages = document.NumberOfPages;
-            _logger.LogInformation("PDF for {Symbol} has {TotalPages} total pages", symbol, totalPages);
+                using var document = PdfDocument.Open(pdfFilePath);
+                var totalPages = document.NumberOfPages;
+                _logger.LogInformation("PDF for {Symbol} has {TotalPages} total pages", symbol, totalPages);
 
             var highValueRegex = new Regex(
                 @"\b(Management\s+Discussion|Chairman'?s\s+(Statement|Message|Speech)|CEO'?s\s+Statement|Managing\s+Director'?s\s+Statement|Letter\s+to\s+Shareholders|Business\s+Review|Operational\s+Review|Strategic\s+Review|At\s+a\s+Glance)\b",
@@ -192,25 +202,33 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
 
             _logger.LogInformation("Selected {PageCount} targeted pages for AI insight generation for {Symbol}", selectedPages.Count, symbol);
 
-            foreach (var pageNumber in selectedPages)
-            {
-                if (textBuilder.Length >= maxCharacters)
-                    break;
-
-                if (pageCache.TryGetValue(pageNumber, out var cachedText))
+                foreach (var pageNumber in selectedPages)
                 {
-                    textBuilder.AppendLine($"--- [Page {pageNumber}] ---");
-                    textBuilder.AppendLine(cachedText);
-                }
-            }
+                    if (textBuilder.Length >= maxCharacters)
+                        break;
 
-            return textBuilder.ToString();
+                    if (pageCache.TryGetValue(pageNumber, out var cachedText))
+                    {
+                        textBuilder.AppendLine($"--- [Page {pageNumber}] ---");
+                        textBuilder.AppendLine(cachedText);
+                    }
+                }
+
+                return textBuilder.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse PDF pages with PdfPig for {Symbol}", symbol);
+                return string.Empty;
+            }
         }
 
-        private async Task<string?> CallGeminiGenerateInsightsAsync(string symbol, string extractedText, CancellationToken cancellationToken)
+        private async Task<string?> CallGeminiGenerateInsightsAsync(string symbol, string extractedText, string? reportYear, CancellationToken cancellationToken)
         {
+            var fiscalYear = ResolveFiscalYear(reportYear);
+
             var prompt = $@"
-You are a senior equity research analyst extracting verifiable, factual business intelligence and company growth insights from the official Annual Report of {symbol}.
+You are a senior equity research analyst extracting verifiable, factual business intelligence and company growth insights from the official {fiscalYear} (Filing Year: {reportYear ?? "Latest"}) Annual Report of {symbol}.
 
 OBJECTIVE:
 Extract concrete business developments that help investors understand future opportunities, expansion plans, capacity additions, contracts, government benefits, strategic partnerships, new products, and risks.
@@ -229,6 +247,8 @@ STRICT EXTRACTION & VERIFIABILITY RULES:
    - Clearly distinguish between completed developments, ongoing projects, and proposed/targeted plans.
 7. FINANCIAL VALUES:
    - Extract numeric values only if explicitly stated (e.g. capex of ₹10,000 Cr -> financialValue: 10000, financialValueUnit: 'Cr'). If undisclosed, leave null.
+8. REPORTING PERIOD:
+   - In 'reportingPeriod', specify the fiscal year of this annual report ('{fiscalYear}'), or the specific period/year (e.g. {fiscalYear}, FY25, Q2 FY26) if explicitly mentioned in the text.
 
 Return ONLY a valid, raw JSON object matching the exact schema below. Do not wrap in markdown or backticks.
 
@@ -240,7 +260,7 @@ SCHEMA:
       ""title"": ""Concise headline of expansion project"",
       ""summary"": ""Clear factual explanation of new factories, plants, stores, branches, offices, or facilities."",
       ""category"": ""Company Expansion"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Planned | Approved | Ongoing | Completed"",
       ""financialValue"": 1500,
       ""financialValueUnit"": ""Cr"",
@@ -255,7 +275,7 @@ SCHEMA:
       ""title"": ""Capacity addition / expansion project"",
       ""summary"": ""Existing vs planned production capacity, capex allocated, and commissioning schedules."",
       ""category"": ""Capacity Expansion"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Planned | Approved | Ongoing | Completed"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -270,7 +290,7 @@ SCHEMA:
       ""title"": ""Contract / order award headline"",
       ""summary"": ""Significant government or private contract, customer name, order value, and execution period."",
       ""category"": ""Major Orders & Contracts"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Completed | Ongoing | Approved"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -285,7 +305,7 @@ SCHEMA:
       ""title"": ""Benefit / incentive scheme title"",
       ""summary"": ""Approved subsidies, tax holidays/exemptions, PLI benefits, or state incentives."",
       ""category"": ""Government Benefits"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Approved | Ongoing"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -300,7 +320,7 @@ SCHEMA:
       ""title"": ""Partner name & alliance objective"",
       ""summary"": ""Major strategic partnership, joint venture, consortium, or technology collaboration."",
       ""category"": ""Strategic Partnerships"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Ongoing | Completed | Approved"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -315,7 +335,7 @@ SCHEMA:
       ""title"": ""New product / service / business segment"",
       ""summary"": ""Newly launched products, innovative services, new business segments, or R&D breakthroughs."",
       ""category"": ""New Business & Products"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Completed | Ongoing | Planned"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -330,7 +350,7 @@ SCHEMA:
       ""title"": ""Acquisition / investment target"",
       ""summary"": ""M&A deals, equity investments, newly acquired subsidiaries, and strategic stakes."",
       ""category"": ""Acquisitions & Investments"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Completed | Ongoing | Approved"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -345,7 +365,7 @@ SCHEMA:
       ""title"": ""Market / territory / retail footprint expansion"",
       ""summary"": ""New countries, states, cities entered, export growth, or retail network expansion."",
       ""category"": ""Market Expansion"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Completed | Ongoing | Planned"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -360,7 +380,7 @@ SCHEMA:
       ""title"": ""Key leadership appointment / talent initiative"",
       ""summary"": ""Key executive appointments (CEO/CFO/CTO/Board), major workforce scaling, or strategic org changes."",
       ""category"": ""Management & Workforce"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Completed | Ongoing"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -375,7 +395,7 @@ SCHEMA:
       ""title"": ""Management growth target / strategic initiative"",
       ""summary"": ""Multi-year strategic roadmap, future capex targets, clean energy, or technology milestones."",
       ""category"": ""Future Growth Plans"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Planned | Ongoing"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -390,7 +410,7 @@ SCHEMA:
       ""title"": ""National scheme / policy alignment"",
       ""summary"": ""Government policies, national missions, or infrastructure schemes directly benefiting the business."",
       ""category"": ""Govt Projects & Policies"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Ongoing | Planned"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -405,7 +425,7 @@ SCHEMA:
       ""title"": ""Identified material risk & potential impact"",
       ""summary"": ""Key operational, financial, regulatory, legal, or supply chain risks and disclosed mitigations."",
       ""category"": ""Major Business Risks"",
-      ""reportingPeriod"": ""FY24"",
+      ""reportingPeriod"": ""{fiscalYear}"",
       ""status"": ""Ongoing"",
       ""financialValue"": null,
       ""financialValueUnit"": null,
@@ -421,7 +441,15 @@ Annual Report Extracted Text:
 {extractedText}
 ";
 
-            var endpoint = $"{_settings.BaseUrl.TrimEnd('/')}/models/{_settings.ModelName}:generateContent?key={_settings.ApiKey}";
+            var candidateModels = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_settings.ModelName))
+            {
+                candidateModels.Add(_settings.ModelName.Trim());
+            }
+            candidateModels.Add("gemini-flash-lite-latest");
+            candidateModels.Add("gemini-3.5-flash");
+            candidateModels.Add("gemini-3.5-flash-lite");
+            var distinctModels = candidateModels.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
             var requestBody = new
             {
@@ -444,72 +472,76 @@ Annual Report Extracted Text:
 
             var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-            // Simple retry policy for transient 429 rate limits
-            for (var attempt = 1; attempt <= 3; attempt++)
+            foreach (var modelName in distinctModels)
             {
-                try
+                var endpoint = $"{_settings.BaseUrl.TrimEnd('/')}/models/{modelName}:generateContent?key={_settings.ApiKey}";
+
+                for (var attempt = 1; attempt <= 2; attempt++)
                 {
-                    using var response = await _httpClient.PostAsync(endpoint, jsonContent, cancellationToken);
-
-                    if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    try
                     {
-                        _logger.LogWarning("Gemini API rate limit (429) hit. Attempt {Attempt} of 3. Waiting 4 seconds...", attempt);
-                        await Task.Delay(4000, cancellationToken);
-                        continue;
-                    }
+                        using var response = await _httpClient.PostAsync(endpoint, jsonContent, cancellationToken);
 
-                    if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                        response.StatusCode == System.Net.HttpStatusCode.BadGateway ||
-                        response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
-                    {
-                        _logger.LogWarning("Gemini API temporary server issue ({StatusCode}). Attempt {Attempt} of 3. Waiting 3 seconds...", response.StatusCode, attempt);
-                        await Task.Delay(3000, cancellationToken);
-                        continue;
-                    }
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var errText = await response.Content.ReadAsStringAsync(cancellationToken);
-                        _logger.LogError("Gemini API returned error status {StatusCode}: {Error}", response.StatusCode, errText);
-                        return BuildFallbackJson($"AI insights generation returned status {response.StatusCode}. Official Annual Report document is available for download.");
-                    }
-
-                    var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
-                    using var doc = JsonDocument.Parse(responseString);
-
-                    if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
-                        candidates.GetArrayLength() > 0 &&
-                        candidates[0].TryGetProperty("content", out var content) &&
-                        content.TryGetProperty("parts", out var parts) &&
-                        parts.GetArrayLength() > 0 &&
-                        parts[0].TryGetProperty("text", out var textElement))
-                    {
-                        var rawText = textElement.GetString()?.Trim();
-                        if (string.IsNullOrWhiteSpace(rawText))
-                            return null;
-
-                        // Clean any markdown formatting if present
-                        if (rawText.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+                        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                         {
-                            rawText = rawText.Substring(7);
-                        }
-                        if (rawText.StartsWith("```", StringComparison.OrdinalIgnoreCase))
-                        {
-                            rawText = rawText.Substring(3);
-                        }
-                        if (rawText.EndsWith("```", StringComparison.OrdinalIgnoreCase))
-                        {
-                            rawText = rawText.Substring(0, rawText.Length - 3);
+                            _logger.LogWarning("Gemini API rate limit or daily quota (429) hit for model {Model}. Attempt {Attempt} of 2.", modelName, attempt);
+                            // If quota is exhausted (daily limit), break out to try next candidate model
+                            break;
                         }
 
-                        return rawText.Trim();
+                        if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
+                            response.StatusCode == System.Net.HttpStatusCode.BadGateway ||
+                            response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                        {
+                            _logger.LogWarning("Gemini API temporary server issue ({StatusCode}) for model {Model}. Attempt {Attempt} of 2. Waiting 2 seconds...", response.StatusCode, modelName, attempt);
+                            await Task.Delay(2000, cancellationToken);
+                            continue;
+                        }
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            var errText = await response.Content.ReadAsStringAsync(cancellationToken);
+                            _logger.LogWarning("Gemini API returned error status {StatusCode} for model {Model}: {Error}", response.StatusCode, modelName, errText);
+                            break;
+                        }
+
+                        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+                        using var doc = JsonDocument.Parse(responseString);
+
+                        if (doc.RootElement.TryGetProperty("candidates", out var candidates) &&
+                            candidates.GetArrayLength() > 0 &&
+                            candidates[0].TryGetProperty("content", out var content) &&
+                            content.TryGetProperty("parts", out var parts) &&
+                            parts.GetArrayLength() > 0 &&
+                            parts[0].TryGetProperty("text", out var textElement))
+                        {
+                            var rawText = textElement.GetString()?.Trim();
+                            if (string.IsNullOrWhiteSpace(rawText))
+                                break;
+
+                            // Clean any markdown formatting if present
+                            if (rawText.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+                            {
+                                rawText = rawText.Substring(7);
+                            }
+                            if (rawText.StartsWith("```", StringComparison.OrdinalIgnoreCase))
+                            {
+                                rawText = rawText.Substring(3);
+                            }
+                            if (rawText.EndsWith("```", StringComparison.OrdinalIgnoreCase))
+                            {
+                                rawText = rawText.Substring(0, rawText.Length - 3);
+                            }
+
+                            _logger.LogInformation("Successfully generated annual report insights using Gemini model: {Model}", modelName);
+                            return rawText.Trim();
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Gemini API call attempt {Attempt} failed", attempt);
-                    if (attempt == 3) throw;
-                    await Task.Delay(2000, cancellationToken);
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Gemini API call attempt {Attempt} for model {Model} failed", attempt, modelName);
+                        await Task.Delay(1500, cancellationToken);
+                    }
                 }
             }
 
@@ -541,6 +573,33 @@ Annual Report Extracted Text:
             };
 
             return JsonSerializer.Serialize(fallback);
+        }
+
+        public static string ResolveFiscalYear(string? year)
+        {
+            if (string.IsNullOrWhiteSpace(year)) return "FY26";
+            var trimmed = year.Trim().ToUpperInvariant();
+            if (trimmed.StartsWith("FY", StringComparison.OrdinalIgnoreCase)) return trimmed;
+
+            if (trimmed.Contains('-'))
+            {
+                var parts = trimmed.Split('-');
+                var lastPart = parts[^1].Trim();
+                if (lastPart.Length == 2) return "FY" + lastPart;
+                if (lastPart.Length == 4) return "FY" + lastPart.Substring(2);
+            }
+
+            if (trimmed.Length == 4 && int.TryParse(trimmed, out _))
+            {
+                return $"FY{trimmed.Substring(2)}";
+            }
+
+            if (trimmed.Length == 2 && int.TryParse(trimmed, out _))
+            {
+                return $"FY{trimmed}";
+            }
+
+            return trimmed;
         }
     }
 }

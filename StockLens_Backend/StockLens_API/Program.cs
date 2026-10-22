@@ -11,6 +11,7 @@ using StockLens_Infrastructure.Repositories;
 using StockLens_Infrastructure.Seeders;
 using System.Net;
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddUserSecrets<Program>(optional: true);
 
 // Add services to the container.
 builder.Services.AddControllers()

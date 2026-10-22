@@ -19,6 +19,16 @@ export const routes: Routes = [
     title: 'Stock Details — StockLens'
   },
   {
+    path: 'annual-reports',
+    loadComponent: () => import('./components/annual-reports-list/annual-reports-list.component').then(m => m.AnnualReportsListComponent),
+    title: 'Companies with Annual Reports — StockLens'
+  },
+  {
+    path: 'admin',
+    redirectTo: 'annual-reports',
+    pathMatch: 'full'
+  },
+  {
     path: 'stock',
     redirectTo: 'stock/RELIANCE',
     pathMatch: 'full'

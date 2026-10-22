@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -10,6 +10,9 @@ import { StockNewsService } from '../../services/stock-news.service';
 import { Nifty50StockItem } from '../../models/stock-index.model';
 import { Company } from '../../models/stock-news.model';
 
+import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
+import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
+
 export type SortField = 'weightage' | 'symbol' | 'name' | 'sector' | 'industry';
 export type SortOrder = 'asc' | 'desc';
 export type ViewTab = 'nifty50' | 'watchlist';
@@ -17,7 +20,7 @@ export type ViewTab = 'nifty50' | 'watchlist';
 @Component({
   selector: 'app-nifty50-landing',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdminNotificationBellComponent, AdminAnnualReportModalComponent],
   templateUrl: './nifty50-landing.component.html',
   styleUrl: './nifty50-landing.component.css'
 })
@@ -83,6 +86,25 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     return this.topSectors().some(s => s.name === sector);
   }
 
+  // Cache of non-Nifty stocks enriched with logo, live price, and market cap
+  readonly customStocksMap = signal<Map<string, Nifty50StockItem>>(new Map());
+
+  private lastFetchedCustomSymbolsKey: string = '';
+  private isFetchingCustomStocks: boolean = false;
+  private customStocksSub?: Subscription;
+
+  constructor() {
+    effect(() => {
+      const tab = this.activeTab();
+      const symbols = this.watchlistService.watchlistSymbols();
+      if (tab === 'watchlist' && symbols.length > 0) {
+        untracked(() => {
+          this.loadCustomWatchlistStocks();
+        });
+      }
+    });
+  }
+
   // Base list depending on active tab
   currentBaseStocks = computed(() => {
     const list = this.allStocks();
@@ -90,22 +112,28 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
     if (tab === 'watchlist') {
       const symbols = this.watchlistService.watchlistSymbols();
-      const symbolSet = new Set(symbols.map(s => s.toUpperCase()));
-      const found = list.filter(s => symbolSet.has(s.symbol.toUpperCase()));
-      const foundSet = new Set(found.map(f => f.symbol.toUpperCase()));
+      const foundMap = new Map(list.map(s => [s.symbol.toUpperCase(), s]));
 
-      // Include any user-added custom stocks that are not in default NIFTY 50
-      const custom = symbols
-        .filter(s => !foundSet.has(s.toUpperCase()))
-        .map(sym => ({
-          symbol: sym.toUpperCase(),
-          companyName: `${sym.toUpperCase()} Ltd`,
-          sector: 'Equities',
-          industry: 'NSE Listed',
+      return symbols.map(sym => {
+        const upper = sym.toUpperCase();
+        const base = foundMap.get(upper);
+        const custom = this.customStocksMap().get(upper);
+        const meta = this.watchlistService.getMeta(upper);
+
+        return {
+          symbol: upper,
+          companyName: custom?.companyName || base?.companyName || meta?.companyName || `${upper} Ltd`,
+          sector: custom?.sector || base?.sector || meta?.sector || 'Equities',
+          industry: base?.industry || 'NSE Listed',
+          logoUrl: custom?.logoUrl || base?.logoUrl || meta?.logoUrl,
+          websiteUrl: custom?.websiteUrl || base?.websiteUrl,
+          price: custom?.price ?? base?.price ?? meta?.price,
+          marketCap: custom?.marketCap ?? base?.marketCap ?? meta?.marketCap,
+          weightagePercentage: base?.weightagePercentage,
+          isin: base?.isin,
           exchange: 'NSE'
-        } as Nifty50StockItem));
-
-      return [...found, ...custom];
+        } as Nifty50StockItem;
+      });
     }
 
     return list;
@@ -182,13 +210,22 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.applyThemeToDom();
     this.setupHeaderSearch();
-    this.loadNifty50Stocks(true);
 
-    // Read query params (e.g. ?tab=watchlist or ?view=watchlist)
+    // Check query params immediately before triggering initial loads
+    const initialView = this.route.snapshot.queryParams['tab'] || this.route.snapshot.queryParams['view'];
+    if (initialView === 'watchlist') {
+      this.activeTab.set('watchlist');
+    }
+
+    // Only forceRefresh if user landed directly on the NIFTY 50 tab
+    this.loadNifty50Stocks(this.activeTab() === 'nifty50');
+
+    // Listen for subsequent query param changes
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
-      if (params['tab'] === 'watchlist' || params['view'] === 'watchlist') {
+      const view = params['tab'] || params['view'];
+      if (view === 'watchlist' && this.activeTab() !== 'watchlist') {
         this.activeTab.set('watchlist');
-      } else if (params['tab'] === 'nifty50' || params['view'] === 'nifty50') {
+      } else if (view === 'nifty50' && this.activeTab() !== 'nifty50') {
         this.activeTab.set('nifty50');
       }
     });
@@ -197,6 +234,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.headerSearchSub?.unsubscribe();
     this.queryParamsSub?.unsubscribe();
+    this.customStocksSub?.unsubscribe();
   }
 
   loadNifty50Stocks(forceRefresh: boolean): void {
@@ -220,6 +258,73 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadCustomWatchlistStocks(forceRefresh: boolean = false): void {
+    const symbols = this.watchlistService.watchlistSymbols();
+    if (symbols.length === 0) return;
+
+    // 1. Populate customStocksMap from WatchlistService metadata first (immediate cache hit for instant display)
+    const currentMap = new Map(this.customStocksMap());
+    let mapChanged = false;
+    for (const sym of symbols) {
+      const upper = sym.toUpperCase();
+      if (!currentMap.has(upper)) {
+        const meta = this.watchlistService.getMeta(upper);
+        if (meta && meta.companyName) {
+          currentMap.set(upper, {
+            symbol: upper,
+            companyName: meta.companyName,
+            logoUrl: meta.logoUrl,
+            price: meta.price,
+            marketCap: meta.marketCap,
+            sector: meta.sector || 'Equities',
+            industry: 'NSE Listed',
+            exchange: 'NSE'
+          } as Nifty50StockItem);
+          mapChanged = true;
+        }
+      }
+    }
+    if (mapChanged) {
+      this.customStocksMap.set(currentMap);
+    }
+
+    // 2. Fetch fresh prices and market caps for ALL watchlist symbols from backend
+    const symbolsKey = symbols.map(s => s.toUpperCase()).sort().join(',');
+    if (!forceRefresh && (this.isFetchingCustomStocks || this.lastFetchedCustomSymbolsKey === symbolsKey)) {
+      return;
+    }
+
+    this.isFetchingCustomStocks = true;
+    this.customStocksSub?.unsubscribe();
+
+    this.customStocksSub = this.indexService.getStocksBySymbols(symbols).subscribe({
+      next: (stocks) => {
+        this.isFetchingCustomStocks = false;
+        this.lastFetchedCustomSymbolsKey = symbolsKey;
+        if (!stocks || stocks.length === 0) return;
+        this.customStocksMap.update(map => {
+          const newMap = new Map(map);
+          for (const s of stocks) {
+            newMap.set(s.symbol.toUpperCase(), s);
+            this.watchlistService.setMeta(s.symbol, {
+              symbol: s.symbol,
+              companyName: s.companyName,
+              logoUrl: s.logoUrl,
+              price: s.price,
+              marketCap: s.marketCap,
+              sector: s.sector
+            });
+          }
+          return newMap;
+        });
+      },
+      error: (err) => {
+        this.isFetchingCustomStocks = false;
+        console.warn('Could not fetch custom watchlist stocks:', err);
+      }
+    });
+  }
+
   // View Tab Switching
   setActiveTab(tab: ViewTab): void {
     this.activeTab.set(tab);
@@ -227,6 +332,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     if (tab === 'watchlist') {
       this.sortField.set('symbol');
       this.sortOrder.set('asc');
+      this.loadCustomWatchlistStocks();
     } else {
       this.sortField.set('weightage');
       this.sortOrder.set('desc');
@@ -243,6 +349,10 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     this.router.navigate(['/stock', symbol.toUpperCase()]);
   }
 
+  navigateToAnnualReports(): void {
+    this.router.navigate(['/annual-reports']);
+  }
+
   toggleExchange(exchange: 'NSE' | 'BSE'): void {
     this.selectedExchange.set(exchange);
   }
@@ -250,6 +360,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   syncData(): void {
     this.isSyncing.set(true);
     this.loadNifty50Stocks(true);
+    this.loadCustomWatchlistStocks();
   }
 
   toggleTheme(): void {
@@ -274,7 +385,16 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   // Watchlist Star Toggle (stops propagation so row click isn't triggered)
   toggleStar(event: Event, symbol: string): void {
     event.stopPropagation();
-    this.watchlistService.toggleWatchlist(symbol);
+    const upper = symbol.toUpperCase();
+    const stock = this.allStocks().find(s => s.symbol.toUpperCase() === upper) || this.customStocksMap().get(upper);
+    this.watchlistService.toggleWatchlist(symbol, stock ? {
+      symbol: stock.symbol,
+      companyName: stock.companyName,
+      logoUrl: stock.logoUrl,
+      price: stock.price,
+      marketCap: stock.marketCap,
+      sector: stock.sector
+    } : undefined);
   }
 
   isStarred(symbol: string): boolean {

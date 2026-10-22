@@ -230,4 +230,30 @@ namespace StockLens_BusinessLayer.DTOs
         public DateTime? ProcessedAt { get; set; }
         public string? Message { get; set; }
     }
+
+    public class AdminSaveAndExtractReportRequestDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string? Year { get; set; }
+        public string? Title { get; set; }
+        public string PdfUrl { get; set; } = string.Empty;
+        public string? Source { get; set; } = "BSE";
+    }
+
+    public class AnnualReportDirectoryItemDto
+    {
+        public int StockId { get; set; }
+        public string Symbol { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public string? LogoUrl { get; set; }
+        public string? Industry { get; set; }
+        public string? Sector { get; set; }
+        public string? Year { get; set; }
+        public string? Title { get; set; }
+        public string? PdfUrl { get; set; }
+        public string? Source { get; set; }
+        public string ExtractionStatus { get; set; } = "Pending";
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ProcessedAt { get; set; }
+    }
 }

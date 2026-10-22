@@ -9,5 +9,6 @@ namespace StockLens_BusinessLayer.Interfaces
     public interface IMarketIndicesService
     {
         Task<IEnumerable<MarketIndexCompanyDto>> GetTop50CompaniesAsync(CancellationToken cancellationToken = default);
+        Task<IEnumerable<MarketIndexCompanyDto>> GetStocksBySymbolsAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default);
     }
 }

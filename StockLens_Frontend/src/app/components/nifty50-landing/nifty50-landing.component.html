@@ -66,6 +66,20 @@
 
     <!-- Right: Watchlist Nav, Exchange Switcher, Theme & Sync Button -->
     <div class="header-right">
+      <!-- 📄 Annual Reports Directory Button -->
+      <button type="button" class="nav-watchlist-btn" (click)="navigateToAnnualReports()" title="Companies with Annual Reports">
+        <svg class="star-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span>Annual Reports</span>
+      </button>
+
+      <!-- Admin Bell Component (Only visible to Hetvi) -->
+      <app-admin-notification-bell></app-admin-notification-bell>
+
       <!-- ⭐ Watchlist Button (Toggles view on the same page) -->
       <button type="button" class="nav-watchlist-btn" [class.active]="activeTab() === 'watchlist'"
         (click)="setActiveTab(activeTab() === 'watchlist' ? 'nifty50' : 'watchlist')" title="Toggle My Watchlist">
@@ -391,3 +405,6 @@
     </div>
   </main>
 </div>
+
+<!-- Admin Annual Report Form & PIN Prompt Modals -->
+<app-admin-annual-report-modal></app-admin-annual-report-modal>

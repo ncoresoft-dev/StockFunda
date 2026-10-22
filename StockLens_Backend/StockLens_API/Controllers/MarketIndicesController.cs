@@ -22,5 +22,18 @@ namespace StockLens_Api.Controllers
             var result = await _marketIndicesService.GetTop50CompaniesAsync(cancellationToken);
             return Ok(result);
         }
+
+        [HttpGet("stocks-by-symbols")]
+        public async Task<IActionResult> GetStocksBySymbols([FromQuery] string symbols, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(symbols))
+            {
+                return Ok(System.Array.Empty<object>());
+            }
+
+            var symbolList = symbols.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+            var result = await _marketIndicesService.GetStocksBySymbolsAsync(symbolList, cancellationToken);
+            return Ok(result);
+        }
     }
 }

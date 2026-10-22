@@ -67,8 +67,32 @@ export interface StockAnnualReportsResponse {
   companyName?: string;
   totalCount: number;
   reports: AnnualReportItem[];
-  extractionStatus: 'Completed' | 'Processing' | 'Pending' | 'NotAvailable' | 'Failed';
+  extractionStatus: 'Completed' | 'Processing' | 'Pending' | 'Requested' | 'NotAvailable' | 'Failed';
   insights?: AnnualReportInsights;
   processedAt?: string;
   message?: string;
+}
+
+export interface AdminSaveAndExtractReportRequest {
+  symbol: string;
+  year?: string;
+  title?: string;
+  pdfUrl: string;
+  source?: string;
+}
+
+export interface AnnualReportDirectoryItem {
+  stockId: number;
+  symbol: string;
+  companyName: string;
+  logoUrl?: string;
+  industry?: string;
+  sector?: string;
+  year?: string;
+  title?: string;
+  pdfUrl?: string;
+  source?: string;
+  extractionStatus: 'Completed' | 'Processing' | 'Pending' | 'Requested' | 'NotAvailable' | 'Failed';
+  createdAt?: string;
+  processedAt?: string;
 }

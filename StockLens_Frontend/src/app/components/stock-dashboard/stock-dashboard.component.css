@@ -136,7 +136,8 @@
    1. TOP GLOBAL APPLICATION NAVBAR
    ========================================================================== */
 .cockpit-header {
-  position: relative;
+  position: sticky;
+  top: 0;
   flex-shrink: 0;
   height: 48px;
   min-height: 48px;
@@ -148,6 +149,7 @@
   justify-content: space-between;
   gap: 1.5rem;
   z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .header-left {
@@ -1502,8 +1504,8 @@
    ========================================================================== */
 .screener-sticky-nav-bar {
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 48px;
+  z-index: 999;
   width: 100%;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -1661,8 +1663,9 @@
 #section-cashflow,
 #section-balancesheet,
 #section-deals,
-#section-peers {
-  scroll-margin-top: 52px;
+#section-peers,
+#section-reports {
+  scroll-margin-top: 96px;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
@@ -7211,7 +7214,7 @@
 /* SCREENER-STYLE MULTI-SECTION DASHBOARD FLOW                               */
 /* ========================================================================== */
 
-/* Sections Scroll Margin (To account for sticky bar height) */
+/* Sections Scroll Margin (To account for sticky bar height: cockpit header 48px + tabs bar 48px) */
 #section-overview,
 #section-quarters,
 #section-ownership,
@@ -7221,8 +7224,10 @@
 #section-cashflow,
 #section-balancesheet,
 #section-deals,
-#section-financials {
-  scroll-margin-top: 52px;
+#section-peers,
+#section-financials,
+#section-reports {
+  scroll-margin-top: 96px;
 }
 
 /* Screener Overview Card (Hero + Ratios + About Side-by-Side) */
@@ -7611,4 +7616,171 @@
 .annual-report-section-row app-stock-company-about-card {
   width: 100%;
   display: block;
+}
+
+/* ========================================================================= */
+/* ANNUAL REPORT TOP HERO ACTION & STICKY NAV BADGES                         */
+/* ========================================================================= */
+
+.hero-ar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.hero-ar-btn.ready {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.hero-ar-btn.ready:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.cockpit-container.dark-theme .hero-ar-btn.ready {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.cockpit-container.dark-theme .hero-ar-btn.ready:hover {
+  background: rgba(16, 185, 129, 0.28);
+  color: #6ee7b7;
+}
+
+.hero-ar-btn.request {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0284c7;
+}
+
+.hero-ar-btn.request:hover:not(:disabled) {
+  background: #bae6fd;
+  border-color: #38bdf8;
+  color: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.22);
+}
+
+.cockpit-container.dark-theme .hero-ar-btn.request {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.cockpit-container.dark-theme .hero-ar-btn.request:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+}
+
+.hero-ar-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.hero-ar-pill.requested {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.cockpit-container.dark-theme .hero-ar-pill.requested {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.ar-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-green 1.8s infinite;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ar-amber-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.ar-arrow-icon {
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
+}
+
+.ar-btn-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.ar-mini-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(2, 132, 199, 0.25);
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+/* Nav Tab Badges */
+.nav-tab-badge {
+  font-size: 0.60rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  margin-left: 5px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-tab-badge.ready {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.nav-tab-badge.requested {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.nav-tab-badge.request {
+  background: #0284c7;
+  color: #ffffff;
 }

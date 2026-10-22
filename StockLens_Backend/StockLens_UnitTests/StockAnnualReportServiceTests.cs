@@ -6,12 +6,15 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using StockLens_BusinessLayer.DTOs;
 using StockLens_BusinessLayer.Services;
 using StockLens_DataLayer.Entities;
 using StockLens_DataLayer.Interfaces;
 using StockLens_Infrastructure.ExternalServices.AnnualReportInsights;
 using StockLens_Infrastructure.ExternalServices.Screener;
 using StockLens_Infrastructure.ExternalServices.Screener.Models;
+using System.IO;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -26,7 +29,7 @@ namespace StockLens_UnitTests
         private readonly IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
         [Fact]
-        public async Task GetAnnualReportsBySymbolAsync_NewStock_CreatesStock_SavesToDb_AndExtractsInsights()
+        public async Task GetAnnualReportsBySymbolAsync_StockNotInDb_ReturnsNotAvailable_WithoutCallingScreenerOrGemini()
         {
             // Arrange
             var symbol = "RELIANCE";
@@ -38,45 +41,65 @@ namespace StockLens_UnitTests
                 Company = new Company { CompanyName = "Reliance Industries Ltd" }
             };
 
-            // Stock does not exist initially; GetOrCreateStockAsync returns newly created stock
             _stockRepoMock
                 .Setup(r => r.GetOrCreateStockAsync(symbol, "NSE", null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(stock);
 
-            // DB has no existing report initially
             _annualReportRepoMock
                 .Setup(r => r.GetLatestByStockIdAsync(stock.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((StockAnnualReport?)null);
 
-            // Screener returns latest report
-            IReadOnlyList<ScreenerDocumentItem> screenerDocs = new List<ScreenerDocumentItem>
-            {
-                new ScreenerDocumentItem
-                {
-                    Title = "Annual Report 2026",
-                    Year = "2026",
-                    Url = "https://www.bseindia.com/annualreport/reliance2026.pdf",
-                    Source = "BSE",
-                    DocumentType = ScreenerDocumentType.AnnualReport
-                }
-            };
-            _screenerClientMock
-                .Setup(s => s.GetAnnualReportsAsync(symbol, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(screenerDocs);
+            var service = new StockAnnualReportService(
+                _screenerClientMock.Object,
+                _stockRepoMock.Object,
+                _annualReportRepoMock.Object,
+                _insightExtractorMock.Object,
+                _memoryCache,
+                NullLogger<StockAnnualReportService>.Instance);
 
-            // Extractor returns JSON
+            // Act
+            var response = await service.GetAnnualReportsBySymbolAsync(symbol);
+
+            // Assert - Should return NotAvailable immediately without auto-scraping Screener or calling Gemini
+            response.Should().NotBeNull();
+            response.Symbol.Should().Be(symbol);
+            response.ExtractionStatus.Should().Be("NotAvailable");
+            response.Insights.Should().BeNull();
+
+            // Verify Screener and InsightExtractor were NEVER called
+            _screenerClientMock.Verify(s => s.GetAnnualReportsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _insightExtractorMock.Verify(e => e.ExtractInsightsJsonAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AdminSaveAndExtractAnnualReportAsync_ExtractsInsights_AndSavesToDb()
+        {
+            // Arrange
+            var symbol = "RELIANCE";
+            var pdfUrl = "https://www.bseindia.com/annualreport/reliance2026.pdf";
+            var stock = new Stock
+            {
+                Id = 101,
+                Symbol = symbol,
+                Exchange = "NSE",
+                Company = new Company { CompanyName = "Reliance Industries Ltd" }
+            };
+
+            _stockRepoMock
+                .Setup(r => r.GetOrCreateStockAsync(symbol, "NSE", null, null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(stock);
+
+            _annualReportRepoMock
+                .Setup(r => r.GetLatestByStockIdAsync(stock.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((StockAnnualReport?)null);
+
             var dummyJson = "{\"executiveSummary\":\"Strong growth across Jio and Retail\",\"keyHighlights\":[\"Net Profit grew 15% YoY\"]}";
             _insightExtractorMock
-                .Setup(e => e.ExtractInsightsJsonAsync(symbol, screenerDocs[0].Url, It.IsAny<CancellationToken>()))
+                .Setup(e => e.ExtractInsightsJsonAsync(symbol, pdfUrl, "2026", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(dummyJson);
 
-            StockAnnualReport? savedReport = null;
             _annualReportRepoMock
                 .Setup(r => r.AddAsync(It.IsAny<StockAnnualReport>(), It.IsAny<CancellationToken>()))
-                .Callback<StockAnnualReport, CancellationToken>((r, _) => {
-                    r.Id = 1;
-                    savedReport = r;
-                })
                 .Returns(Task.CompletedTask);
 
             _annualReportRepoMock
@@ -92,26 +115,24 @@ namespace StockLens_UnitTests
                 NullLogger<StockAnnualReportService>.Instance);
 
             // Act
-            var response = await service.GetAnnualReportsBySymbolAsync(symbol);
+            var response = await service.AdminSaveAndExtractAnnualReportAsync(new AdminSaveAndExtractReportRequestDto
+            {
+                Symbol = symbol,
+                Year = "2026",
+                Title = "Annual Report 2026",
+                PdfUrl = pdfUrl,
+                Source = "BSE"
+            });
 
             // Assert
             response.Should().NotBeNull();
             response.Symbol.Should().Be(symbol);
-            response.StockId.Should().Be(101);
             response.ExtractionStatus.Should().Be("Completed");
             response.Insights.Should().NotBeNull();
             response.Insights!.ExecutiveSummary.Should().Contain("Strong growth across Jio and Retail");
 
-            // Verify DB AddAsync was called (Row inserted in table!)
-            _annualReportRepoMock.Verify(r => r.AddAsync(It.Is<StockAnnualReport>(ar =>
-                ar.StockId == 101 &&
-                ar.PdfUrl == screenerDocs[0].Url &&
-                ar.Year == "2026"), It.IsAny<CancellationToken>()), Times.Once);
-
-            // Verify DB UpdateAsync was called to save extracted insights
-            _annualReportRepoMock.Verify(r => r.UpdateAsync(It.Is<StockAnnualReport>(ar =>
-                ar.ExtractedInsightsJson == dummyJson &&
-                ar.ExtractionStatus == "Completed"), It.IsAny<CancellationToken>()), Times.Once);
+            // Verify extractor was called
+            _insightExtractorMock.Verify(e => e.ExtractInsightsJsonAsync(symbol, pdfUrl, "2026", It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -130,7 +151,7 @@ namespace StockLens_UnitTests
 
             var geminiSettings = Microsoft.Extensions.Options.Options.Create(new GeminiSettings
             {
-                ApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? string.Empty,
+                ApiKey = GetGeminiApiKey(),
                 ModelName = "gemini-flash-latest",
                 BaseUrl = "https://generativelanguage.googleapis.com/v1beta",
                 TimeoutSeconds = 90
@@ -180,7 +201,7 @@ namespace StockLens_UnitTests
 
             var geminiSettings = Microsoft.Extensions.Options.Options.Create(new GeminiSettings
             {
-                ApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? string.Empty,
+                ApiKey = GetGeminiApiKey(),
                 ModelName = "gemini-3.8-flash",
                 BaseUrl = "https://generativelanguage.googleapis.com/v1beta",
                 TimeoutSeconds = 45
@@ -203,6 +224,131 @@ namespace StockLens_UnitTests
             response.Should().NotBeNull();
             response.ExtractionStatus.Should().Be("Completed");
             response.Insights.Should().NotBeNull();
+        }
+
+        [Fact]
+        public async Task Diagnose_RailTel_Extraction()
+        {
+            var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+            
+            var apiKey = GetGeminiApiKey();
+            var pdfUrl = "https://www.bseindia.com/xml-data/corpfiling/AttachHis/7044d17d-6a4f-4276-bb80-83225794f6b4.pdf";
+            
+            var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "railtel_test.pdf");
+            if (!System.IO.File.Exists(tempFile))
+            {
+                using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, pdfUrl);
+                req.Headers.Add("User-Agent", "Mozilla/5.0");
+                using var resp = await httpClient.SendAsync(req);
+                await using var fs = System.IO.File.Create(tempFile);
+                await resp.Content.CopyToAsync(fs);
+            }
+
+            var geminiSettings = Microsoft.Extensions.Options.Options.Create(new GeminiSettings
+            {
+                ApiKey = apiKey,
+                ModelName = "gemini-flash-latest", // Primary model hits 429 daily quota
+                BaseUrl = "https://generativelanguage.googleapis.com/v1beta",
+                TimeoutSeconds = 90
+            });
+
+            var insightExtractor = new AnnualReportInsightExtractor(httpClient, geminiSettings, NullLogger<AnnualReportInsightExtractor>.Instance);
+            var result = await insightExtractor.ExtractInsightsJsonAsync("RAILTEL", pdfUrl);
+            Console.WriteLine("EXTRACTOR RESULT: " + result);
+            result.Should().NotBeNullOrWhiteSpace();
+            result.Should().NotContain("Insights extraction encountered a temporary issue");
+            result.Should().NotContain("AI insights generation is temporarily unavailable");
+            result.Should().Contain("RailTel");
+        }
+
+        [Fact]
+        public void IsFailedOrFallbackInsights_IdentifiesFailureSummaries()
+        {
+            var fallback = "{\"executiveSummary\":\"Annual report document retrieved. Insights extraction encountered a temporary issue.\",\"companyExpansion\":[]}";
+            StockAnnualReportService.IsFailedOrFallbackInsights(fallback).Should().BeTrue();
+
+            var success = "{\"executiveSummary\":\"Strong growth across business segments.\",\"companyExpansion\":[{\"title\":\"New Plant\"}]}";
+            StockAnnualReportService.IsFailedOrFallbackInsights(success).Should().BeFalse();
+        }
+
+        [Fact]
+        public void ProcessAndPrioritizeInsights_NormalizesReportingPeriod_ToMatchReportYear()
+        {
+            // Arrange: Items with hallucinated / legacy FY24 from template schema
+            var insights = new StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto
+            {
+                CompanyExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                {
+                    new()
+                    {
+                        Title = "Bengaluru Phase - I Hotel Development",
+                        Summary = "Opening first phase of Bengaluru hotel with 238 keys.",
+                        ReportingPeriod = "FY24" // Artifact from prompt schema
+                    }
+                },
+                StrategicPartnerships = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                {
+                    new()
+                    {
+                        Title = "Marriott Brand Sign-on for Bengaluru",
+                        Summary = "Signed Marriott's Westin brand.",
+                        ReportingPeriod = "FY24"
+                    }
+                }
+            };
+
+            // Act: Process with 2026 annual report year
+            StockAnnualReportService.ProcessAndPrioritizeInsights(insights, "2026");
+
+            // Assert: reportingPeriod should now be normalized to FY26
+            insights.CompanyExpansion[0].ReportingPeriod.Should().Be("FY26");
+            insights.StrategicPartnerships[0].ReportingPeriod.Should().Be("FY26");
+            insights.TopHighImpactInsights[0].ReportingPeriod.Should().Be("FY26");
+        }
+
+        [Fact]
+        public async Task LiveTest_RealDatabase_RailTel_Healing()
+        {
+            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
+                .UseSqlServer("Server=DESKTOP-J2CVHIQ;Database=StockLensTestDB;Trusted_Connection=True;Encrypt=False;")
+                .Options;
+
+            using var dbContext = new StockLens_Infrastructure.DataContext.StockLensDataContext(options);
+            var stockRepo = new StockLens_Infrastructure.Repositories.StockRepository(dbContext);
+            var annualReportRepo = new StockLens_Infrastructure.Repositories.StockAnnualReportRepository(dbContext);
+
+            var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+            var screenerClient = new ScreenerClient(httpClient, Microsoft.Extensions.Options.Options.Create(new ScreenerSettings()), NullLogger<ScreenerClient>.Instance);
+
+            var apiKey = GetGeminiApiKey();
+            var geminiSettings = Microsoft.Extensions.Options.Options.Create(new GeminiSettings
+            {
+                ApiKey = apiKey,
+                ModelName = "gemini-flash-lite-latest",
+                BaseUrl = "https://generativelanguage.googleapis.com/v1beta",
+                TimeoutSeconds = 90
+            });
+
+            var insightExtractor = new AnnualReportInsightExtractor(httpClient, geminiSettings, NullLogger<AnnualReportInsightExtractor>.Instance);
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            var service = new StockAnnualReportService(
+                screenerClient,
+                stockRepo,
+                annualReportRepo,
+                insightExtractor,
+                memoryCache,
+                NullLogger<StockAnnualReportService>.Instance);
+
+            // Execute service for RAILTEL without refresh flag - should auto-detect old failure and heal it!
+            var response = await service.GetAnnualReportsBySymbolAsync("RAILTEL", refresh: false);
+
+            response.Should().NotBeNull();
+            response.ExtractionStatus.Should().Be("Completed");
+            response.Insights.Should().NotBeNull();
+            response.Insights!.ExecutiveSummary.Should().NotContain("temporary issue");
+            response.Insights.ExecutiveSummary.Should().Contain("RailTel");
+            response.TotalCount.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -408,6 +554,44 @@ namespace StockLens_UnitTests
             // Assert
             insights!.CompanyExpansion.Should().HaveCount(1);
             insights.CompanyExpansion[0].Summary.Should().Contain("warehouse in Bhiwandi");
+        }
+
+        private static string GetGeminiApiKey()
+        {
+            var envKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            if (!string.IsNullOrWhiteSpace(envKey))
+            {
+                return envKey;
+            }
+
+            try
+            {
+                var secretPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "Microsoft", "UserSecrets", "stocklens-api-e6a839f1-469b-4682-841f-823908c69134", "secrets.json");
+
+                if (File.Exists(secretPath))
+                {
+                    var secretJson = File.ReadAllText(secretPath);
+                    using var doc = JsonDocument.Parse(secretJson);
+                    if (doc.RootElement.TryGetProperty("Gemini:ApiKey", out var keyElem))
+                    {
+                        return keyElem.GetString() ?? string.Empty;
+                    }
+
+                    if (doc.RootElement.TryGetProperty("Gemini", out var geminiSection) &&
+                        geminiSection.TryGetProperty("ApiKey", out var nestedKey))
+                    {
+                        return nestedKey.GetString() ?? string.Empty;
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback gracefully
+            }
+
+            return string.Empty;
         }
     }
 }

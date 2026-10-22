@@ -1,0 +1,218 @@
+<!-- 1. ADMIN PIN PROMPT MODAL (Triggered via Ctrl+Shift+A) -->
+@if (authService.isPinModalOpen()) {
+<div class="modal-backdrop" (click)="authService.closePinPrompt()">
+  <div class="modal-container pin-modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-icon-box lock-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <div class="header-titles">
+        <h3 class="modal-title">Admin Access Verification</h3>
+        <p class="modal-subtitle">Enter your secret Admin Key to unlock management controls.</p>
+      </div>
+      <button type="button" class="close-x-btn" (click)="authService.closePinPrompt()">&times;</button>
+    </div>
+
+    <form (submit)="onPinSubmit(); $event.preventDefault()" class="modal-body">
+      <div class="input-field-group">
+        <label class="input-label" for="adminPinInput">Secret Admin Passcode</label>
+        <input
+          id="adminPinInput"
+          type="password"
+          class="cyber-input"
+          placeholder="Enter Admin Key..."
+          [(ngModel)]="enteredPin"
+          name="enteredPin"
+          autofocus
+          autocomplete="off"
+        />
+      </div>
+
+      @if (authService.pinErrorMessage()) {
+        <div class="error-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ authService.pinErrorMessage() }}</span>
+        </div>
+      }
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="authService.closePinPrompt()">Cancel</button>
+        <button type="submit" class="btn-primary-action">
+          <span>Unlock Admin Mode</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}
+
+<!-- 2. ADMIN ANNUAL REPORT FILL & EXTRACT MODAL -->
+@if (modalService.isOpen()) {
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-container report-modal-box" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-icon-box spark-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <div class="header-titles">
+        <div class="title-with-tag">
+          <h3 class="modal-title">Annual Report AI Insights Generator</h3>
+          <span class="admin-badge">Admin Hetvi</span>
+        </div>
+        <p class="modal-subtitle">Save filing record and trigger deep Gemini AI structured extraction.</p>
+      </div>
+      <button type="button" class="close-x-btn" [disabled]="isExtracting()" (click)="closeModal()">&times;</button>
+    </div>
+
+    <!-- Body Form -->
+    <div class="modal-body">
+      <!-- Loading Extraction State Overlay Banner -->
+      @if (isExtracting()) {
+      <div class="extracting-active-box">
+        <div class="ai-pulse-spinner"></div>
+        <div class="extracting-status-texts">
+          <span class="pulse-title">Gemini AI is Extracting Report for {{ symbol() }}...</span>
+          <span class="pulse-desc">Analyzing PDF text, parsing MD&A, capex orders, management outlook, and verified risk factors. This takes 25–45 seconds.</span>
+        </div>
+      </div>
+      }
+
+      @if (successMessage()) {
+      <div class="success-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>{{ successMessage() }}</span>
+      </div>
+      }
+
+      @if (errorMessage()) {
+      <div class="error-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+      }
+
+      <div class="form-grid">
+        <!-- Stock Symbol (Readonly) -->
+        <div class="input-field-group">
+          <label class="input-label" for="stockSymbolInput">Company Symbol <span class="required-star">*</span></label>
+          <input
+            id="stockSymbolInput"
+            type="text"
+            class="cyber-input uppercase readonly-input"
+            placeholder="e.g. RELIANCE, TCS, TATASTEEL"
+            [value]="symbol()"
+            [readonly]="true"
+            [disabled]="isExtracting()"
+          />
+        </div>
+
+        <!-- Filing Source -->
+        <div class="input-field-group">
+          <label class="input-label" for="reportSourceInput">Filing Source</label>
+          <select
+            id="reportSourceInput"
+            class="cyber-input cyber-select"
+            [value]="source()"
+            (change)="source.set($any($event.target).value)"
+            [disabled]="isExtracting()"
+          >
+            <option value="BSE">BSE India</option>
+            <option value="NSE">NSE India</option>
+            <option value="CompanyWebsite">Company Official Investor Portal</option>
+          </select>
+        </div>
+
+        <!-- Report Title -->
+        <div class="input-field-group full-width">
+          <label class="input-label" for="reportTitleInput">Report Title</label>
+          <input
+            id="reportTitleInput"
+            type="text"
+            class="cyber-input"
+            placeholder="e.g. Annual Report 2026"
+            [value]="title()"
+            (input)="title.set($any($event.target).value)"
+            [disabled]="isExtracting()"
+          />
+        </div>
+
+        <!-- Official PDF URL -->
+        <div class="input-field-group full-width">
+          <div class="label-with-action">
+            <label class="input-label" for="pdfUrlInput">Official PDF URL <span class="required-star">*</span></label>
+            <button
+              type="button"
+              class="suggest-link-btn"
+              (click)="suggestPdfLink()"
+              [disabled]="isSuggesting() || isExtracting() || !symbol()"
+              title="Autofill official PDF URL from Screener/BSE"
+            >
+              @if (isSuggesting()) {
+                <span class="mini-spinner-sm"></span>
+                <span>Fetching Link...</span>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span>Suggest Screener Link</span>
+              }
+            </button>
+          </div>
+          <input
+            id="pdfUrlInput"
+            type="url"
+            class="cyber-input"
+            placeholder="https://www.bseindia.com/annualreport/reliance.pdf"
+            [value]="pdfUrl()"
+            (input)="pdfUrl.set($any($event.target).value.trim())"
+            (change)="pdfUrl.set($any($event.target).value.trim())"
+            [disabled]="isExtracting()"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="modal-footer">
+      <button type="button" class="btn-cancel" [disabled]="isExtracting()" (click)="closeModal()">Cancel</button>
+      <button
+        type="button"
+        class="btn-primary-action"
+        [disabled]="isSaveDisabled()"
+        (click)="saveAndExtract()"
+      >
+        @if (isExtracting()) {
+          <span class="mini-spinner-sm"></span>
+          <span>Extracting Insights...</span>
+        } @else {
+          <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
+          </svg>
+          <span>Save & Extract via Gemini</span>
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}

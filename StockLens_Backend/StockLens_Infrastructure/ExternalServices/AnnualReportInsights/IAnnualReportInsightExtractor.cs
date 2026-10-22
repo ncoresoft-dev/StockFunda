@@ -9,6 +9,6 @@ namespace StockLens_Infrastructure.ExternalServices.AnnualReportInsights
         /// Downloads the PDF from the provided URL, extracts text from high-priority sections via PdfPig,
         /// generates structured insights using Gemini AI, and returns the serialized JSON.
         /// </summary>
-        Task<string?> ExtractInsightsJsonAsync(string symbol, string pdfUrl, CancellationToken cancellationToken = default);
+        Task<string?> ExtractInsightsJsonAsync(string symbol, string pdfUrl, string? reportYear = null, CancellationToken cancellationToken = default);
     }
 }

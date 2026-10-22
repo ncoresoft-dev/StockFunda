@@ -55,27 +55,28 @@ namespace StockLens_BusinessLayer.Services
             var cleanSymbol = symbol.Trim().ToUpperInvariant();
             var cacheKey = $"screener_current_annual_report_{cleanSymbol}";
 
-            // 1. Check in-memory cache first (ultrafast response during active sessions)
+            // 1. Check in-memory cache first
             if (!refresh && _memoryCache.TryGetValue(cacheKey, out StockAnnualReportsResponseDto? cachedResponse) 
-                && cachedResponse != null 
-                && (cachedResponse.Insights != null || cachedResponse.ExtractionStatus == "NotAvailable"))
+                && cachedResponse != null)
             {
                 _logger.LogInformation("Returning cached annual report for symbol: {Symbol}", cleanSymbol);
                 return cachedResponse;
             }
 
-            // Look up stock in local database, or create it if searched for the first time
+            // Look up stock in database
             var stock = await _stockRepository.GetOrCreateStockAsync(cleanSymbol, "NSE", null, null, cancellationToken);
             var companyName = stock?.Company?.CompanyName;
 
-            // 2. Check Database first if refresh is false (permanent storage)
-            if (!refresh && stock != null)
+            // 2. Check Database (No automatic background scraping or automatic extraction!)
+            if (stock != null)
             {
                 var dbReport = await _annualReportRepository.GetLatestByStockIdAsync(stock.Id, cancellationToken);
                 if (dbReport != null)
                 {
                     // Case A: Insights already extracted and completed in DB
-                    if (!string.IsNullOrWhiteSpace(dbReport.ExtractedInsightsJson) && dbReport.ExtractionStatus == "Completed")
+                    if (!string.IsNullOrWhiteSpace(dbReport.ExtractedInsightsJson) 
+                        && dbReport.ExtractionStatus == "Completed"
+                        && !IsFailedOrFallbackInsights(dbReport.ExtractedInsightsJson))
                     {
                         _logger.LogInformation("Returning pre-extracted annual report insights from Database for symbol: {Symbol}", cleanSymbol);
                         var responseFromDb = BuildResponseDto(stock.Id, cleanSymbol, companyName, dbReport);
@@ -83,146 +84,264 @@ namespace StockLens_BusinessLayer.Services
                         return responseFromDb;
                     }
 
-                    // Case B: PDF URL exists in DB, but insights need to be extracted
-                    if (!string.IsNullOrWhiteSpace(dbReport.PdfUrl))
-                    {
-                        _logger.LogInformation("PDF URL exists in DB for {Symbol}. Processing AI insights now...", cleanSymbol);
-                        var extractedJson = await _insightExtractor.ExtractInsightsJsonAsync(cleanSymbol, dbReport.PdfUrl, cancellationToken);
-                        if (!string.IsNullOrWhiteSpace(extractedJson))
-                        {
-                            dbReport.ExtractedInsightsJson = extractedJson;
-                            dbReport.ExtractionStatus = "Completed";
-                            dbReport.ProcessedAt = DateTime.UtcNow;
-                            dbReport.UpdatedAt = DateTime.UtcNow;
-                            await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
-
-                            var responseAfterExtraction = BuildResponseDto(stock.Id, cleanSymbol, companyName, dbReport);
-                            _memoryCache.Set(cacheKey, responseAfterExtraction, CacheDuration);
-                            return responseAfterExtraction;
-                        }
-                    }
+                    // Case B: Record exists in DB (e.g. Requested, Pending, or NotAvailable) - return status without calling Gemini!
+                    var pendingResponse = BuildResponseDto(stock.Id, cleanSymbol, companyName, dbReport);
+                    return pendingResponse;
                 }
             }
 
-            // 3. If not in DB or refresh=true: Scrape Screener document section for PDF URL
-            _logger.LogInformation("Fetching annual report document URL from Screener for symbol: {Symbol}", cleanSymbol);
-            var docs = await _screenerClient.GetAnnualReportsAsync(cleanSymbol, cancellationToken);
-
-            var latestReport = docs.Select(d => new AnnualReportDto
+            // 3. If not in DB: Return NotAvailable. (Do NOT auto-scrape Screener and do NOT auto-save to DB!)
+            _logger.LogInformation("No annual report record in DB for symbol: {Symbol}. Awaiting user request or admin entry.", cleanSymbol);
+            return new StockAnnualReportsResponseDto
             {
-                Title = d.Title,
-                Year = d.Year,
-                PdfUrl = d.Url,
-                Source = d.Source ?? "BSE"
+                StockId = stock?.Id,
+                Symbol = cleanSymbol,
+                CompanyName = companyName,
+                TotalCount = 0,
+                Reports = Array.Empty<AnnualReportDto>(),
+                ExtractionStatus = "NotAvailable",
+                Message = "Annual report insights have not been generated yet for this company."
+            };
+        }
+
+        public async Task<StockAnnualReportsResponseDto> RequestAnnualReportAsync(
+            string symbol,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                throw new ArgumentException("Stock symbol is required.", nameof(symbol));
+            }
+
+            var cleanSymbol = symbol.Trim().ToUpperInvariant();
+            var stock = await _stockRepository.GetOrCreateStockAsync(cleanSymbol, "NSE", null, null, cancellationToken);
+            if (stock == null)
+            {
+                throw new InvalidOperationException($"Unable to resolve stock for symbol: {cleanSymbol}");
+            }
+            var companyName = stock.Company?.CompanyName;
+
+            var dbReport = await _annualReportRepository.GetLatestByStockIdAsync(stock.Id, cancellationToken);
+            if (dbReport != null)
+            {
+                if (dbReport.ExtractionStatus != "Completed")
+                {
+                    dbReport.ExtractionStatus = "Requested";
+                    dbReport.UpdatedAt = DateTime.UtcNow;
+                    await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
+                }
+            }
+            else
+            {
+                dbReport = new StockAnnualReport
+                {
+                    StockId = stock.Id,
+                    Title = $"{cleanSymbol} Annual Report",
+                    ExtractionStatus = "Requested",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    FetchedAt = DateTime.UtcNow
+                };
+                await _annualReportRepository.AddAsync(dbReport, cancellationToken);
+            }
+
+            var cacheKey = $"screener_current_annual_report_{cleanSymbol}";
+            _memoryCache.Remove(cacheKey);
+
+            var response = BuildResponseDto(stock.Id, cleanSymbol, companyName, dbReport);
+            response.Message = "Annual report requested successfully. Admin has been notified.";
+            return response;
+        }
+
+        public async Task<string?> SuggestScreenerPdfUrlAsync(
+            string symbol,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+                return null;
+
+            var cleanSymbol = symbol.Trim().ToUpperInvariant();
+            try
+            {
+                var docs = await _screenerClient.GetAnnualReportsAsync(cleanSymbol, cancellationToken);
+                var latest = docs.OrderByDescending(d => d.Year).FirstOrDefault();
+                return latest?.Url;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch Screener PDF URL suggestion for {Symbol}", cleanSymbol);
+                return null;
+            }
+        }
+
+        public async Task<StockAnnualReportsResponseDto> AdminSaveAndExtractAnnualReportAsync(
+            AdminSaveAndExtractReportRequestDto request,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Symbol))
+            {
+                throw new ArgumentException("Stock symbol is required.", nameof(request.Symbol));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.PdfUrl))
+            {
+                throw new ArgumentException("PDF URL is required for extraction.", nameof(request.PdfUrl));
+            }
+
+            var cleanSymbol = request.Symbol.Trim().ToUpperInvariant();
+            var cacheKey = $"screener_current_annual_report_{cleanSymbol}";
+
+            var stock = await _stockRepository.GetOrCreateStockAsync(cleanSymbol, "NSE", null, null, cancellationToken);
+            if (stock == null)
+            {
+                throw new InvalidOperationException($"Unable to resolve stock for symbol: {cleanSymbol}");
+            }
+            var companyName = stock.Company?.CompanyName;
+
+            var dbReport = await _annualReportRepository.GetLatestByStockIdAsync(stock.Id, cancellationToken);
+            if (dbReport == null)
+            {
+                dbReport = new StockAnnualReport
+                {
+                    StockId = stock.Id,
+                    Title = string.IsNullOrWhiteSpace(request.Title) ? $"{cleanSymbol} Annual Report {request.Year}".Trim() : request.Title.Trim(),
+                    Year = request.Year?.Trim(),
+                    PdfUrl = request.PdfUrl.Trim(),
+                    Source = string.IsNullOrWhiteSpace(request.Source) ? "BSE" : request.Source.Trim(),
+                    ExtractionStatus = "Processing",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    FetchedAt = DateTime.UtcNow
+                };
+                await _annualReportRepository.AddAsync(dbReport, cancellationToken);
+            }
+            else
+            {
+                dbReport.Title = string.IsNullOrWhiteSpace(request.Title) ? dbReport.Title : request.Title.Trim();
+                dbReport.Year = string.IsNullOrWhiteSpace(request.Year) ? dbReport.Year : request.Year.Trim();
+                dbReport.PdfUrl = request.PdfUrl.Trim();
+                dbReport.Source = string.IsNullOrWhiteSpace(request.Source) ? (dbReport.Source ?? "BSE") : request.Source.Trim();
+                dbReport.ExtractionStatus = "Processing";
+                dbReport.UpdatedAt = DateTime.UtcNow;
+                await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
+            }
+
+            _logger.LogInformation("Admin triggered AI extraction for {Symbol} from URL: {PdfUrl}", cleanSymbol, request.PdfUrl);
+
+            try
+            {
+                var insightsJson = await _insightExtractor.ExtractInsightsJsonAsync(cleanSymbol, dbReport.PdfUrl, dbReport.Year, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(insightsJson))
+                {
+                    var isFailed = IsFailedOrFallbackInsights(insightsJson);
+                    dbReport.ExtractedInsightsJson = insightsJson;
+                    dbReport.ExtractionStatus = isFailed ? "Failed" : "Completed";
+                    dbReport.ProcessedAt = DateTime.UtcNow;
+                    dbReport.UpdatedAt = DateTime.UtcNow;
+                    await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
+                }
+                else
+                {
+                    dbReport.ExtractionStatus = "Failed";
+                    dbReport.UpdatedAt = DateTime.UtcNow;
+                    await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to extract insights via Gemini for symbol {Symbol}", cleanSymbol);
+                dbReport.ExtractionStatus = "Failed";
+                dbReport.UpdatedAt = DateTime.UtcNow;
+                await _annualReportRepository.UpdateAsync(dbReport, cancellationToken);
+                throw;
+            }
+
+            var response = BuildResponseDto(stock.Id, cleanSymbol, companyName, dbReport);
+            if (dbReport.ExtractionStatus == "Completed")
+            {
+                _memoryCache.Set(cacheKey, response, CacheDuration);
+            }
+            else
+            {
+                _memoryCache.Remove(cacheKey);
+            }
+            return response;
+        }
+
+        public async Task<IReadOnlyList<AnnualReportDirectoryItemDto>> GetAnnualReportsDirectoryAsync(
+            string? search = null,
+            string? status = null,
+            CancellationToken cancellationToken = default)
+        {
+            var allReports = await _annualReportRepository.GetAllReportsAsync(cancellationToken);
+            var query = allReports.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var cleanSearch = search.Trim();
+                query = query.Where(r => 
+                    (r.Stock?.Symbol != null && r.Stock.Symbol.Contains(cleanSearch, StringComparison.OrdinalIgnoreCase)) ||
+                    (r.Stock?.Company?.CompanyName != null && r.Stock.Company.CompanyName.Contains(cleanSearch, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && !status.Equals("All", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r => 
+                {
+                    var isFailed = IsFailedOrFallbackInsights(r.ExtractedInsightsJson);
+                    var effective = (isFailed && r.ExtractionStatus == "Completed") ? "Failed" : r.ExtractionStatus;
+                    return string.Equals(effective, status.Trim(), StringComparison.OrdinalIgnoreCase);
+                });
+            }
+
+            return query.Select(r => 
+            {
+                var isFailed = IsFailedOrFallbackInsights(r.ExtractedInsightsJson);
+                var effective = (isFailed && r.ExtractionStatus == "Completed") ? "Failed" : r.ExtractionStatus;
+
+                return new AnnualReportDirectoryItemDto
+                {
+                    StockId = r.StockId,
+                    Symbol = r.Stock?.Symbol ?? string.Empty,
+                    CompanyName = r.Stock?.Company?.CompanyName ?? r.Stock?.Symbol ?? string.Empty,
+                    LogoUrl = r.Stock?.Company?.LogoUrl,
+                    Industry = r.Stock?.Company?.Industry,
+                    Sector = r.Stock?.Company?.Sector,
+                    Year = r.Year,
+                    Title = r.Title,
+                    PdfUrl = r.PdfUrl,
+                    Source = r.Source,
+                    ExtractionStatus = effective,
+                    CreatedAt = r.CreatedAt,
+                    ProcessedAt = r.ProcessedAt
+                };
             })
-            .OrderByDescending(r => r.Year)
-            .Take(1)
+            .OrderByDescending(r => r.CreatedAt)
             .ToList();
+        }
 
-            // Edge Case: If no annual report found on Screener
-            if (latestReport.Count == 0 || string.IsNullOrWhiteSpace(latestReport[0].PdfUrl))
+        public async Task<IReadOnlyList<AnnualReportDirectoryItemDto>> GetRequestedReportsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var requested = await _annualReportRepository.GetRequestedReportsAsync(cancellationToken);
+            return requested.Select(r => new AnnualReportDirectoryItemDto
             {
-                _logger.LogInformation("No annual report document found for symbol {Symbol}", cleanSymbol);
-                return new StockAnnualReportsResponseDto
-                {
-                    StockId = stock?.Id,
-                    Symbol = cleanSymbol,
-                    CompanyName = companyName,
-                    TotalCount = 0,
-                    Reports = Array.Empty<AnnualReportDto>(),
-                    ExtractionStatus = "NotAvailable",
-                    Message = "Annual report is currently not available for this company (e.g. newly listed or filing pending)."
-                };
-            }
-
-            var selectedReport = latestReport[0];
-
-            // 4. Save URL to Database & Extract Insights
-            StockAnnualReport? savedDbRecord = null;
-            if (stock != null)
-            {
-                try
-                {
-                    savedDbRecord = await _annualReportRepository.GetLatestByStockIdAsync(stock.Id, cancellationToken);
-                    if (savedDbRecord == null)
-                    {
-                        savedDbRecord = new StockAnnualReport
-                        {
-                            StockId = stock.Id,
-                            Title = selectedReport.Title,
-                            Year = selectedReport.Year,
-                            PdfUrl = selectedReport.PdfUrl,
-                            Source = selectedReport.Source,
-                            ExtractionStatus = "Processing",
-                            FetchedAt = DateTime.UtcNow,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        await _annualReportRepository.AddAsync(savedDbRecord, cancellationToken);
-                        _logger.LogInformation("Saved new annual report URL in Database for symbol: {Symbol}", cleanSymbol);
-                    }
-                    else
-                    {
-                        savedDbRecord.Title = selectedReport.Title;
-                        savedDbRecord.Year = selectedReport.Year;
-                        savedDbRecord.PdfUrl = selectedReport.PdfUrl;
-                        savedDbRecord.Source = selectedReport.Source;
-                        savedDbRecord.ExtractionStatus = "Processing";
-                        savedDbRecord.UpdatedAt = DateTime.UtcNow;
-                        await _annualReportRepository.UpdateAsync(savedDbRecord, cancellationToken);
-                    }
-
-                    // Extract insights from PDF
-                    _logger.LogInformation("Extracting AI insights from PDF URL for symbol: {Symbol}", cleanSymbol);
-                    var insightsJson = await _insightExtractor.ExtractInsightsJsonAsync(cleanSymbol, selectedReport.PdfUrl, cancellationToken);
-                    if (!string.IsNullOrWhiteSpace(insightsJson))
-                    {
-                        savedDbRecord.ExtractedInsightsJson = insightsJson;
-                        savedDbRecord.ExtractionStatus = "Completed";
-                        savedDbRecord.ProcessedAt = DateTime.UtcNow;
-                        savedDbRecord.UpdatedAt = DateTime.UtcNow;
-                        await _annualReportRepository.UpdateAsync(savedDbRecord, cancellationToken);
-                        _logger.LogInformation("Successfully saved extracted insights to Database for symbol: {Symbol}", cleanSymbol);
-                    }
-                    else
-                    {
-                        savedDbRecord.ExtractionStatus = "Pending";
-                        await _annualReportRepository.UpdateAsync(savedDbRecord, cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to persist annual report and insights for symbol: {Symbol}", cleanSymbol);
-                    if (savedDbRecord != null && savedDbRecord.Id > 0)
-                    {
-                        try
-                        {
-                            savedDbRecord.ExtractionStatus = "Failed";
-                            savedDbRecord.UpdatedAt = DateTime.UtcNow;
-                            await _annualReportRepository.UpdateAsync(savedDbRecord, cancellationToken);
-                        }
-                        catch
-                        {
-                            // ignore secondary DB update failure
-                        }
-                    }
-                }
-            }
-
-            var finalResponse = savedDbRecord != null
-                ? BuildResponseDto(stock?.Id, cleanSymbol, companyName, savedDbRecord)
-                : new StockAnnualReportsResponseDto
-                {
-                    StockId = stock?.Id,
-                    Symbol = cleanSymbol,
-                    CompanyName = companyName,
-                    TotalCount = 1,
-                    Reports = latestReport,
-                    ExtractionStatus = "Completed"
-                };
-
-            _memoryCache.Set(cacheKey, finalResponse, CacheDuration);
-            return finalResponse;
+                StockId = r.StockId,
+                Symbol = r.Stock?.Symbol ?? string.Empty,
+                CompanyName = r.Stock?.Company?.CompanyName ?? r.Stock?.Symbol ?? string.Empty,
+                LogoUrl = r.Stock?.Company?.LogoUrl,
+                Industry = r.Stock?.Company?.Industry,
+                Sector = r.Stock?.Company?.Sector,
+                Year = r.Year,
+                Title = r.Title,
+                PdfUrl = r.PdfUrl,
+                Source = r.Source,
+                ExtractionStatus = r.ExtractionStatus,
+                CreatedAt = r.CreatedAt,
+                ProcessedAt = r.ProcessedAt
+            })
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
         }
 
         private static StockAnnualReportsResponseDto BuildResponseDto(
@@ -231,7 +350,9 @@ namespace StockLens_BusinessLayer.Services
             string? companyName,
             StockAnnualReport dbReport)
         {
-            var parsedInsights = DeserializeInsights(dbReport.ExtractedInsightsJson);
+            var isFailedOrFallback = IsFailedOrFallbackInsights(dbReport.ExtractedInsightsJson);
+            var parsedInsights = isFailedOrFallback ? null : DeserializeInsights(dbReport.ExtractedInsightsJson, dbReport.Year);
+            var effectiveStatus = (isFailedOrFallback && dbReport.ExtractionStatus == "Completed") ? "Failed" : dbReport.ExtractionStatus;
 
             return new StockAnnualReportsResponseDto
             {
@@ -249,14 +370,14 @@ namespace StockLens_BusinessLayer.Services
                         Source = dbReport.Source ?? "BSE"
                     }
                 },
-                ExtractionStatus = dbReport.ExtractionStatus,
+                ExtractionStatus = effectiveStatus,
                 Insights = parsedInsights,
                 ProcessedAt = dbReport.ProcessedAt,
-                Message = dbReport.ExtractionStatus == "NotAvailable" ? "Annual report not available." : null
+                Message = effectiveStatus == "NotAvailable" ? "Annual report not available." : (isFailedOrFallback ? "Annual report filing retrieved. Insights extraction needs to be run." : null)
             };
         }
 
-        private static AnnualReportInsightsDto? DeserializeInsights(string? json)
+        private static AnnualReportInsightsDto? DeserializeInsights(string? json, string? reportYear = null)
         {
             if (string.IsNullOrWhiteSpace(json))
                 return null;
@@ -271,7 +392,7 @@ namespace StockLens_BusinessLayer.Services
                 if (insights == null)
                     return null;
 
-                ProcessAndPrioritizeInsights(insights);
+                ProcessAndPrioritizeInsights(insights, reportYear);
                 return insights;
             }
             catch
@@ -280,7 +401,7 @@ namespace StockLens_BusinessLayer.Services
             }
         }
 
-        public static void ProcessAndPrioritizeInsights(AnnualReportInsightsDto insights)
+        public static void ProcessAndPrioritizeInsights(AnnualReportInsightsDto insights, string? reportYear = null)
         {
             if (insights == null) return;
 
@@ -331,11 +452,23 @@ namespace StockLens_BusinessLayer.Services
 
             DeduplicateAcrossCategories(allCategories);
 
-            // 4. Calculate Priority Score for all items based on material business significance
+            var resolvedFy = AnnualReportInsightExtractor.ResolveFiscalYear(reportYear);
+
+            // 4. Calculate Priority Score for all items based on material business significance and normalize reporting period
             foreach (var list in allCategories)
             {
                 foreach (var item in list)
                 {
+                    if (!string.IsNullOrWhiteSpace(resolvedFy))
+                    {
+                        // If reporting period was hallucinated/copied as "FY24" from legacy prompt template while report is e.g. FY26, or if empty:
+                        if (string.IsNullOrWhiteSpace(item.ReportingPeriod) ||
+                            (item.ReportingPeriod.Equals("FY24", StringComparison.OrdinalIgnoreCase) && !resolvedFy.Equals("FY24", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            item.ReportingPeriod = resolvedFy;
+                        }
+                    }
+
                     item.PriorityScore = ComputePriorityScore(item);
                 }
                 list.Sort((a, b) => b.PriorityScore.CompareTo(a.PriorityScore));
@@ -579,6 +712,16 @@ namespace StockLens_BusinessLayer.Services
                 score += 5;
 
             return Math.Min(100, Math.Max(10, score));
+        }
+
+        public static bool IsFailedOrFallbackInsights(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return true;
+            return json.Contains("encountered a temporary issue", StringComparison.OrdinalIgnoreCase)
+                || json.Contains("temporarily unavailable", StringComparison.OrdinalIgnoreCase)
+                || json.Contains("Could not download the filing", StringComparison.OrdinalIgnoreCase)
+                || json.Contains("Configure 'Gemini:ApiKey'", StringComparison.OrdinalIgnoreCase)
+                || json.Contains("AI insights generation returned status", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
