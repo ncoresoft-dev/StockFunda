@@ -52,5 +52,44 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         Task<YahooLiveQuoteDto?> GetLiveQuoteAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>> GetQuarterlyIncomeStatementsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<System.Collections.Generic.List<YahooDebtResponse>> GetHistoricalDebtAsync(string symbol, string exchange, CancellationToken cancellationToken = default);
+        Task<YahooSparklineQuoteDto?> GetSparklineQuoteAsync(string symbol, string? exchange = "NSE", int days = 7, CancellationToken cancellationToken = default);
+        Task<YahooGrowthMetricsDto?> GetGrowthMetricsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
+    }
+
+    public class YahooSparklineQuoteDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal PreviousClose { get; set; }
+        public decimal Change { get; set; }
+        public decimal ChangePercent { get; set; }
+        public System.Collections.Generic.List<decimal> ClosingPrices { get; set; } = new();
+    }
+
+    public class YahooGrowthMetricsDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+
+        // Growth Lens
+        public decimal? SalesGrowthYoY { get; set; }
+        public decimal? ProfitGrowthYoY { get; set; }
+        public decimal? OneYearReturn { get; set; }
+
+        // Cash Flow Lens
+        public decimal? FreeCashFlowRaw { get; set; }
+        public string? FreeCashFlowFormatted { get; set; }
+        public decimal? OperatingCashFlowRaw { get; set; }
+        public string? OperatingCashFlowFormatted { get; set; }
+        public decimal? OperatingMargin { get; set; }
+
+        // Ownership Lens
+        public decimal? PromoterHolding { get; set; }
+        public decimal? InstitutionalHolding { get; set; }
+        public int? InstitutionsCount { get; set; }
+
+        // Risk Lens
+        public decimal? DebtToEquity { get; set; }
+        public decimal? CurrentRatio { get; set; }
+        public decimal? Beta { get; set; }
     }
 }

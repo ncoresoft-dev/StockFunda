@@ -1,16 +1,22 @@
 import { Routes } from '@angular/router';
+import { HomeDashboardComponent } from './components/home-dashboard/home-dashboard.component';
 import { Nifty50LandingComponent } from './components/nifty50-landing/nifty50-landing.component';
 import { StockDashboardComponent } from './components/stock-dashboard/stock-dashboard.component';
 
 export const routes: Routes = [
   {
     path: '',
+    component: HomeDashboardComponent,
+    title: 'StockLens — Market Intelligence'
+  },
+  {
+    path: 'nifty50',
     component: Nifty50LandingComponent,
     title: 'StockLens — NIFTY 50'
   },
   {
     path: 'watchlist',
-    redirectTo: '',
+    redirectTo: 'nifty50',
     pathMatch: 'full'
   },
   {

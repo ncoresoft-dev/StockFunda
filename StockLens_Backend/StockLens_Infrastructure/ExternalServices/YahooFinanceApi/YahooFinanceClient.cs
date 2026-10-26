@@ -278,7 +278,9 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             {
                 var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
                 var cleanSymbol = symbol.Trim().ToUpperInvariant();
-                var searchSymbol = cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO") ? cleanSymbol : $"{cleanSymbol}{suffix}";
+                var searchSymbol = cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                    ? cleanSymbol
+                    : $"{cleanSymbol}{suffix}";
 
                 var endpoint = $"/v8/finance/chart/{Uri.EscapeDataString(searchSymbol)}?range=1d&interval=1m";
                 _logger.LogInformation("Fetching live quote for {Symbol} via Yahoo Finance API", searchSymbol);
@@ -313,6 +315,9 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                         if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) quote.PreviousClose = prevClose;
                         else if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) quote.PreviousClose = chartPrevClose;
                         if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) quote.ChangePercent = changePercent;
+                        else if (meta.TryGetProperty("fulldayChangePercent", out var fcp) && fcp.TryGetDecimal(out var fulldayChangePercent)) quote.ChangePercent = fulldayChangePercent;
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) quote.Change = mChange;
+                        else if (meta.TryGetProperty("fulldayChange", out var fc) && fc.TryGetDecimal(out var fulldayChange)) quote.Change = fulldayChange;
                         if (meta.TryGetProperty("regularMarketVolume", out var v) && v.TryGetInt64(out var vol)) quote.Volume = vol;
                     }
 
@@ -339,6 +344,14 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
 
                     if (quote.Price.HasValue && quote.Price.Value > 0)
                     {
+                        if (!quote.Change.HasValue && quote.PreviousClose.HasValue && quote.PreviousClose.Value > 0)
+                        {
+                            quote.Change = Math.Round(quote.Price.Value - quote.PreviousClose.Value, 2);
+                        }
+                        if (!quote.ChangePercent.HasValue && quote.Change.HasValue && quote.PreviousClose.HasValue && quote.PreviousClose.Value > 0)
+                        {
+                            quote.ChangePercent = Math.Round((quote.Change.Value / quote.PreviousClose.Value) * 100, 2);
+                        }
                         return quote;
                     }
                 }
@@ -349,6 +362,316 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             }
 
             return null;
+        }
+
+        public async Task<YahooSparklineQuoteDto?> GetSparklineQuoteAsync(string symbol, string? exchange = "NSE", int days = 7, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+
+            try
+            {
+                var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
+                var cleanSymbol = symbol.Trim().ToUpperInvariant();
+                var searchSymbol = cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                    ? cleanSymbol
+                    : $"{cleanSymbol}{suffix}";
+
+                var endpoint = $"/v8/finance/chart/{Uri.EscapeDataString(searchSymbol)}?range={days}d&interval=1d";
+                _logger.LogInformation("Fetching sparkline and quote for {Symbol} via Yahoo Finance API", searchSymbol);
+
+                var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Yahoo Finance API chart returned status {StatusCode} for {Symbol}", response.StatusCode, searchSymbol);
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("chart", out var chartObj) &&
+                    chartObj.TryGetProperty("result", out var resultArr) &&
+                    resultArr.ValueKind == JsonValueKind.Array &&
+                    resultArr.GetArrayLength() > 0)
+                {
+                    var firstRes = resultArr[0];
+                    var dto = new YahooSparklineQuoteDto { Symbol = cleanSymbol };
+
+                    if (firstRes.TryGetProperty("meta", out var meta))
+                    {
+                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
+                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
+                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
+                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
+                    }
+
+                    if (firstRes.TryGetProperty("indicators", out var indObj) &&
+                        indObj.TryGetProperty("quote", out var qArr) &&
+                        qArr.ValueKind == JsonValueKind.Array &&
+                        qArr.GetArrayLength() > 0)
+                    {
+                        var q0 = qArr[0];
+                        if (q0.TryGetProperty("close", out var closeArr) && closeArr.ValueKind == JsonValueKind.Array)
+                        {
+                            var count = closeArr.GetArrayLength();
+                            for (int i = 0; i < count; i++)
+                            {
+                                if (closeArr[i].TryGetDecimal(out var cVal) && cVal > 0)
+                                {
+                                    dto.ClosingPrices.Add(Math.Round(cVal, 2));
+                                }
+                            }
+                        }
+                    }
+
+                    if (dto.Price == 0 && dto.ClosingPrices.Count > 0)
+                    {
+                        dto.Price = dto.ClosingPrices.Last();
+                    }
+
+                    if (dto.PreviousClose == 0 && dto.ClosingPrices.Count > 1)
+                    {
+                        dto.PreviousClose = dto.ClosingPrices[^2];
+                    }
+
+                    if (dto.Change == 0 && dto.PreviousClose > 0)
+                    {
+                        dto.Change = Math.Round(dto.Price - dto.PreviousClose, 2);
+                    }
+
+                    if (dto.ChangePercent == 0 && dto.PreviousClose > 0)
+                    {
+                        dto.ChangePercent = Math.Round((dto.Change / dto.PreviousClose) * 100, 2);
+                    }
+
+                    return dto;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching sparkline quote from Yahoo Finance API for {Symbol}", symbol);
+            }
+
+            return null;
+        }
+
+        public async Task<YahooGrowthMetricsDto?> GetGrowthMetricsAsync(
+            string symbol, 
+            string? exchange = "NSE", 
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+
+            try
+            {
+                var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
+                var cleanSymbol = symbol.Trim().ToUpperInvariant();
+                
+                // Map symbol if needed (e.g. TATAMOTORS -> TMCV.NS)
+                var searchSymbol = cleanSymbol switch
+                {
+                    "TATAMOTORS" => "TMCV.NS",
+                    _ => cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                        ? cleanSymbol
+                        : $"{cleanSymbol}{suffix}"
+                };
+
+                await EnsureCrumbAsync(cancellationToken);
+
+                var dto = new YahooGrowthMetricsDto { Symbol = cleanSymbol };
+
+                // 1. Fetch quoteSummary for financialData, defaultKeyStatistics, and majorHoldersBreakdown
+                var endpoint = !string.IsNullOrWhiteSpace(_cachedCrumb)
+                    ? $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=financialData,defaultKeyStatistics,majorHoldersBreakdown&crumb={Uri.EscapeDataString(_cachedCrumb)}"
+                    : $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=financialData,defaultKeyStatistics,majorHoldersBreakdown";
+
+                using var req = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                if (!string.IsNullOrWhiteSpace(_cachedCookie))
+                {
+                    req.Headers.Add("Cookie", _cachedCookie);
+                }
+
+                var response = await _httpClient.SendAsync(req, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("quoteSummary", out var qs) &&
+                        qs.TryGetProperty("result", out var resArr) &&
+                        resArr.ValueKind == JsonValueKind.Array &&
+                        resArr.GetArrayLength() > 0)
+                    {
+                        var r0 = resArr[0];
+                        if (r0.TryGetProperty("financialData", out var fd))
+                        {
+                            // Growth
+                            if (fd.TryGetProperty("revenueGrowth", out var rg) && 
+                                rg.TryGetProperty("raw", out var rgRaw) && 
+                                rgRaw.TryGetDecimal(out var rgVal))
+                            {
+                                dto.SalesGrowthYoY = Math.Round(rgVal * 100m, 1);
+                            }
+                            if (fd.TryGetProperty("earningsGrowth", out var eg) && 
+                                eg.TryGetProperty("raw", out var egRaw) && 
+                                egRaw.TryGetDecimal(out var egVal))
+                            {
+                                dto.ProfitGrowthYoY = Math.Round(egVal * 100m, 1);
+                            }
+
+                            // Cashflow
+                            if (fd.TryGetProperty("freeCashflow", out var fcf))
+                            {
+                                if (fcf.TryGetProperty("raw", out var fcfRaw) && fcfRaw.TryGetDecimal(out var fcfVal))
+                                    dto.FreeCashFlowRaw = fcfVal;
+                                if (fcf.TryGetProperty("fmt", out var fcfFmt))
+                                    dto.FreeCashFlowFormatted = fcfFmt.GetString();
+                            }
+                            if (fd.TryGetProperty("operatingCashflow", out var ocf))
+                            {
+                                if (ocf.TryGetProperty("raw", out var ocfRaw) && ocfRaw.TryGetDecimal(out var ocfVal))
+                                    dto.OperatingCashFlowRaw = ocfVal;
+                                if (ocf.TryGetProperty("fmt", out var ocfFmt))
+                                    dto.OperatingCashFlowFormatted = ocfFmt.GetString();
+                            }
+                            if (fd.TryGetProperty("operatingMargins", out var om) && 
+                                om.TryGetProperty("raw", out var omRaw) && 
+                                omRaw.TryGetDecimal(out var omVal))
+                            {
+                                dto.OperatingMargin = Math.Round(omVal * 100m, 1);
+                            }
+
+                            // Risk
+                            if (fd.TryGetProperty("debtToEquity", out var de) && 
+                                de.TryGetProperty("raw", out var deRaw) && 
+                                deRaw.TryGetDecimal(out var deVal))
+                            {
+                                dto.DebtToEquity = Math.Round(deVal / 100m, 2); // e.g. 8.57% -> 0.09x
+                            }
+                            if (fd.TryGetProperty("currentRatio", out var cr) && 
+                                cr.TryGetProperty("raw", out var crRaw) && 
+                                crRaw.TryGetDecimal(out var crVal))
+                            {
+                                dto.CurrentRatio = Math.Round(crVal, 2);
+                            }
+                        }
+
+                        if (r0.TryGetProperty("defaultKeyStatistics", out var ks))
+                        {
+                            if (ks.TryGetProperty("52WeekChange", out var fwc) && 
+                                fwc.TryGetProperty("raw", out var fwcRaw) && 
+                                fwcRaw.TryGetDecimal(out var fwcVal))
+                            {
+                                dto.OneYearReturn = Math.Round(fwcVal * 100m, 1);
+                            }
+                            if (ks.TryGetProperty("beta", out var bt) && 
+                                bt.TryGetProperty("raw", out var btRaw) && 
+                                btRaw.TryGetDecimal(out var btVal))
+                            {
+                                dto.Beta = Math.Round(btVal, 2);
+                            }
+                            if (dto.PromoterHolding == null && ks.TryGetProperty("heldPercentInsiders", out var hpi) &&
+                                hpi.TryGetProperty("raw", out var hpiRaw) && hpiRaw.TryGetDecimal(out var hpiVal))
+                            {
+                                dto.PromoterHolding = Math.Round(hpiVal * 100m, 1);
+                            }
+                            if (dto.InstitutionalHolding == null && ks.TryGetProperty("heldPercentInstitutions", out var hpt) &&
+                                hpt.TryGetProperty("raw", out var hptRaw) && hptRaw.TryGetDecimal(out var hptVal))
+                            {
+                                dto.InstitutionalHolding = Math.Round(hptVal * 100m, 1);
+                            }
+                        }
+
+                        if (r0.TryGetProperty("majorHoldersBreakdown", out var mh))
+                        {
+                            if (mh.TryGetProperty("insidersPercentHeld", out var iph) &&
+                                iph.TryGetProperty("raw", out var iphRaw) && iphRaw.TryGetDecimal(out var iphVal))
+                            {
+                                dto.PromoterHolding = Math.Round(iphVal * 100m, 1);
+                            }
+                            if (mh.TryGetProperty("institutionsPercentHeld", out var itph) &&
+                                itph.TryGetProperty("raw", out var itphRaw) && itphRaw.TryGetDecimal(out var itphVal))
+                            {
+                                dto.InstitutionalHolding = Math.Round(itphVal * 100m, 1);
+                            }
+                            if (mh.TryGetProperty("institutionsCount", out var ic) &&
+                                ic.TryGetProperty("raw", out var icRaw) && icRaw.TryGetInt32(out var icVal))
+                            {
+                                dto.InstitutionsCount = icVal;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Yahoo Finance quoteSummary returned status {StatusCode} for {Symbol}", response.StatusCode, searchSymbol);
+                }
+
+                // 2. Fallback / compute 1-Year Return via 1y chart if not present (100% public, no crumb required)
+                if (dto.OneYearReturn == null)
+                {
+                    try
+                    {
+                        var chartEndpoint = $"/v8/finance/chart/{Uri.EscapeDataString(searchSymbol)}?range=1y&interval=1mo";
+                        var chartRes = await _httpClient.GetAsync(chartEndpoint, cancellationToken);
+                        if (chartRes.IsSuccessStatusCode)
+                        {
+                            var chartJson = await chartRes.Content.ReadAsStringAsync(cancellationToken);
+                            using var cDoc = JsonDocument.Parse(chartJson);
+                            if (cDoc.RootElement.TryGetProperty("chart", out var cObj) &&
+                                cObj.TryGetProperty("result", out var cResArr) &&
+                                cResArr.ValueKind == JsonValueKind.Array &&
+                                cResArr.GetArrayLength() > 0)
+                            {
+                                var c0 = cResArr[0];
+                                decimal? currentPrice = null;
+                                if (c0.TryGetProperty("meta", out var cMeta) && 
+                                    cMeta.TryGetProperty("regularMarketPrice", out var rmp) && 
+                                    rmp.TryGetDecimal(out var mp))
+                                {
+                                    currentPrice = mp;
+                                }
+
+                                if (c0.TryGetProperty("indicators", out var ind) &&
+                                    ind.TryGetProperty("quote", out var qArr) &&
+                                    qArr.ValueKind == JsonValueKind.Array &&
+                                    qArr.GetArrayLength() > 0)
+                                {
+                                    var q0 = qArr[0];
+                                    if (q0.TryGetProperty("close", out var closeArr) && closeArr.ValueKind == JsonValueKind.Array)
+                                    {
+                                        decimal? firstValidClose = null;
+                                        for (int i = 0; i < closeArr.GetArrayLength(); i++)
+                                        {
+                                            if (closeArr[i].TryGetDecimal(out var cv) && cv > 0)
+                                            {
+                                                firstValidClose = cv;
+                                                break;
+                                            }
+                                        }
+
+                                        if (currentPrice.HasValue && firstValidClose.HasValue && firstValidClose.Value > 0)
+                                        {
+                                            dto.OneYearReturn = Math.Round(((currentPrice.Value - firstValidClose.Value) / firstValidClose.Value) * 100m, 1);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to compute 1-year chart return for {Symbol}", searchSymbol);
+                    }
+                }
+
+                return dto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching Yahoo growth metrics for {Symbol}", symbol);
+                return null;
+            }
         }
 
         private static string? _cachedCookie;
@@ -375,6 +698,15 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                     if (cookies.Count > 0)
                     {
                         _cachedCookie = string.Join("; ", cookies.Cast<System.Net.Cookie>().Select(c => $"{c.Name}={c.Value}"));
+                    }
+                    else if (initRes.Headers.TryGetValues("Set-Cookie", out var setCookies))
+                    {
+                        var firstCookie = setCookies.FirstOrDefault(c => c.StartsWith("A3="));
+                        if (firstCookie != null)
+                        {
+                            var parts = firstCookie.Split(';');
+                            _cachedCookie = parts[0].Trim();
+                        }
                     }
                 }
                 catch { }

@@ -341,7 +341,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Header Navigation & Actions
   navigateToHome(): void {
-    this.setActiveTab('nifty50');
+    this.router.navigate(['/']);
   }
 
   navigateToStock(symbol: string): void {

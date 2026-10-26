@@ -22,6 +22,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<StockPeer> StockPeers => Set<StockPeer>();
         public DbSet<MarketIndexConstituent> MarketIndexConstituents => Set<MarketIndexConstituent>();
         public DbSet<StockAnnualReport> StockAnnualReports => Set<StockAnnualReport>();
+        public DbSet<MarketTickerQuote> MarketTickerQuotes => Set<MarketTickerQuote>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -553,6 +554,28 @@ namespace StockLens_Infrastructure.DataContext
 
                 entity.HasIndex(r => new { r.StockId, r.Year })
                     .HasDatabaseName("IX_StockAnnualReports_StockId_Year");
+            });
+
+            // MarketTickerQuotes configuration
+            modelBuilder.Entity<MarketTickerQuote>(entity =>
+            {
+                entity.ToTable("MarketTickerQuotes");
+                entity.HasKey(t => t.Id);
+
+                entity.Property(t => t.Symbol).HasMaxLength(50).IsRequired();
+                entity.Property(t => t.DisplayName).HasMaxLength(100).IsRequired();
+                entity.Property(t => t.ShortName).HasMaxLength(50).IsRequired();
+                entity.Property(t => t.InstrumentType).HasMaxLength(50);
+                entity.Property(t => t.CurrentPrice).HasPrecision(18, 2);
+                entity.Property(t => t.PreviousClose).HasPrecision(18, 2);
+                entity.Property(t => t.Change).HasPrecision(18, 2);
+                entity.Property(t => t.ChangePercent).HasPrecision(18, 4);
+                entity.Property(t => t.DayHigh).HasPrecision(18, 2);
+                entity.Property(t => t.DayLow).HasPrecision(18, 2);
+
+                entity.HasIndex(t => t.Symbol)
+                    .IsUnique()
+                    .HasDatabaseName("IX_MarketTickerQuotes_Symbol");
             });
         }
     }

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -12,10 +9,7 @@ using StockLens_DataLayer.Entities;
 using StockLens_DataLayer.Interfaces;
 using StockLens_Infrastructure.ExternalServices.AnnualReportInsights;
 using StockLens_Infrastructure.ExternalServices.Screener;
-using StockLens_Infrastructure.ExternalServices.Screener.Models;
-using System.IO;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace StockLens_UnitTests
@@ -138,7 +132,7 @@ namespace StockLens_UnitTests
         [Fact]
         public async Task LiveTest_RealDatabaseAndGemini_RelianceAnnualReport()
         {
-            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
+            var options = new DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
                 .UseSqlServer("Server=DESKTOP-J2CVHIQ;Database=StockLensTestDB;Trusted_Connection=True;Encrypt=False;")
                 .Options;
 
@@ -188,7 +182,7 @@ namespace StockLens_UnitTests
         [Fact]
         public async Task LiveTest_RealDatabaseAndGemini_TcsAnnualReport()
         {
-            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
+            var options = new DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
                 .UseSqlServer("Server=DESKTOP-J2CVHIQ;Database=StockLensTestDB;Trusted_Connection=True;Encrypt=False;")
                 .Options;
 
@@ -196,7 +190,7 @@ namespace StockLens_UnitTests
             var stockRepo = new StockLens_Infrastructure.Repositories.StockRepository(dbContext);
             var annualReportRepo = new StockLens_Infrastructure.Repositories.StockAnnualReportRepository(dbContext);
 
-            var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+            var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
             var screenerClient = new ScreenerClient(httpClient, Microsoft.Extensions.Options.Options.Create(new ScreenerSettings()), NullLogger<ScreenerClient>.Instance);
 
             var geminiSettings = Microsoft.Extensions.Options.Options.Create(new GeminiSettings
@@ -229,18 +223,18 @@ namespace StockLens_UnitTests
         [Fact]
         public async Task Diagnose_RailTel_Extraction()
         {
-            var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+            var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
             
             var apiKey = GetGeminiApiKey();
             var pdfUrl = "https://www.bseindia.com/xml-data/corpfiling/AttachHis/7044d17d-6a4f-4276-bb80-83225794f6b4.pdf";
             
-            var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "railtel_test.pdf");
-            if (!System.IO.File.Exists(tempFile))
+            var tempFile = Path.Combine(Path.GetTempPath(), "railtel_test.pdf");
+            if (!File.Exists(tempFile))
             {
-                using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, pdfUrl);
+                using var req = new HttpRequestMessage(HttpMethod.Get, pdfUrl);
                 req.Headers.Add("User-Agent", "Mozilla/5.0");
                 using var resp = await httpClient.SendAsync(req);
-                await using var fs = System.IO.File.Create(tempFile);
+                await using var fs = File.Create(tempFile);
                 await resp.Content.CopyToAsync(fs);
             }
 
@@ -275,9 +269,9 @@ namespace StockLens_UnitTests
         public void ProcessAndPrioritizeInsights_NormalizesReportingPeriod_ToMatchReportYear()
         {
             // Arrange: Items with hallucinated / legacy FY24 from template schema
-            var insights = new StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto
+            var insights = new AnnualReportInsightsDto
             {
-                CompanyExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                CompanyExpansion = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -286,7 +280,7 @@ namespace StockLens_UnitTests
                         ReportingPeriod = "FY24" // Artifact from prompt schema
                     }
                 },
-                StrategicPartnerships = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                StrategicPartnerships = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -309,7 +303,7 @@ namespace StockLens_UnitTests
         [Fact]
         public async Task LiveTest_RealDatabase_RailTel_Healing()
         {
-            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
+            var options = new DbContextOptionsBuilder<StockLens_Infrastructure.DataContext.StockLensDataContext>()
                 .UseSqlServer("Server=DESKTOP-J2CVHIQ;Database=StockLensTestDB;Trusted_Connection=True;Encrypt=False;")
                 .Options;
 
@@ -317,7 +311,7 @@ namespace StockLens_UnitTests
             var stockRepo = new StockLens_Infrastructure.Repositories.StockRepository(dbContext);
             var annualReportRepo = new StockLens_Infrastructure.Repositories.StockAnnualReportRepository(dbContext);
 
-            var httpClient = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+            var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
             var screenerClient = new ScreenerClient(httpClient, Microsoft.Extensions.Options.Options.Create(new ScreenerSettings()), NullLogger<ScreenerClient>.Instance);
 
             var apiKey = GetGeminiApiKey();
@@ -386,7 +380,7 @@ namespace StockLens_UnitTests
             }";
 
             // Act
-            var insights = System.Text.Json.JsonSerializer.Deserialize<StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto>(json, new System.Text.Json.JsonSerializerOptions
+            var insights = JsonSerializer.Deserialize<AnnualReportInsightsDto>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -418,9 +412,9 @@ namespace StockLens_UnitTests
         public void ProcessAndPrioritizeInsights_DeduplicationAndMerging_MergesDuplicateEvents()
         {
             // Arrange: Same Gigafactory project appears in CompanyExpansion AND CapacityExpansion
-            var insights = new StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto
+            var insights = new AnnualReportInsightsDto
             {
-                CompanyExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                CompanyExpansion = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -431,7 +425,7 @@ namespace StockLens_UnitTests
                         FinancialValueUnit = "Cr"
                     }
                 },
-                CapacityExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                CapacityExpansion = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -462,9 +456,9 @@ namespace StockLens_UnitTests
         public void ProcessAndPrioritizeInsights_RemovesLowValueBoilerplate()
         {
             // Arrange: Generic boilerplate strings that should be filtered out
-            var insights = new StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto
+            var insights = new AnnualReportInsightsDto
             {
-                CompanyExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                CompanyExpansion = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -495,9 +489,9 @@ namespace StockLens_UnitTests
         public void ProcessAndPrioritizeInsights_PrioritizationEngine_RanksHighImpactFirst()
         {
             // Arrange
-            var insights = new StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto
+            var insights = new AnnualReportInsightsDto
             {
-                ManagementAndWorkforce = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                ManagementAndWorkforce = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -506,7 +500,7 @@ namespace StockLens_UnitTests
                         Category = "Management & Workforce"
                     }
                 },
-                CompanyExpansion = new List<StockLens_BusinessLayer.DTOs.AnnualReportInsightItemDto>
+                CompanyExpansion = new List<AnnualReportInsightItemDto>
                 {
                     new()
                     {
@@ -544,7 +538,7 @@ namespace StockLens_UnitTests
             }";
 
             // Act
-            var insights = System.Text.Json.JsonSerializer.Deserialize<StockLens_BusinessLayer.DTOs.AnnualReportInsightsDto>(legacyJson, new System.Text.Json.JsonSerializerOptions
+            var insights = JsonSerializer.Deserialize<AnnualReportInsightsDto>(legacyJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });

@@ -1,0 +1,507 @@
+<div class="home-page-container">
+  <!-- Top Navigation Header -->
+  <header class="home-header">
+    <div class="brand-group" routerLink="/">
+      <div class="brand-logo-icon">
+        <img src="images/logo2.png" alt="StockLens Logo" class="brand-logo-img" />
+      </div>
+      <div class="brand-titles">
+        <span class="brand-name">StockLens</span>
+        <span class="brand-tagline">MARKET INTELLIGENCE, CONNECTED</span>
+      </div>
+    </div>
+
+    <div class="header-right-actions">
+      <!-- Admin Notification Bell Component -->
+      <app-admin-notification-bell></app-admin-notification-bell>
+    </div>
+  </header>
+
+  <!-- Horizontal Scrolling Ticker Strip -->
+  <div class="ticker-strip-wrapper">
+    <div class="ticker-ribbon">
+      <div class="ticker-track">
+        <!-- Overall Market Indicator Pill -->
+        <div class="ticker-badge-overall">
+          <span class="up-arrow">▲</span> 0.1%
+        </div>
+
+        <!-- Dynamic Ticker Quotes from API / DB -->
+        <div 
+          *ngFor="let item of tickerQuotes()" 
+          class="ticker-item"
+          [class.positive]="item.isPositive"
+          [class.negative]="!item.isPositive"
+        >
+          <span class="ticker-short-name">{{ item.shortName }}</span>
+          <span class="ticker-price">{{ item.formattedPrice }}</span>
+          <span class="ticker-change">
+            <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
+            {{ item.formattedChange }}
+          </span>
+        </div>
+
+        <!-- Duplicate track items for seamless continuous marquee loop -->
+        <div 
+          *ngFor="let item of tickerQuotes()" 
+          class="ticker-item duplicate"
+          [class.positive]="item.isPositive"
+          [class.negative]="!item.isPositive"
+          aria-hidden="true"
+        >
+          <span class="ticker-short-name">{{ item.shortName }}</span>
+          <span class="ticker-price">{{ item.formattedPrice }}</span>
+          <span class="ticker-change">
+            <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
+            {{ item.formattedChange }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero Action Bar: Greeting, Market Mood & Search Bar in 1 Row -->
+  <div class="hero-action-bar">
+    <div class="greeting-mood-group">
+      <h1 class="greeting-heading">
+        {{ greeting() }} <span class="wave-emoji">👋</span>
+      </h1>
+      <div class="market-mood-pill">
+        <span class="pulsing-green-dot"></span>
+        <span class="mood-text">Market mood: <strong>Cautiously Bullish</strong></span>
+      </div>
+    </div>
+
+    <!-- Search Bar with Typeahead Autocomplete -->
+    <div class="search-bar-section">
+      <div class="search-bar-pill">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Search company, sector, or ask anything"
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          (keydown.enter)="onSearchSubmit()"
+        />
+        <div *ngIf="isSearching()" class="search-spinner"></div>
+      </div>
+
+      <!-- Autocomplete Dropdown List -->
+      <div *ngIf="searchResults().length > 0" class="search-results-dropdown">
+        <div 
+          *ngFor="let comp of searchResults()" 
+          class="search-result-row"
+          (click)="selectSearchResult(comp)"
+        >
+          <div class="result-symbol-name">
+            <span class="sym-tag">{{ comp.symbol }}</span>
+            <span class="full-name">{{ comp.companyName }}</span>
+          </div>
+          <span class="industry-tag" *ngIf="comp.industry">{{ comp.industry }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Exploration Section: "Explore by lens" -->
+  <section class="explore-lens-card">
+    <!-- Card Header -->
+    <div class="lens-card-header">
+      <div class="lens-title-group">
+        <h2 class="lens-title">Explore by lens</h2>
+      </div>
+    </div>
+
+    <!-- Lens Filter Tabs -->
+    <div class="lens-tabs-row">
+      <button 
+        *ngFor="let tab of lensTabs"
+        class="lens-tab-btn"
+        [class.active]="activeLens() === tab"
+        (click)="setLens(tab)"
+      >
+        {{ tab }}
+      </button>
+    </div>
+
+    <!-- Two-Column Cockpit Layout -->
+    <div class="cockpit-grid">
+      <!-- Left Column: Interactive Orbital Radar Graphic -->
+      <div class="radar-column-container">
+        <div class="radar-column">
+          <div class="radar-top-caption">CLOSER TO CENTER = STRONGER</div>
+
+          <div class="radar-stage">
+            <!-- Concentric SVG Orbits & Center -->
+            <svg class="radar-svg" viewBox="0 0 480 480" width="100%" height="100%">
+              <defs>
+                <!-- Soft atmospheric edge blur for the radar beam -->
+                <filter id="radarSweepBlur" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="1.8" />
+                </filter>
+                <filter id="centerAuraBlur" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="6" />
+                </filter>
+
+                <!-- Natural lime-green radial gradient matching the reference screenshot media_1793001952158.png -->
+                <radialGradient id="radarSweepGradient" cx="240" cy="240" r="240" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#c6f246" stop-opacity="0.82" />
+                  <stop offset="35%" stop-color="#cdf45e" stop-opacity="0.72" />
+                  <stop offset="65%" stop-color="#d6f678" stop-opacity="0.60" />
+                  <stop offset="85%" stop-color="#def892" stop-opacity="0.50" />
+                  <stop offset="100%" stop-color="#e4faaa" stop-opacity="0.38" />
+                </radialGradient>
+
+                <linearGradient id="centerCoreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#def978" />
+                  <stop offset="100%" stop-color="#c8f448" />
+                </linearGradient>
+              </defs>
+
+              <!-- Outer Orbit Rings: exactly 3 concentric dotted rings matching the reference image -->
+              <circle cx="240" cy="240" r="205" class="orbit-circle outer" />
+              <circle cx="240" cy="240" r="150" class="orbit-circle middle" />
+              <circle cx="240" cy="240" r="95" class="orbit-circle inner" />
+
+              <!-- Continuous Rotating Radar Sector Beam (Single unified conical beam matching reference screenshot) -->
+              <g class="radar-beam-group">
+                <path 
+                  d="M 240 240 L 480 240 A 240 240 0 0 1 438.9 374.2 Z" 
+                  fill="url(#radarSweepGradient)"
+                  filter="url(#radarSweepBlur)"
+                />
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="0 240 240"
+                  to="360 240 240"
+                  dur="7s"
+                  repeatCount="indefinite"
+                />
+              </g>
+
+              <!-- Soft Center Halos & Glows -->
+              <circle cx="240" cy="240" r="76" fill="#def978" opacity="0.35" filter="url(#centerAuraBlur)" />
+              <circle cx="240" cy="240" r="58" fill="#d2f758" opacity="0.5" />
+
+              <!-- Center Core Circle -->
+              <circle cx="240" cy="240" r="44" class="center-core-circle" />
+
+              <!-- 3 Stacked Center Text Lines matching screenshot: STOCK / LENS / GROWTH -->
+              <text x="240" y="227" text-anchor="middle" class="core-text-brand-stock">STOCK</text>
+              <text x="240" y="241" text-anchor="middle" class="core-text-brand-lens">LENS</text>
+              <text x="240" y="255" text-anchor="middle" class="core-text-active-lens">{{ activeLens().toUpperCase() }}</text>
+            </svg>
+
+            <!-- Planet Nodes Positioned Over Orbits -->
+            <div 
+              *ngFor="let item of currentLensItems()"
+              class="planet-badge"
+              [class.focused]="focusedCompany()?.symbol === item.symbol"
+              [style.left.px]="getPlanetLeft(item)"
+              [style.top.px]="getPlanetTop(item)"
+              [style.background]="item.colorBg"
+              [style.border-color]="item.colorBorder"
+              (click)="focusCompany(item)"
+              [title]="item.name + ' (' + item.formattedChange + ')'"
+            >
+              <!-- Target Focus Corner Brackets when active -->
+              <div *ngIf="focusedCompany()?.symbol === item.symbol" class="focus-bracket top-left"></div>
+              <div *ngIf="focusedCompany()?.symbol === item.symbol" class="focus-bracket top-right"></div>
+              <div *ngIf="focusedCompany()?.symbol === item.symbol" class="focus-bracket bottom-left"></div>
+              <div *ngIf="focusedCompany()?.symbol === item.symbol" class="focus-bracket bottom-right"></div>
+
+              <span class="planet-name">{{ item.shortName }}</span>
+              <span class="planet-val" [class.pos]="item.isPositive" [class.neg]="!item.isPositive">
+                {{ item.formattedChange }}
+              </span>
+            </div>
+          </div>
+
+          <div class="radar-bottom-caption">TAP A COMPANY TO FOCUS</div>
+        </div>
+
+        <p class="radar-subtext">Closer to the center = stronger on this lens · tap a company to focus</p>
+      </div>
+
+      <!-- Right Column: Company Snapshot Card -->
+      <div class="snapshot-column" *ngIf="focusedCompany() as comp">
+        <div class="snapshot-category-label">
+          COMPANY SNAPSHOT - {{ activeLens().toUpperCase() }}
+        </div>
+
+        <!-- Company Header Row -->
+        <div class="snapshot-header-row">
+          <div class="snapshot-company-meta">
+            <div class="snapshot-logo-title-wrap">
+              <div class="snapshot-logo-container" [class.has-logo]="getCompanyLogo(comp)">
+                <img 
+                  *ngIf="getCompanyLogo(comp)" 
+                  [src]="getCompanyLogo(comp)" 
+                  [alt]="comp.name + ' Logo'"
+                  class="snapshot-logo-img"
+                  (error)="onLogoError(comp.symbol)"
+                />
+                <span 
+                  *ngIf="!getCompanyLogo(comp)" 
+                  class="snapshot-logo-letter"
+                  [style.background-color]="comp.colorBg"
+                  [style.color]="comp.colorBorder"
+                >
+                  {{ comp.symbol.charAt(0) }}
+                </span>
+              </div>
+              <div class="snapshot-title-group">
+                <h3 class="snapshot-symbol">{{ comp.symbol }}</h3>
+                <span class="snapshot-sector">{{ comp.sector }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="snapshot-price-block">
+            <span class="snapshot-price">{{ comp.formattedPrice }}</span>
+            <span 
+              class="snapshot-change-badge"
+              [class.positive]="comp.isPositive"
+              [class.negative]="!comp.isPositive"
+            >
+              <span class="arrow">{{ comp.isPositive ? '▲' : '▼' }}</span>
+              {{ comp.formattedChange }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 7-Day Real Trend Sparkline Chart -->
+        <div class="trend-chart-box">
+          <div class="trend-chart-header">
+            <span class="trend-label">
+              7-DAY REAL TREND
+              <span 
+                *ngIf="getSevenDayChangeText(comp)"
+                class="trend-change-pct"
+                [class.positive]="comp.trendPositive"
+                [class.negative]="!comp.trendPositive"
+              >({{ getSevenDayChangeText(comp) }})</span>
+            </span>
+          </div>
+          <svg class="trend-sparkline-svg" viewBox="0 0 280 70" preserveAspectRatio="none">
+            <path 
+              [attr.d]="comp.trendPath" 
+              fill="none" 
+              [attr.stroke]="comp.trendPositive ? '#16a34a' : '#dc2626'" 
+              stroke-width="2.5" 
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+
+        <!-- Key Financial Metric Chips -->
+        <div class="metrics-chips-row">
+          <div *ngFor="let m of comp.metrics" class="metric-chip">
+            <span class="chip-label">{{ m.label }}</span>
+            <span 
+              class="chip-val" 
+              [class.positive]="isMetricPositive(m)"
+              [class.negative]="isMetricNegative(m)"
+            >{{ formatMetricValue(m) }}</span>
+          </div>
+        </div>
+
+        <!-- Key Lens Insight Box -->
+        <div class="insight-callout-card">
+          <span class="insight-bulb">💡</span>
+          <p class="insight-text">{{ comp.insight }}</p>
+        </div>
+
+        <!-- Full Story Action Button -->
+        <button class="see-full-story-btn" (click)="goToStock(comp.symbol)">
+          See full story →
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- NIFTY 50 Market Cap Map (Matching User Reference Screenshot)              -->
+  <!-- ========================================================================= -->
+  <section class="nifty-map-section">
+    <!-- White Container Card -->
+    <div class="nifty-map-card">
+      <!-- Header inside white box: Green Square Badge + Title on Left, "Full view ->" on Right -->
+      <div class="nifty-map-header-row">
+        <div class="nifty-map-title-group">
+          <span class="nifty-map-square-badge" aria-hidden="true"></span>
+          <h2 class="nifty-map-section-title">Nifty 50 market cap map</h2>
+        </div>
+        <button type="button" class="nifty-map-full-view-btn" (click)="navigateToNifty50()" title="Open full NIFTY 50 directory">
+          Full view <span class="arrow">→</span>
+        </button>
+      </div>
+
+      <!-- Loading Skeleton Placeholder -->
+      <div class="nifty-map-loading" *ngIf="isLoadingNiftyMap() && niftyMapItems().length === 0">
+        <div class="map-row skeleton">
+          <div class="map-tile-skeleton" *ngFor="let i of [1, 2, 3, 4, 5, 6]"></div>
+        </div>
+        <div class="map-row skeleton">
+          <div class="map-tile-skeleton wide" *ngFor="let i of [1, 2]"></div>
+        </div>
+      </div>
+
+      <!-- Live Dynamic Market Cap Tiles Map -->
+      <div class="nifty-map-tiles-container" *ngIf="niftyMapItems().length > 0">
+        <!-- Row 1: Top 6 by Market Cap -->
+        <div class="nifty-map-row row-1" *ngIf="niftyMapRow1().length > 0">
+          <div 
+            *ngFor="let item of niftyMapRow1()" 
+            class="nifty-map-tile"
+            [style.background-color]="item.bg"
+            [style.color]="item.textColor"
+            [style.flex-grow]="item.flexWeight"
+            (click)="goToStock(item.symbol)"
+            [title]="'View ' + item.name + ' (' + item.symbol + ' - ' + item.sector + ')'"
+          >
+            <span class="map-tile-symbol">{{ item.symbol }}</span>
+            <span class="map-tile-val">{{ item.formattedLakhCr }}</span>
+          </div>
+        </div>
+
+        <!-- Row 2: Next 2 by Market Cap (e.g. BAJFINANCE, LT) -->
+        <div class="nifty-map-row row-2" *ngIf="niftyMapRow2().length > 0">
+          <div 
+            *ngFor="let item of niftyMapRow2()" 
+            class="nifty-map-tile"
+            [style.background-color]="item.bg"
+            [style.color]="item.textColor"
+            [style.flex-grow]="item.flexWeight"
+            (click)="goToStock(item.symbol)"
+            [title]="'View ' + item.name + ' (' + item.symbol + ' - ' + item.sector + ')'"
+          >
+            <span class="map-tile-symbol">{{ item.symbol }}</span>
+            <span class="map-tile-val">{{ item.formattedLakhCr }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Caption Note at Bottom of Card -->
+      <div class="map-caption-note">Box size = market cap · color = sector</div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- Continue Research Section (Matching Reference Screenshot media_1793011474740) -->
+  <!-- ========================================================================= -->
+  <section class="continue-research-section">
+    <!-- White Card Box with Header, Tabs & Responsive Grid -->
+    <div class="research-card">
+      <!-- Section Header inside white box: Clock Icon + Title -->
+      <div class="research-section-header">
+        <div class="research-clock-icon-wrapper" aria-hidden="true">
+          <svg class="research-clock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"></circle>
+            <polyline points="12 6.5 12 12 15.5 14"></polyline>
+          </svg>
+        </div>
+        <h2 class="research-section-title">Continue research</h2>
+      </div>
+
+      <!-- Pill Tabs Row: Recently viewed (Active) vs My watchlist -->
+      <div class="research-tabs-row">
+        <button 
+          type="button" 
+          class="research-tab-pill" 
+          [class.active]="activeResearchTab() === 'recent'"
+          (click)="setResearchTab('recent')"
+        >
+          Recently viewed
+        </button>
+        <button 
+          type="button" 
+          class="research-tab-pill" 
+          [class.active]="activeResearchTab() === 'watchlist'"
+          (click)="setResearchTab('watchlist')"
+        >
+          My watchlist
+          <span class="research-tab-count" *ngIf="watchlistService.watchlistCount() > 0">
+            ({{ watchlistService.watchlistCount() }})
+          </span>
+        </button>
+      </div>
+
+      <!-- Stocks Grid (2-3 columns on desktop/wide screen, 1 column on mobile) -->
+      <div class="research-stocks-grid" *ngIf="currentResearchItems().length > 0; else emptyResearchTpl">
+        <div 
+          *ngFor="let item of currentResearchItems()" 
+          class="research-stock-row"
+          (click)="openResearchStock(item)"
+          [title]="'View ' + item.name + ' (' + item.symbol + ')'"
+        >
+          <!-- Stock Company Logo or Initial Letter Avatar -->
+          <div 
+            class="stock-avatar-box" 
+            [class.has-logo]="item.logoUrl && !failedLogos()[item.symbol]"
+            [style.background-color]="item.logoUrl && !failedLogos()[item.symbol] ? '#ffffff' : item.avatarBg"
+            [style.color]="item.avatarColor"
+          >
+            <img 
+              *ngIf="item.logoUrl && !failedLogos()[item.symbol]" 
+              [src]="item.logoUrl" 
+              [alt]="item.name + ' Logo'" 
+              class="stock-avatar-logo-img" 
+              (error)="onLogoError(item.symbol)" 
+            />
+            <span *ngIf="!item.logoUrl || failedLogos()[item.symbol]">{{ item.avatarLetter }}</span>
+          </div>
+
+          <!-- Company Name & Sector Metadata -->
+          <div class="stock-title-col">
+            <span class="stock-company-name">{{ item.name }}</span>
+            <span class="stock-symbol-sector">{{ item.symbol }} · {{ item.sector }}</span>
+          </div>
+
+          <!-- Price & Market Cap -->
+          <div class="stock-pricing-col">
+            <span class="stock-price-val">{{ item.formattedPrice }}</span>
+            <span class="stock-mcap-val">{{ item.formattedMarketCap }}</span>
+          </div>
+
+          <!-- Watchlist Star Button (Dynamic Toggle - Filled Gold or Outline) -->
+          <button 
+            type="button" 
+            class="stock-star-btn" 
+            [class.starred]="isStarred(item.symbol)"
+            (click)="toggleStar(item, $event)"
+            [attr.aria-label]="isStarred(item.symbol) ? 'Remove from watchlist' : 'Add to watchlist'"
+            [title]="isStarred(item.symbol) ? 'Remove ' + item.symbol + ' from watchlist' : 'Add ' + item.symbol + ' to watchlist'"
+          >
+            <svg *ngIf="isStarred(item.symbol)" class="star-icon-svg filled" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <svg *ngIf="!isStarred(item.symbol)" class="star-icon-svg outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State for Watchlist or History -->
+      <ng-template #emptyResearchTpl>
+        <div class="research-empty-state">
+          <div class="empty-icon-wrap">
+            <span *ngIf="activeResearchTab() === 'watchlist'">⭐</span>
+            <span *ngIf="activeResearchTab() === 'recent'">🕒</span>
+          </div>
+          <p class="empty-title">
+            {{ activeResearchTab() === 'watchlist' ? 'Your Watchlist is empty' : 'No recently viewed stocks' }}
+          </p>
+          <p class="empty-desc">
+            {{ activeResearchTab() === 'watchlist' 
+               ? 'Click the star icon on any stock or search result to track your favorite companies here.' 
+               : 'Search or click any company from the Explore lens or Nifty 50 to see your browser history here.' }}
+          </p>
+        </div>
+      </ng-template>
+    </div>
+  </section>
+</div>

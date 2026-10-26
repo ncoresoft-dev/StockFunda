@@ -94,6 +94,7 @@ builder.Services.AddScoped<IStockPriceHistoryRepository, StockPriceHistoryReposi
 builder.Services.AddScoped<IStockDealsRepository, StockDealsRepository>();
 builder.Services.AddScoped<IStockPeerRepository, StockPeerRepository>();
 builder.Services.AddScoped<IStockAnnualReportRepository, StockAnnualReportRepository>();
+builder.Services.AddScoped<IMarketTickerRepository, MarketTickerRepository>();
 
 // Register Seeders
 builder.Services.AddTransient<CompanyMasterSeeder>();
@@ -128,6 +129,8 @@ builder.Services.AddScoped<IStockEvaluationService, StockEvaluationService>();
 builder.Services.AddScoped<IStockDealsService, StockDealsService>();
 builder.Services.AddScoped<IMarketIndicesService, MarketIndicesService>();
 builder.Services.AddScoped<IStockAnnualReportService, StockAnnualReportService>();
+builder.Services.AddScoped<IMarketTickerService, MarketTickerService>();
+builder.Services.AddScoped<IExploreLensService, ExploreLensService>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
