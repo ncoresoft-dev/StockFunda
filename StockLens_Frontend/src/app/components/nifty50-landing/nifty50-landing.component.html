@@ -1,7 +1,7 @@
 <div class="landing-container" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()"
   [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
   <!-- Top Animated Cyber Reload Progress Bar -->
-  <div class="top-reload-bar" [class.active]="isLoading() || isSyncing()"></div>
+  <div class="top-reload-bar" [class.active]="isLoading()"></div>
 
   <!-- ========================================================================= -->
   <!-- 1. TOP GLOBAL APPLICATION NAVBAR                                          -->
@@ -19,17 +19,18 @@
 
     <!-- Center: Global Search with Typeahead -->
     <div class="header-center">
-      <div class="search-input-wrapper">
+      <div class="search-input-wrapper" #headerSearchWrapper>
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input type="text" class="search-input" placeholder="Search company (e.g. RELIANCE, TCS, etc...)"
           [value]="headerSearchQuery()" (input)="onHeaderSearchInput($event)" (keydown.enter)="onHeaderSearchSubmit()"
+          (focus)="onHeaderSearchFocus()" (click)="onHeaderSearchFocus()"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
 
         <!-- Autocomplete Dropdown Menu -->
-        @if (headerSearchResults().length > 0 || isHeaderSearching()) {
+        @if (isHeaderSearchDropdownOpen() && (headerSearchResults().length > 0 || isHeaderSearching())) {
         <ul class="search-results-menu">
           @if (isHeaderSearching()) {
           <li class="result-item searching">
@@ -64,8 +65,8 @@
     <!-- Right: Watchlist Nav, Exchange Switcher, Theme & Sync Button -->
     <div class="header-right">
       <!-- 📄 Annual Reports Directory Button -->
-      <button type="button" class="nav-watchlist-btn" (click)="navigateToAnnualReports()" title="Companies with Annual Reports">
-        <svg class="star-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="nav-reports-btn" (click)="navigateToAnnualReports()" title="Companies with Annual Reports">
+        <svg class="reports-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
           <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -76,42 +77,6 @@
 
       <!-- Admin Bell Component (Only visible to Hetvi) -->
       <app-admin-notification-bell></app-admin-notification-bell>
-
-      <!-- ⭐ Watchlist Button (Toggles view on the same page) -->
-      <button type="button" class="nav-watchlist-btn" [class.active]="activeTab() === 'watchlist'"
-        (click)="setActiveTab(activeTab() === 'watchlist' ? 'nifty50' : 'watchlist')" title="Toggle My Watchlist">
-        <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
-          <polygon
-            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-          </polygon>
-        </svg>
-        <span>Watchlist</span>
-        @if (watchlistService.watchlistCount() > 0) {
-        <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
-        }
-      </button>
-
-      <!-- Exchange Switcher Pills -->
-      <div class="exchange-pills">
-        <button type="button" class="exchange-btn" [class.active]="selectedExchange() === 'NSE'"
-          (click)="toggleExchange('NSE')" title="Switch to NSE">
-          NSE
-        </button>
-        <button type="button" class="exchange-btn" [class.active]="selectedExchange() === 'BSE'"
-          (click)="toggleExchange('BSE')" title="Switch to BSE">
-          BSE
-        </button>
-      </div>
-
-      <!-- Sync Button -->
-      <button type="button" class="sync-all-btn" [disabled]="isSyncing()" (click)="syncData()"
-        title="Sync live NIFTY 50 data from API">
-        <svg class="sync-icon" [class.spinning]="isSyncing()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2">
-          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-        </svg>
-        <span>{{ isSyncing() ? 'Syncing...' : 'Sync' }}</span>
-      </button>
     </div>
   </header>
 

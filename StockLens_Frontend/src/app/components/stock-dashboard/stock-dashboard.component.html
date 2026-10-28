@@ -19,17 +19,18 @@
 
     <!-- Center: Global Search with Typeahead & Ctrl+K -->
     <div class="header-center">
-      <div class="search-input-wrapper">
+      <div class="search-input-wrapper" #searchWrapper>
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <input type="text" class="search-input" placeholder="Search company (e.g. RELIANCE, TCS, etc...)"
-          [value]="searchQuery()" (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()" autocomplete="off"
+          [value]="searchQuery()" (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()"
+          (focus)="onSearchFocus()" (click)="onSearchFocus()" autocomplete="off"
           autocorrect="off" autocapitalize="off" spellcheck="false" />
 
         <!-- Autocomplete Menu -->
-        @if (searchResults().length > 0 || isSearching()) {
+        @if (isSearchDropdownOpen() && (searchResults().length > 0 || isSearching())) {
         <ul class="search-results-menu">
           @if (isSearching()) {
           <li class="result-item searching">

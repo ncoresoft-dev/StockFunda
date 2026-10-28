@@ -9,14 +9,11 @@
       </div>
       <span class="card-title-text">{{ symbol }} CORPORATE DEALS</span>
       <span class="exchange-badge-tag">NSE + BSE</span>
-    </div>
-  </div>
 
-  <div class="tabs-wrapper" *ngIf="dealsData && !loading && !error">
-    <div class="tabs-container">
-      <button class="tab-btn" [class.active]="activeTab === 'block'" (click)="setTab('block')">Block Deal</button>
-      <button class="tab-btn" [class.active]="activeTab === 'bulk'" (click)="setTab('bulk')">Bulk Deal</button>
-      <button class="tab-btn" [class.active]="activeTab === 'insider'" (click)="setTab('insider')">Insider Deal</button>
+      <!-- Deals Availability Badge -->
+      <span *ngIf="dealsData && !loading" class="deals-status-chip" [class.has-deals]="hasAnyDeals" [class.no-deals]="!hasAnyDeals">
+        {{ hasAnyDeals ? (totalDealsCount + ' Deals') : 'No Recent Deals' }}
+      </span>
     </div>
   </div>
 
@@ -42,49 +39,44 @@
     </button>
   </div>
 
-  <div class="card-body" *ngIf="dealsData && !loading && !error">
-      
-      <!-- BULK DEALS -->
-      <ng-container *ngIf="activeTab === 'bulk'">
-        <div class="deals-grid" *ngIf="dealsData.bulkDeals.length > 0; else noBulkDeals">
-          <div class="deal-card" *ngFor="let deal of dealsData.bulkDeals">
-            <div class="deal-card-top">
-              <span class="deal-date">{{ deal.dealDate | date:'dd MMM, yyyy' }}</span>
-              <span class="badge" [ngClass]="deal.action === 'BUY' ? 'badge-buy' : 'badge-sell'">{{ deal.action | uppercase }}</span>
-            </div>
-            <div class="deal-card-mid">
-              <h4 class="deal-client">{{ deal.clientName }}</h4>
-            </div>
-            <div class="deal-card-bot">
-              <div class="deal-stat">
-                <span class="stat-lbl">Qty</span>
-                <span class="stat-val">{{ formatNumber(deal.quantity) }}</span>
-              </div>
-              <div class="deal-stat">
-                <span class="stat-lbl">Price</span>
-                <span class="stat-val">{{ deal.averagePrice | number:'1.2-2' }}</span>
-              </div>
-              <div class="deal-stat">
-                <span class="stat-lbl">% Traded</span>
-                <span class="stat-val">0.00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <ng-template #noBulkDeals>
-          <div class="empty-state">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <div class="empty-state-text">No bulk deals found for this stock.</div>
-          </div>
-        </ng-template>
-      </ng-container>
+  <!-- NO DEALS INFO BANNER (Visible directly when no deals in any tab) -->
+  <div class="no-deals-info-banner" *ngIf="dealsData && !loading && !error && !hasAnyDeals">
+    <div class="info-banner-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    </div>
+    <span class="info-banner-text">
+      No Block Deals, Bulk Deals, or Insider Trades detected for <strong>{{ symbol }}</strong> in the tracked period.
+    </span>
+  </div>
 
-      <!-- BLOCK DEALS -->
+  <!-- EXPANDED CONTENT WRAPPER (Visible when deals exist) -->
+  <div class="deals-content-body" *ngIf="dealsData && !loading && !error && hasAnyDeals">
+    <!-- TABS SECTION -->
+    <div class="tabs-wrapper">
+      <div class="tabs-container">
+        <button class="tab-btn" [class.active]="activeTab === 'block'" (click)="setTab('block')">
+          Block Deal
+          <span class="tab-count-pill" [class.zero-count]="blockCount === 0">{{ blockCount }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'bulk'" (click)="setTab('bulk')">
+          Bulk Deal
+          <span class="tab-count-pill" [class.zero-count]="bulkCount === 0">{{ bulkCount }}</span>
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'insider'" (click)="setTab('insider')">
+          Insider Deal
+          <span class="tab-count-pill" [class.zero-count]="insiderCount === 0">{{ insiderCount }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- DATA BODY -->
+    <div class="card-body">
+      
+      <!-- BLOCK DEALS TAB -->
       <ng-container *ngIf="activeTab === 'block'">
-        <div class="deals-grid" *ngIf="dealsData.blockDeals.length > 0; else noBlockDeals">
+        <div class="deals-grid" *ngIf="dealsData.blockDeals && dealsData.blockDeals.length > 0; else noBlockDeals">
           <div class="deal-card" *ngFor="let deal of dealsData.blockDeals">
             <div class="deal-card-top">
               <span class="deal-date">{{ deal.dealDate | date:'dd MMM, yyyy' }}</span>
@@ -110,19 +102,86 @@
           </div>
         </div>
         <ng-template #noBlockDeals>
-          <div class="empty-state">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <div class="empty-state-text">No block deals found for this stock.</div>
+          <div class="deal-empty-card">
+            <div class="empty-card-header">
+              <div class="empty-icon-bubble block-bubble">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </div>
+              <div class="empty-header-text">
+                <div class="empty-headline-row">
+                  <h4 class="empty-headline">No Block Deals Recorded for {{ symbol }}</h4>
+                  <span class="empty-status-pill">Normal Flow</span>
+                </div>
+                <p class="empty-subtext">No single-trade block transactions (typically &ge; ₹10 Crore or 0.5% equity) were executed during the tracked reporting window.</p>
+              </div>
+            </div>
+            <div class="empty-card-footer">
+              <span class="info-bulb">💡</span>
+              <span class="footer-tip">Block deals occur in a dedicated exchange window between institutional investors. Disclosures are published by NSE/BSE after market close.</span>
+            </div>
           </div>
         </ng-template>
       </ng-container>
 
-      <!-- INSIDER TRADES -->
+      <!-- BULK DEALS TAB -->
+      <ng-container *ngIf="activeTab === 'bulk'">
+        <div class="deals-grid" *ngIf="dealsData.bulkDeals && dealsData.bulkDeals.length > 0; else noBulkDeals">
+          <div class="deal-card" *ngFor="let deal of dealsData.bulkDeals">
+            <div class="deal-card-top">
+              <span class="deal-date">{{ deal.dealDate | date:'dd MMM, yyyy' }}</span>
+              <span class="badge" [ngClass]="deal.action === 'BUY' ? 'badge-buy' : 'badge-sell'">{{ deal.action | uppercase }}</span>
+            </div>
+            <div class="deal-card-mid">
+              <h4 class="deal-client">{{ deal.clientName }}</h4>
+            </div>
+            <div class="deal-card-bot">
+              <div class="deal-stat">
+                <span class="stat-lbl">Qty</span>
+                <span class="stat-val">{{ formatNumber(deal.quantity) }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">Price</span>
+                <span class="stat-val">{{ deal.averagePrice | number:'1.2-2' }}</span>
+              </div>
+              <div class="deal-stat">
+                <span class="stat-lbl">% Traded</span>
+                <span class="stat-val">0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noBulkDeals>
+          <div class="deal-empty-card">
+            <div class="empty-card-header">
+              <div class="empty-icon-bubble bulk-bubble">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18"></path>
+                  <path d="M18 17V9"></path>
+                  <path d="M13 17V5"></path>
+                  <path d="M8 17v-3"></path>
+                </svg>
+              </div>
+              <div class="empty-header-text">
+                <div class="empty-headline-row">
+                  <h4 class="empty-headline">No Bulk Deals Recorded for {{ symbol }}</h4>
+                  <span class="empty-status-pill">Dispersed Trading</span>
+                </div>
+                <p class="empty-subtext">No open-market transactions involving 0.5% or more of total equity shares were executed by institutional or high-net-worth investors.</p>
+              </div>
+            </div>
+            <div class="empty-card-footer">
+              <span class="info-bulb">💡</span>
+              <span class="footer-tip">Bulk deals highlight large-volume accumulation or distribution in the open market during regular trading hours.</span>
+            </div>
+          </div>
+        </ng-template>
+      </ng-container>
+
+      <!-- INSIDER TRADES TAB -->
       <ng-container *ngIf="activeTab === 'insider'">
-        <div class="deals-grid" *ngIf="dealsData.insiderTrades.length > 0; else noInsiderTrades">
+        <div class="deals-grid" *ngIf="dealsData.insiderTrades && dealsData.insiderTrades.length > 0; else noInsiderTrades">
           <div class="deal-card" *ngFor="let trade of dealsData.insiderTrades">
             <div class="deal-card-top">
               <span class="deal-date">{{ trade.intimationDate | date:'dd MMM, yyyy' }}</span>
@@ -153,15 +212,30 @@
           </div>
         </div>
         <ng-template #noInsiderTrades>
-          <div class="empty-state">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <div class="empty-state-text">No insider trades found for this stock.</div>
+          <div class="deal-empty-card">
+            <div class="empty-card-header">
+              <div class="empty-icon-bubble insider-bubble">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="7" r="4"></circle>
+                  <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
+                </svg>
+              </div>
+              <div class="empty-header-text">
+                <div class="empty-headline-row">
+                  <h4 class="empty-headline">No Insider Trades Reported for {{ symbol }}</h4>
+                  <span class="empty-status-pill">Stable Insider Holdings</span>
+                </div>
+                <p class="empty-subtext">No acquisitions, pledges, or disposals by promoters, directors, or designated insiders were reported under SEBI (PIT) regulations.</p>
+              </div>
+            </div>
+            <div class="empty-card-footer">
+              <span class="info-bulb">💡</span>
+              <span class="footer-tip">Absence of insider selling is generally viewed as steady management conviction and alignment with long-term shareholders.</span>
+            </div>
           </div>
         </ng-template>
-    </ng-container>
+      </ng-container>
 
+    </div>
   </div>
 </div>

@@ -365,62 +365,116 @@
   }
 }
 
-.search-results-dropdown {
+/* Autocomplete Menu (Same as Nifty 50) */
+.search-results-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
-  margin-top: 8px;
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8d0;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  z-index: 50;
-  max-height: 320px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  list-style: none;
+  padding: 0.35rem;
+  margin: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  z-index: 99999;
+  max-height: 280px;
   overflow-y: auto;
 }
 
-.search-result-row {
+.result-item {
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
+  gap: 0.5rem;
   cursor: pointer;
-  border-bottom: 1px solid #f1f5e8;
+  font-size: 0.8rem;
+  color: #0f172a;
   transition: background 0.15s;
 }
 
-.search-result-row:hover {
-  background-color: #f7faee;
+.result-item:hover {
+  background: #f1f5f9;
 }
 
-.result-symbol-name {
+.result-item.searching {
+  justify-content: center;
+  color: #64748b;
+  cursor: default;
+  padding: 0.75rem;
+}
+
+.mini-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.res-item-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.55rem;
+  width: 100%;
 }
 
-.sym-tag {
-  font-weight: 750;
-  font-size: 0.9rem;
-  color: #1a1e12;
-  background: #eef4d8;
-  padding: 2px 8px;
+.res-logo-box {
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
 }
 
-.full-name {
-  font-size: 0.88rem;
-  color: #4b5563;
+.res-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.industry-tag {
-  font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 12px;
+.res-logo-placeholder {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.res-text-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.res-name {
+  color: #0f172a;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.res-symbol {
+  color: #0284c7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 /* Explore by Lens Main Card */

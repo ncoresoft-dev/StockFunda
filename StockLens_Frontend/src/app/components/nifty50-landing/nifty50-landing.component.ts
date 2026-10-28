@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -34,15 +34,15 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   // Active View Tab: 'nifty50' or 'watchlist'
   activeTab = signal<ViewTab>('nifty50');
 
-  // Theme & Exchange
+  // Theme
   isLightTheme = signal<boolean>(true);
-  selectedExchange = signal<'NSE' | 'BSE'>('NSE');
-  isSyncing = signal<boolean>(false);
 
   // Header Search Typeahead
   headerSearchQuery = signal<string>('');
   headerSearchResults = signal<Company[]>([]);
   isHeaderSearching = signal<boolean>(false);
+  isHeaderSearchDropdownOpen = signal<boolean>(false);
+  @ViewChild('headerSearchWrapper') headerSearchWrapper?: ElementRef<HTMLElement>;
   private headerSearchSubject = new Subject<string>();
   private headerSearchSub?: Subscription;
   private queryParamsSub?: Subscription;
@@ -214,7 +214,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     // Check query params immediately before triggering initial loads
     const initialView = this.route.snapshot.queryParams['tab'] || this.route.snapshot.queryParams['view'];
     if (initialView === 'watchlist') {
-      this.activeTab.set('watchlist');
+      this.setActiveTab('watchlist');
     }
 
     // Only forceRefresh if user landed directly on the NIFTY 50 tab
@@ -224,9 +224,9 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const view = params['tab'] || params['view'];
       if (view === 'watchlist' && this.activeTab() !== 'watchlist') {
-        this.activeTab.set('watchlist');
+        this.setActiveTab('watchlist');
       } else if (view === 'nifty50' && this.activeTab() !== 'nifty50') {
-        this.activeTab.set('nifty50');
+        this.setActiveTab('nifty50');
       }
     });
   }
@@ -245,7 +245,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
       next: (stocks) => {
         this.allStocks.set(stocks);
         this.isLoading.set(false);
-        this.isSyncing.set(false);
       },
       error: (err) => {
         console.warn('Failed to load NIFTY 50 constituent data:', err);
@@ -253,7 +252,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
           this.allStocks.set([]);
         }
         this.isLoading.set(false);
-        this.isSyncing.set(false);
       }
     });
   }
@@ -353,15 +351,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     this.router.navigate(['/annual-reports']);
   }
 
-  toggleExchange(exchange: 'NSE' | 'BSE'): void {
-    this.selectedExchange.set(exchange);
-  }
-
-  syncData(): void {
-    this.isSyncing.set(true);
-    this.loadNifty50Stocks(true);
-    this.loadCustomWatchlistStocks();
-  }
 
   toggleTheme(): void {
     this.isLightTheme.update(v => !v);
@@ -419,10 +408,36 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   onHeaderSearchInput(event: Event): void {
     const val = (event.target as HTMLInputElement).value;
     this.headerSearchQuery.set(val);
+    if (val.trim().length >= 2) {
+      this.isHeaderSearchDropdownOpen.set(true);
+    } else {
+      this.isHeaderSearchDropdownOpen.set(false);
+      this.headerSearchResults.set([]);
+    }
     this.headerSearchSubject.next(val);
   }
 
+  onHeaderSearchFocus(): void {
+    if (this.headerSearchResults().length > 0 && this.headerSearchQuery().trim().length >= 2) {
+      this.isHeaderSearchDropdownOpen.set(true);
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.isHeaderSearchDropdownOpen() && this.headerSearchWrapper?.nativeElement && !this.headerSearchWrapper.nativeElement.contains(target)) {
+      this.isHeaderSearchDropdownOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    this.isHeaderSearchDropdownOpen.set(false);
+  }
+
   onHeaderSearchSubmit(): void {
+    this.isHeaderSearchDropdownOpen.set(false);
     const q = this.headerSearchQuery().trim();
     if (q) {
       this.navigateToStock(q);
@@ -432,6 +447,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   }
 
   selectHeaderSearchResult(company: Company): void {
+    this.isHeaderSearchDropdownOpen.set(false);
     if (company && company.symbol) {
       this.navigateToStock(company.symbol);
       this.headerSearchQuery.set('');
@@ -448,6 +464,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
         if (!clean || clean.length < 2) {
           this.headerSearchResults.set([]);
           this.isHeaderSearching.set(false);
+          this.isHeaderSearchDropdownOpen.set(false);
           return of([]);
         }
         this.isHeaderSearching.set(true);
@@ -473,6 +490,9 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     ).subscribe(results => {
       this.headerSearchResults.set(results);
       this.isHeaderSearching.set(false);
+      if (results && results.length > 0) {
+        this.isHeaderSearchDropdownOpen.set(true);
+      }
     });
   }
 }

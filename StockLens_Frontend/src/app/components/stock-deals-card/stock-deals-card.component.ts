@@ -21,7 +21,27 @@ export class StockDealsCardComponent implements OnInit, OnChanges {
   dealsData: StockDealsSummary | null = null;
   loading = false;
   error = '';
-  activeTab: 'bulk' | 'block' | 'insider' = 'bulk';
+  activeTab: 'bulk' | 'block' | 'insider' = 'block';
+
+  get bulkCount(): number {
+    return this.dealsData?.bulkDeals?.length || 0;
+  }
+
+  get blockCount(): number {
+    return this.dealsData?.blockDeals?.length || 0;
+  }
+
+  get insiderCount(): number {
+    return this.dealsData?.insiderTrades?.length || 0;
+  }
+
+  get totalDealsCount(): number {
+    return this.bulkCount + this.blockCount + this.insiderCount;
+  }
+
+  get hasAnyDeals(): boolean {
+    return this.totalDealsCount > 0;
+  }
 
   ngOnInit(): void {
     if (this.symbol || this.stockId) {
@@ -57,12 +77,14 @@ export class StockDealsCardComponent implements OnInit, OnChanges {
         this.loading = false;
         
         // Auto select tab that has data
-        if (data.bulkDeals && data.bulkDeals.length > 0) {
-          this.activeTab = 'bulk';
-        } else if (data.blockDeals && data.blockDeals.length > 0) {
+        if (data.blockDeals && data.blockDeals.length > 0) {
           this.activeTab = 'block';
+        } else if (data.bulkDeals && data.bulkDeals.length > 0) {
+          this.activeTab = 'bulk';
         } else if (data.insiderTrades && data.insiderTrades.length > 0) {
           this.activeTab = 'insider';
+        } else {
+          this.activeTab = 'block';
         }
         
         this.cdr.detectChanges(); // CRITICAL: Force Angular to update the UI

@@ -73,7 +73,7 @@
     </div>
 
     <!-- Search Bar with Typeahead Autocomplete -->
-    <div class="search-bar-section">
+    <div class="search-bar-section" #searchSection>
       <div class="search-bar-pill">
         <span class="search-icon">🔍</span>
         <input 
@@ -83,24 +83,43 @@
           [value]="searchQuery()"
           (input)="onSearchInput($event)"
           (keydown.enter)="onSearchSubmit()"
+          (focus)="onSearchFocus()"
+          (click)="onSearchFocus()"
+          autocomplete="off"
         />
         <div *ngIf="isSearching()" class="search-spinner"></div>
       </div>
 
-      <!-- Autocomplete Dropdown List -->
-      <div *ngIf="searchResults().length > 0" class="search-results-dropdown">
-        <div 
-          *ngFor="let comp of searchResults()" 
-          class="search-result-row"
-          (click)="selectSearchResult(comp)"
-        >
-          <div class="result-symbol-name">
-            <span class="sym-tag">{{ comp.symbol }}</span>
-            <span class="full-name">{{ comp.companyName }}</span>
+      <!-- Autocomplete Dropdown List with Logo (Same as Nifty 50) -->
+      @if (isDropdownOpen() && (searchResults().length > 0 || isSearching())) {
+      <ul class="search-results-menu">
+        @if (isSearching()) {
+        <li class="result-item searching">
+          <span class="mini-spinner"></span>
+          <span>Searching equities...</span>
+        </li>
+        } @else {
+        @for (company of searchResults(); track company.symbol) {
+        <li class="result-item" (click)="selectSearchResult(company)">
+          <div class="res-item-left">
+            @if (company.logoUrl && !failedSearchLogos()[company.symbol.toUpperCase()]) {
+            <div class="res-logo-box">
+              <img [src]="company.logoUrl" [alt]="company.symbol" class="res-logo-img"
+                (error)="onSearchLogoError(company.symbol)" />
+            </div>
+            } @else {
+            <div class="res-logo-placeholder">{{ company.symbol.substring(0, 2) }}</div>
+            }
+            <div class="res-text-group">
+              <span class="res-name">{{ company.companyName }}</span>
+              <span class="res-symbol">({{ company.symbol }})</span>
+            </div>
           </div>
-          <span class="industry-tag" *ngIf="comp.industry">{{ comp.industry }}</span>
-        </div>
-      </div>
+        </li>
+        }
+        }
+      </ul>
+      }
     </div>
   </div>
 

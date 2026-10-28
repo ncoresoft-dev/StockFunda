@@ -514,3 +514,291 @@
 :host-context([data-theme="light"]) .empty-state-text {
   color: #64748b !important;
 }
+
+/* ==========================================================================
+   COLLAPSIBLE & ENHANCED EMPTY STATE STYLES
+/* ==========================================================================
+   NO-DEALS INFO BANNER & ENHANCED EMPTY STATE STYLES
+   ========================================================================== */
+
+.deals-status-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.deals-status-chip.has-deals {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.deals-status-chip.no-deals {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+.no-deals-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.info-banner-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.info-banner-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.info-banner-text {
+  font-size: 0.94rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.info-banner-text strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.tab-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-left: 0.35rem;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.tab-count-pill.zero-count {
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748b;
+}
+
+.tab-btn.active .tab-count-pill {
+  background: #38bdf8;
+  color: #080c14;
+}
+
+.deal-empty-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  grid-column: 1 / -1;
+  transition: all 0.2s ease;
+}
+
+.empty-card-header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.empty-icon-bubble {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.empty-icon-bubble svg {
+  width: 18px;
+  height: 18px;
+}
+
+.block-bubble {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.bulk-bubble {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.insider-bubble {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.empty-header-text {
+  flex: 1;
+}
+
+.empty-headline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.empty-headline {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.empty-status-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+.empty-subtext {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.empty-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-bulb {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.footer-tip {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Light Theme Overrides for New Elements */
+.light-mode .deals-status-chip.has-deals,
+:host-context(.light-theme) .deals-status-chip.has-deals,
+:host-context([data-theme="light"]) .deals-status-chip.has-deals {
+  background: #e0f2fe !important;
+  border-color: #bae6fd !important;
+  color: #0284c7 !important;
+}
+
+.light-mode .deals-status-chip.no-deals,
+:host-context(.light-theme) .deals-status-chip.no-deals,
+:host-context([data-theme="light"]) .deals-status-chip.no-deals {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.light-mode .no-deals-info-banner,
+:host-context(.light-theme) .no-deals-info-banner,
+:host-context([data-theme="light"]) .no-deals-info-banner {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .info-banner-icon,
+:host-context(.light-theme) .info-banner-icon,
+:host-context([data-theme="light"]) .info-banner-icon {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+
+.light-mode .info-banner-text,
+:host-context(.light-theme) .info-banner-text,
+:host-context([data-theme="light"]) .info-banner-text {
+  color: #475569 !important;
+}
+
+.light-mode .info-banner-text strong,
+:host-context(.light-theme) .info-banner-text strong,
+:host-context([data-theme="light"]) .info-banner-text strong {
+  color: #0f172a !important;
+}
+
+.light-mode .tab-count-pill.zero-count,
+:host-context(.light-theme) .tab-count-pill.zero-count,
+:host-context([data-theme="light"]) .tab-count-pill.zero-count {
+  background: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+.light-mode .deal-empty-card,
+:host-context(.light-theme) .deal-empty-card,
+:host-context([data-theme="light"]) .deal-empty-card {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .empty-headline,
+:host-context(.light-theme) .empty-headline,
+:host-context([data-theme="light"]) .empty-headline {
+  color: #0f172a !important;
+}
+
+.light-mode .empty-status-pill,
+:host-context(.light-theme) .empty-status-pill,
+:host-context([data-theme="light"]) .empty-status-pill {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+.light-mode .empty-subtext,
+:host-context(.light-theme) .empty-subtext,
+:host-context([data-theme="light"]) .empty-subtext {
+  color: #64748b !important;
+}
+
+.light-mode .empty-card-footer,
+:host-context(.light-theme) .empty-card-footer,
+:host-context([data-theme="light"]) .empty-card-footer {
+  border-top-color: #e2e8f0 !important;
+}
+
+.light-mode .footer-tip,
+:host-context(.light-theme) .footer-tip,
+:host-context([data-theme="light"]) .footer-tip {
+  color: #64748b !important;
+}

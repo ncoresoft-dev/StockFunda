@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { of, Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
 import { MarketTickerService } from '../../services/market-ticker.service';
 import { StockNewsService } from '../../services/stock-news.service';
 import { StockIndexService } from '../../services/stock-index.service';
@@ -62,8 +62,17 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   searchQuery = signal<string>('');
   searchResults = signal<Company[]>([]);
   isSearching = signal<boolean>(false);
+  isDropdownOpen = signal<boolean>(false);
+  failedSearchLogos = signal<Record<string, boolean>>({});
+  allStocks = signal<Nifty50StockItem[]>([]);
+  @ViewChild('searchSection') searchSection?: ElementRef<HTMLElement>;
   private searchSubject = new Subject<string>();
   private searchSub?: Subscription;
+
+  onSearchLogoError(symbol?: string): void {
+    if (!symbol) return;
+    this.failedSearchLogos.update(map => ({ ...map, [symbol.toUpperCase()]: true }));
+  }
 
   // Active Lens Tab
   activeLens = signal<LensType>('Growth');
@@ -416,25 +425,60 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   // Search Typeahead Setup
   private setupSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(250),
+      debounceTime(200),
       distinctUntilChanged(),
       switchMap(query => {
         const clean = (query || '').trim();
-        if (clean.length < 2) {
+        if (!clean || clean.length < 2) {
           this.isSearching.set(false);
-          return [];
+          this.searchResults.set([]);
+          this.isDropdownOpen.set(false);
+          return of([]);
         }
         this.isSearching.set(true);
-        return this.newsService.searchCompanies(clean);
+
+        const localMatches: Company[] = this.allStocks()
+          .filter(s =>
+            s.symbol.toLowerCase().includes(clean.toLowerCase()) ||
+            s.companyName.toLowerCase().includes(clean.toLowerCase())
+          )
+          .map(s => ({
+            id: 0,
+            symbol: s.symbol,
+            companyName: s.companyName,
+            industry: s.sector || '',
+            exchange: s.exchange || 'NSE',
+            logoUrl: s.logoUrl
+          } as Company));
+
+        return this.newsService.searchCompanies(clean).pipe(
+          map(apiRes => {
+            if (apiRes && apiRes.length > 0) {
+              return apiRes.map(c => {
+                const upperSym = c.symbol.toUpperCase();
+                return {
+                  ...c,
+                  logoUrl: c.logoUrl || this.backendStocksMap().get(upperSym)?.logoUrl || this.allStocks().find(s => s.symbol.toUpperCase() === upperSym)?.logoUrl
+                };
+              });
+            }
+            return localMatches;
+          }),
+          catchError(() => of(localMatches))
+        );
       })
     ).subscribe({
       next: (results) => {
         this.searchResults.set(results || []);
         this.isSearching.set(false);
+        if (results && results.length > 0) {
+          this.isDropdownOpen.set(true);
+        }
       },
       error: () => {
         this.searchResults.set([]);
         this.isSearching.set(false);
+        this.isDropdownOpen.set(false);
       }
     });
   }
@@ -442,10 +486,40 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   onSearchInput(event: Event): void {
     const val = (event.target as HTMLInputElement).value;
     this.searchQuery.set(val);
+    if (val.trim().length >= 2) {
+      this.isDropdownOpen.set(true);
+    } else {
+      this.isDropdownOpen.set(false);
+      this.searchResults.set([]);
+    }
     this.searchSubject.next(val);
   }
 
+  onSearchFocus(): void {
+    if (this.searchResults().length > 0 && this.searchQuery().trim().length >= 2) {
+      this.isDropdownOpen.set(true);
+    }
+  }
+
+  closeDropdown(): void {
+    this.isDropdownOpen.set(false);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.isDropdownOpen() && this.searchSection?.nativeElement && !this.searchSection.nativeElement.contains(target)) {
+      this.isDropdownOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    this.isDropdownOpen.set(false);
+  }
+
   selectSearchResult(company: Company): void {
+    this.isDropdownOpen.set(false);
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.recentService.addRecentSymbol(company.symbol);
@@ -454,6 +528,7 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   }
 
   onSearchSubmit(): void {
+    this.isDropdownOpen.set(false);
     const q = this.searchQuery().trim();
     if (q) {
       this.recentService.addRecentSymbol(q);
@@ -471,6 +546,20 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     this.indexService.getNifty50List().subscribe({
       next: (stocks) => {
         if (stocks && stocks.length > 0) {
+          this.allStocks.set(stocks);
+          this.backendStocksMap.update(currentMap => {
+            const newMap = new Map(currentMap);
+            for (const s of stocks) {
+              const sym = s.symbol.toUpperCase();
+              if (!newMap.has(sym)) {
+                newMap.set(sym, s);
+              } else if (s.logoUrl && !newMap.get(sym)?.logoUrl) {
+                newMap.set(sym, { ...newMap.get(sym)!, logoUrl: s.logoUrl });
+              }
+            }
+            return newMap;
+          });
+
           // Dynamic constituents and sectors count from real API data
           this.niftyTotalConstituents.set(stocks.length);
           const uniqueSectors = new Set(stocks.map(s => s.sector).filter(Boolean));

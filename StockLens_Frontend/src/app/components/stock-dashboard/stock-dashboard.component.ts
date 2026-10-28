@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -242,6 +242,8 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   // Typeahead search
   searchResults = signal<Company[]>([]);
   isSearching = signal<boolean>(false);
+  isSearchDropdownOpen = signal<boolean>(false);
+  @ViewChild('searchWrapper') searchWrapper?: ElementRef<HTMLElement>;
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
 
@@ -279,7 +281,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   navigateToWatchlist(): void {
-    this.router.navigate(['/'], { queryParams: { view: 'watchlist' } });
+    this.router.navigate(['/nifty50'], { queryParams: { tab: 'watchlist' } });
   }
 
   navigateToAnnualReports(): void {
@@ -398,6 +400,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         if (!clean || clean.length < 2) {
           this.searchResults.set([]);
           this.isSearching.set(false);
+          this.isSearchDropdownOpen.set(false);
           return of([]);
         }
         this.isSearching.set(true);
@@ -425,6 +428,9 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     ).subscribe((results) => {
       this.searchResults.set(results);
       this.isSearching.set(false);
+      if (results && results.length > 0) {
+        this.isSearchDropdownOpen.set(true);
+      }
     });
   }
 
@@ -514,10 +520,36 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   onSearchInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchQuery.set(value);
+    if (value.trim().length >= 2) {
+      this.isSearchDropdownOpen.set(true);
+    } else {
+      this.isSearchDropdownOpen.set(false);
+      this.searchResults.set([]);
+    }
     this.searchSubject.next(value);
   }
 
+  onSearchFocus(): void {
+    if (this.searchResults().length > 0 && this.searchQuery().trim().length >= 2) {
+      this.isSearchDropdownOpen.set(true);
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.isSearchDropdownOpen() && this.searchWrapper?.nativeElement && !this.searchWrapper.nativeElement.contains(target)) {
+      this.isSearchDropdownOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    this.isSearchDropdownOpen.set(false);
+  }
+
   onSearchSubmit(): void {
+    this.isSearchDropdownOpen.set(false);
     const query = this.searchQuery().trim();
     if (query) {
       this.selectStock(query, this.selectedExchange());
@@ -525,6 +557,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   selectSearchResult(company: Company): void {
+    this.isSearchDropdownOpen.set(false);
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.selectStock(company.symbol, this.selectedExchange());
