@@ -1,21 +1,13 @@
 <div class="home-page-container">
   <!-- Top Navigation Header -->
-  <header class="home-header">
-    <div class="brand-group" routerLink="/">
-      <div class="brand-logo-icon">
-        <img src="images/logo2.png" alt="StockLens Logo" class="brand-logo-img" />
-      </div>
-      <div class="brand-titles">
-        <span class="brand-name">StockLens</span>
-        <span class="brand-tagline">MARKET INTELLIGENCE, CONNECTED</span>
-      </div>
-    </div>
-
-    <div class="header-right-actions">
-      <!-- Admin Notification Bell Component -->
-      <app-admin-notification-bell></app-admin-notification-bell>
-    </div>
-  </header>
+  <app-header
+    [variant]="'transparent'"
+    [isSticky]="false"
+    [showSearch]="false"
+    [showAnnualReports]="false"
+    [showWatchlist]="false"
+    tagline="MARKET INTELLIGENCE, CONNECTED">
+  </app-header>
 
   <!-- Horizontal Scrolling Ticker Strip -->
   <div class="ticker-strip-wrapper">

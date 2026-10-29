@@ -12,14 +12,6 @@ export class StockDealsService {
   private readonly baseUrl = environment.apiUrl;
 
   /**
-   * Fetch deals (bulk, block, insider) by stock database ID.
-   */
-  getDealsByStockId(stockId: number, refresh = false): Observable<StockDealsSummary> {
-    const params = new HttpParams().set('refresh', refresh.toString());
-    return this.http.get<StockDealsSummary>(`${this.baseUrl}/api/stocks/${stockId}/deals`, { params });
-  }
-
-  /**
    * Fetch deals (bulk, block, insider) by stock symbol and exchange.
    */
   getDealsBySymbol(symbol: string, exchange = 'NSE', refresh = false): Observable<StockDealsSummary> {

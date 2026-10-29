@@ -74,36 +74,6 @@ namespace StockLens_BusinessLayer.Services
             }
         }
 
-        public async Task<BalanceSheetResponseDto> GetBalanceSheetByStockIdAsync(
-            int stockId,
-            bool forceRefresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var stock = await _stockRepository.GetByIdAsync(stockId);
-                if (stock == null)
-                {
-                    throw new KeyNotFoundException($"Stock with ID {stockId} was not found.");
-                }
-
-                return await ProcessBalanceSheetAsync(stock, forceRefresh, cancellationToken);
-            }
-            catch (KeyNotFoundException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing balance sheet for Stock ID {StockId}", stockId);
-                return new BalanceSheetResponseDto 
-                { 
-                    Symbol = "Unknown",
-                    ErrorMessage = "An error occurred while fetching balance sheet data." 
-                };
-            }
-        }
-
         private async Task<BalanceSheetResponseDto> ProcessBalanceSheetAsync(Stock stock, bool forceRefresh, CancellationToken cancellationToken)
         {
             var result = new BalanceSheetResponseDto { Symbol = stock.Symbol };

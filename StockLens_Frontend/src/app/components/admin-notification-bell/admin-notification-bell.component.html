@@ -1,20 +1,15 @@
 @if (authService.isAdmin()) {
 <div class="admin-bell-wrapper">
   <!-- Bell Button with Pulse / Badge -->
-  <button
-    type="button"
-    class="bell-btn"
-    (click)="toggleDropdown()"
-    [class.active]="isOpen()"
-    title="Admin Hetvi: Annual Report Requests"
-  >
+  <button type="button" class="bell-btn" (click)="toggleDropdown()" [class.active]="isOpen()"
+    title="Admin: Annual Report Requests">
     <svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
     </svg>
     @if (requestedList().length > 0) {
-      <span class="bell-badge-count">{{ requestedList().length }}</span>
-      <span class="bell-badge-pulse"></span>
+    <span class="bell-badge-count">{{ requestedList().length }}</span>
+    <span class="bell-badge-pulse"></span>
     }
   </button>
 
@@ -27,11 +22,14 @@
       <div class="header-left-meta">
         <span class="dropdown-title">User Requests</span>
         @if (requestedList().length > 0) {
-          <span class="badge-pill-amber">{{ requestedList().length }} Pending</span>
+        <span class="badge-pill-amber">{{ requestedList().length }} Pending</span>
         }
       </div>
       <button type="button" class="btn-add-quick" (click)="openNewReportModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
         <span>Add Report</span>
       </button>
     </div>
@@ -39,42 +37,42 @@
     <!-- Dropdown Items List -->
     <div class="dropdown-body">
       @if (isLoading()) {
-        <div class="loading-state">
-          <span class="mini-spinner-xs"></span>
-          <span>Checking requests...</span>
-        </div>
+      <div class="loading-state">
+        <span class="mini-spinner-xs"></span>
+        <span>Checking requests...</span>
+      </div>
       } @else if (requestedList().length === 0) {
-        <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 14 14"></polyline>
-          </svg>
-          <span class="empty-title">All Caught Up!</span>
-          <span class="empty-sub">No pending annual report requests from users right now.</span>
-        </div>
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 14 14"></polyline>
+        </svg>
+        <span class="empty-title">All Caught Up!</span>
+        <span class="empty-sub">No pending annual report requests from users right now.</span>
+      </div>
       } @else {
-        <ul class="request-list">
-          @for (item of requestedList(); track item.symbol) {
-          <li class="request-item">
-            <div class="request-item-meta">
-              <div class="sym-row">
-                <span class="item-symbol">{{ item.symbol }}</span>
-                <span class="item-requested-tag">Requested</span>
-              </div>
-              <span class="item-company">{{ item.companyName || item.symbol }}</span>
-              @if (item.createdAt) {
-                <span class="item-time">{{ item.createdAt | date:'shortTime' }}</span>
-              }
+      <ul class="request-list">
+        @for (item of requestedList(); track item.symbol) {
+        <li class="request-item">
+          <div class="request-item-meta">
+            <div class="sym-row">
+              <span class="item-symbol">{{ item.symbol }}</span>
+              <span class="item-requested-tag">Requested</span>
             </div>
-            <button type="button" class="btn-extract-item" (click)="openExtractFor(item)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
-              </svg>
-              <span>Fill & Extract</span>
-            </button>
-          </li>
-          }
-        </ul>
+            <span class="item-company">{{ item.companyName || item.symbol }}</span>
+            @if (item.createdAt) {
+            <span class="item-time">{{ item.createdAt | date:'shortTime' }}</span>
+            }
+          </div>
+          <button type="button" class="btn-extract-item" (click)="openExtractFor(item)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
+            </svg>
+            <span>Fill & Extract</span>
+          </button>
+        </li>
+        }
+      </ul>
       }
     </div>
 

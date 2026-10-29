@@ -1,277 +1,104 @@
-<div class="shareholding-container">
-  <!-- State 1: Loading Skeleton -->
-  @if (loadingState === 'loading') {
-    <div class="skeleton-wrapper">
-      <div class="skeleton-header shimmer"></div>
-      <div class="cards-grid">
-        @for (i of [1, 2, 3, 4]; track i) {
-          <div class="skeleton-metric-card">
-            <div class="skeleton-line shimmer short"></div>
-            <div class="skeleton-line shimmer large"></div>
-            <div class="skeleton-line shimmer medium"></div>
-            <div class="skeleton-bar shimmer"></div>
-          </div>
-        }
-      </div>
-    </div>
-  }
-
-  <!-- State 2: Error State -->
-  @if (loadingState === 'error') {
-    <div class="state-card error-state">
-      <div class="state-icon-wrapper error-icon-bg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+<div class="shareholding-wrapper" [class.light-theme]="isLightTheme" [class.dark-theme]="!isLightTheme">
+  <div class="card-top-bar">
+    <div class="card-title-group">
+      <div class="card-icon-box bg-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
       </div>
-      <h3 class="state-title">Unable to Load Shareholding Data</h3>
-      <p class="state-description">{{ errorMessage || 'An error occurred while communicating with shareholding API provider.' }}</p>
-      <button type="button" class="action-btn" (click)="onRefreshClick()">
-        Retry Sync
-      </button>
+      <span class="card-title-text">Shareholding (Ownership) Pattern</span>
     </div>
-  }
+  </div>
 
-  <!-- State 3: Empty State -->
-  @if (loadingState === 'empty') {
-    <div class="state-card empty-state">
-      <div class="state-icon-wrapper">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-        </svg>
-      </div>
-      <h3 class="state-title">Shareholding Data Not Available</h3>
-      <p class="state-description">
-        No shareholding filing records were found for this stock.
-      </p>
-      <button type="button" class="action-btn" (click)="onRefreshClick()">
-        Check for Updates
-      </button>
-    </div>
-  }
-
-  <!-- State 4: Success Content -->
-  @if (loadingState === 'success' && shareholding && activePeriod; as current) {
-    <!-- Metadata & Period Header Bar with Integrated Investors Heading -->
-    <div class="pattern-header-card">
-      <div class="header-left">
-        <div class="header-title-box">
-          <div class="header-icon-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="header-svg-icon">
-              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 class="header-card-title">Investors</h3>
-            <p class="header-card-subtitle">Quarterly Shareholding Pattern &amp; Institutional Ownership</p>
-          </div>
+  <div class="tab-panel-ownership">
+    <div class="ownership-quad-row">
+      <!-- Promoter -->
+      <div class="ownership-stat-card">
+        <div class="owner-stat-head">
+          <span class="dot dot-emerald"></span>
+          <span class="owner-stat-title">Promoter</span>
         </div>
-
-        @if (selectedHistoricalPeriod()) {
-          <div class="period-badge-group">
-            <button type="button" class="reset-view-btn" (click)="selectPeriod(null)">
-              ✕ Reset to Latest Period
-            </button>
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- 4 Holding Metric Cards Grid -->
-    <div class="cards-grid">
-      <!-- 1. Promoter Holding Card -->
-      <div class="metric-card promoter-card">
-        <div class="card-top">
-          <div class="category-header">
-            <span class="category-indicator promoter-dot"></span>
-            <span class="category-title">Promoter</span>
-          </div>
-          @if (shareholding.change.promoter !== null && shareholding.change.promoter !== undefined && !selectedHistoricalPeriod()) {
-            <span class="movement-badge" [ngClass]="getChangeClass(shareholding.change.promoter)">
-              <span class="arrow">{{ getArrow(shareholding.change.promoter) }}</span>
-              {{ formatPp(shareholding.change.promoter) }}
-            </span>
-          }
-        </div>
-
-        <div class="card-value-row">
-          <span class="holding-value">{{ formatHolding(current.promoter) }}</span>
-        </div>
-
-        @if (shareholding.relativeChange.promoter !== null && shareholding.relativeChange.promoter !== undefined && !selectedHistoricalPeriod()) {
-          <div class="relative-row">
-            <span class="relative-text" [ngClass]="getChangeClass(shareholding.relativeChange.promoter)">
-              {{ formatRelative(shareholding.relativeChange.promoter) }}
-            </span>
-          </div>
-        }
-
-        <div class="mini-progress-track">
-          <div class="mini-progress-fill promoter-fill" [style.width.%]="current.promoter || 0"></div>
+        <div class="owner-stat-number">{{ ownershipBreakdown.promoter }}</div>
+        <div class="owner-stat-sub">
+          <span class="pill-delta" [class.positive]="ownershipBreakdown.promoterIsPos"
+            [class.negative]="ownershipBreakdown.promoterIsNeg">QoQ: {{ ownershipBreakdown.promoterPp }}</span>
         </div>
       </div>
 
-      <!-- 2. FII / FPI Holding Card -->
-      <div class="metric-card fii-card">
-        <div class="card-top">
-          <div class="category-header">
-            <span class="category-indicator fii-dot"></span>
-            <span class="category-title">FII / FPI</span>
-          </div>
-          @if (shareholding.change.fii !== null && shareholding.change.fii !== undefined && !selectedHistoricalPeriod()) {
-            <span class="movement-badge" [ngClass]="getChangeClass(shareholding.change.fii)">
-              <span class="arrow">{{ getArrow(shareholding.change.fii) }}</span>
-              {{ formatPp(shareholding.change.fii) }}
-            </span>
-          }
+      <!-- FII / FPI -->
+      <div class="ownership-stat-card">
+        <div class="owner-stat-head">
+          <span class="dot dot-cyan"></span>
+          <span class="owner-stat-title">FII / FPI</span>
         </div>
-
-        <div class="card-value-row">
-          <span class="holding-value">{{ formatHolding(current.fii) }}</span>
-        </div>
-
-        @if (shareholding.relativeChange.fii !== null && shareholding.relativeChange.fii !== undefined && !selectedHistoricalPeriod()) {
-          <div class="relative-row">
-            <span class="relative-text" [ngClass]="getChangeClass(shareholding.relativeChange.fii)">
-              {{ formatRelative(shareholding.relativeChange.fii) }}
-            </span>
-          </div>
-        }
-
-        <div class="mini-progress-track">
-          <div class="mini-progress-fill fii-fill" [style.width.%]="current.fii || 0"></div>
+        <div class="owner-stat-number">{{ ownershipBreakdown.fii }}</div>
+        <div class="owner-stat-sub">
+          <span class="pill-delta" [class.positive]="ownershipBreakdown.fiiIsPos"
+            [class.negative]="ownershipBreakdown.fiiIsNeg">QoQ: {{ ownershipBreakdown.fiiPp }}</span>
         </div>
       </div>
 
-      <!-- 3. DII Holding Card -->
-      <div class="metric-card dii-card">
-        <div class="card-top">
-          <div class="category-header">
-            <span class="category-indicator dii-dot"></span>
-            <span class="category-title">DII</span>
-          </div>
-          @if (shareholding.change.dii !== null && shareholding.change.dii !== undefined && !selectedHistoricalPeriod()) {
-            <span class="movement-badge" [ngClass]="getChangeClass(shareholding.change.dii)">
-              <span class="arrow">{{ getArrow(shareholding.change.dii) }}</span>
-              {{ formatPp(shareholding.change.dii) }}
-            </span>
-          }
+      <!-- DII -->
+      <div class="ownership-stat-card">
+        <div class="owner-stat-head">
+          <span class="dot dot-purple"></span>
+          <span class="owner-stat-title">DII</span>
         </div>
-
-        <div class="card-value-row">
-          <span class="holding-value">{{ formatHolding(current.dii) }}</span>
-        </div>
-
-        @if (shareholding.relativeChange.dii !== null && shareholding.relativeChange.dii !== undefined && !selectedHistoricalPeriod()) {
-          <div class="relative-row">
-            <span class="relative-text" [ngClass]="getChangeClass(shareholding.relativeChange.dii)">
-              {{ formatRelative(shareholding.relativeChange.dii) }}
-            </span>
-          </div>
-        }
-
-        <div class="mini-progress-track">
-          <div class="mini-progress-fill dii-fill" [style.width.%]="current.dii || 0"></div>
+        <div class="owner-stat-number">{{ ownershipBreakdown.dii }}</div>
+        <div class="owner-stat-sub">
+          <span class="pill-delta" [class.positive]="ownershipBreakdown.diiIsPos"
+            [class.negative]="ownershipBreakdown.diiIsNeg">QoQ: {{ ownershipBreakdown.diiPp }}</span>
         </div>
       </div>
 
-      <!-- 4. Public Holding Card -->
-      <div class="metric-card public-card">
-        <div class="card-top">
-          <div class="category-header">
-            <span class="category-indicator public-dot"></span>
-            <span class="category-title">Public</span>
-          </div>
-          @if (shareholding.change.public !== null && shareholding.change.public !== undefined && !selectedHistoricalPeriod()) {
-            <span class="movement-badge" [ngClass]="getChangeClass(shareholding.change.public)">
-              <span class="arrow">{{ getArrow(shareholding.change.public) }}</span>
-              {{ formatPp(shareholding.change.public) }}
-            </span>
-          }
+      <!-- Public -->
+      <div class="ownership-stat-card">
+        <div class="owner-stat-head">
+          <span class="dot dot-amber"></span>
+          <span class="owner-stat-title">Public</span>
         </div>
-
-        <div class="card-value-row">
-          <span class="holding-value">{{ formatHolding(current.public) }}</span>
-        </div>
-
-        @if (shareholding.relativeChange.public !== null && shareholding.relativeChange.public !== undefined && !selectedHistoricalPeriod()) {
-          <div class="relative-row">
-            <span class="relative-text" [ngClass]="getChangeClass(shareholding.relativeChange.public)">
-              {{ formatRelative(shareholding.relativeChange.public) }}
-            </span>
-          </div>
-        }
-
-        <div class="mini-progress-track">
-          <div class="mini-progress-fill public-fill" [style.width.%]="current.public || 0"></div>
+        <div class="owner-stat-number">{{ ownershipBreakdown.public }}</div>
+        <div class="owner-stat-sub">
+          <span class="pill-delta" [class.positive]="ownershipBreakdown.publicIsPos"
+            [class.negative]="ownershipBreakdown.publicIsNeg">QoQ: {{ ownershipBreakdown.publicPp }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Historical Trends & Multi-Quarter Table -->
-    @if (displayedHistory.length > 0) {
-      <div class="history-section">
-        <div class="section-title-row">
-          <h3 class="section-heading">Historical Shareholding Trend</h3>
-          <span class="history-count">{{ displayedHistory.length }} Quarters Reported</span>
-        </div>
-
-        <div class="history-table-wrapper">
-          <table class="history-table">
-            <thead>
+    <!-- Historical Trend Table -->
+    <div class="screener-history-table-box">
+      <div class="table-sub-title">Quarterly Shareholding Breakdown (%)</div>
+      <table class="owner-table screener-owner-table">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th class="th-promoter">Promoter</th>
+            <th class="th-fii">FII</th>
+            <th class="th-dii">DII</th>
+            <th class="th-public">Public</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (ownershipBreakdown.history.length > 0) {
+            @for (row of ownershipBreakdown.history; track row.period) {
               <tr>
-                <th>Quarter / Period</th>
-                <th>Data As Of</th>
-                <th>Promoter</th>
-                <th>FII / FPI</th>
-                <th>DII</th>
-                <th>Government</th>
-                <th>Public</th>
-                <th>Others</th>
-                <th>Total</th>
-                <th>Shareholders</th>
-                <th>Action</th>
+                <td class="td-period">{{ row.period }}</td>
+                <td class="td-promoter">{{ row.promoter }}</td>
+                <td class="td-fii">{{ row.fii }}</td>
+                <td class="td-dii">{{ row.dii }}</td>
+                <td class="td-public">{{ row.public }}</td>
               </tr>
-            </thead>
-            <tbody>
-              @for (item of displayedHistory; track item.periodKey || item.period) {
-                <tr 
-                  [class.active-row]="activePeriod.periodKey === item.periodKey"
-                  (click)="selectPeriod(item)"
-                >
-                  <td class="quarter-cell">
-                    <span class="quarter-name">{{ item.period }}</span>
-                    @if (item.periodKey === shareholding.currentPeriod.periodKey) {
-                      <span class="latest-chip">Latest</span>
-                    }
-                  </td>
-                  <td class="date-cell">{{ item.dataAsOf || item.periodDate || '—' }}</td>
-                  <td class="value-cell promoter-text">{{ formatHolding(item.promoter) }}</td>
-                  <td class="value-cell fii-text">{{ formatHolding(item.fii) }}</td>
-                  <td class="value-cell dii-text">{{ formatHolding(item.dii) }}</td>
-                  <td class="value-cell">{{ formatHolding(item.government) }}</td>
-                  <td class="value-cell public-text">{{ formatHolding(item.public) }}</td>
-                  <td class="value-cell">{{ formatHolding(item.others) }}</td>
-                  <td class="total-cell">{{ formatHolding(item.total) }}</td>
-                  <td class="value-cell">{{ formatCount(item.shareholdersCount) }}</td>
-                  <td class="action-cell">
-                    <button 
-                      type="button" 
-                      class="view-quarter-btn"
-                      [class.selected]="activePeriod.periodKey === item.periodKey"
-                    >
-                      {{ activePeriod.periodKey === item.periodKey ? 'Viewing' : 'Inspect' }}
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    }
-  }
+            }
+          } @else {
+            <tr>
+              <td colspan="5" class="empty-history-cell">No historical shareholding data available</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>

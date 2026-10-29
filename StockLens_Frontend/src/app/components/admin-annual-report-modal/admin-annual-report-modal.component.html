@@ -19,27 +19,19 @@
     <form (submit)="onPinSubmit(); $event.preventDefault()" class="modal-body">
       <div class="input-field-group">
         <label class="input-label" for="adminPinInput">Secret Admin Passcode</label>
-        <input
-          id="adminPinInput"
-          type="password"
-          class="cyber-input"
-          placeholder="Enter Admin Key..."
-          [(ngModel)]="enteredPin"
-          name="enteredPin"
-          autofocus
-          autocomplete="off"
-        />
+        <input id="adminPinInput" type="password" class="cyber-input" placeholder="Enter Admin Key..."
+          [(ngModel)]="enteredPin" name="enteredPin" autofocus autocomplete="off" />
       </div>
 
       @if (authService.pinErrorMessage()) {
-        <div class="error-banner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>{{ authService.pinErrorMessage() }}</span>
-        </div>
+      <div class="error-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ authService.pinErrorMessage() }}</span>
+      </div>
       }
 
       <div class="modal-footer">
@@ -70,7 +62,7 @@
       <div class="header-titles">
         <div class="title-with-tag">
           <h3 class="modal-title">Annual Report AI Insights Generator</h3>
-          <span class="admin-badge">Admin Hetvi</span>
+          <span class="admin-badge">Admin</span>
         </div>
         <p class="modal-subtitle">Save filing record and trigger deep Gemini AI structured extraction.</p>
       </div>
@@ -85,7 +77,8 @@
         <div class="ai-pulse-spinner"></div>
         <div class="extracting-status-texts">
           <span class="pulse-title">Gemini AI is Extracting Report for {{ symbol() }}...</span>
-          <span class="pulse-desc">Analyzing PDF text, parsing MD&A, capex orders, management outlook, and verified risk factors. This takes 25–45 seconds.</span>
+          <span class="pulse-desc">Analyzing PDF text, parsing MD&A, capex orders, management outlook, and verified risk
+            factors. This takes 25–45 seconds.</span>
         </div>
       </div>
       }
@@ -115,27 +108,16 @@
         <!-- Stock Symbol (Readonly) -->
         <div class="input-field-group">
           <label class="input-label" for="stockSymbolInput">Company Symbol <span class="required-star">*</span></label>
-          <input
-            id="stockSymbolInput"
-            type="text"
-            class="cyber-input uppercase readonly-input"
-            placeholder="e.g. RELIANCE, TCS, TATASTEEL"
-            [value]="symbol()"
-            [readonly]="true"
-            [disabled]="isExtracting()"
-          />
+          <input id="stockSymbolInput" type="text" class="cyber-input uppercase readonly-input"
+            placeholder="e.g. RELIANCE, TCS, TATASTEEL" [value]="symbol()" [readonly]="true"
+            [disabled]="isExtracting()" />
         </div>
 
         <!-- Filing Source -->
         <div class="input-field-group">
           <label class="input-label" for="reportSourceInput">Filing Source</label>
-          <select
-            id="reportSourceInput"
-            class="cyber-input cyber-select"
-            [value]="source()"
-            (change)="source.set($any($event.target).value)"
-            [disabled]="isExtracting()"
-          >
+          <select id="reportSourceInput" class="cyber-input cyber-select" [value]="source()"
+            (change)="source.set($any($event.target).value)" [disabled]="isExtracting()">
             <option value="BSE">BSE India</option>
             <option value="NSE">NSE India</option>
             <option value="CompanyWebsite">Company Official Investor Portal</option>
@@ -145,50 +127,33 @@
         <!-- Report Title -->
         <div class="input-field-group full-width">
           <label class="input-label" for="reportTitleInput">Report Title</label>
-          <input
-            id="reportTitleInput"
-            type="text"
-            class="cyber-input"
-            placeholder="e.g. Annual Report 2026"
-            [value]="title()"
-            (input)="title.set($any($event.target).value)"
-            [disabled]="isExtracting()"
-          />
+          <input id="reportTitleInput" type="text" class="cyber-input" placeholder="e.g. Annual Report 2026"
+            [value]="title()" (input)="title.set($any($event.target).value)" [disabled]="isExtracting()" />
         </div>
 
         <!-- Official PDF URL -->
         <div class="input-field-group full-width">
           <div class="label-with-action">
             <label class="input-label" for="pdfUrlInput">Official PDF URL <span class="required-star">*</span></label>
-            <button
-              type="button"
-              class="suggest-link-btn"
-              (click)="suggestPdfLink()"
+            <button type="button" class="suggest-link-btn" (click)="suggestPdfLink()"
               [disabled]="isSuggesting() || isExtracting() || !symbol()"
-              title="Autofill official PDF URL from Screener/BSE"
-            >
+              title="Autofill official PDF URL from Screener/BSE">
               @if (isSuggesting()) {
-                <span class="mini-spinner-sm"></span>
-                <span>Fetching Link...</span>
+              <span class="mini-spinner-sm"></span>
+              <span>Fetching Link...</span>
               } @else {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                </svg>
-                <span>Suggest Screener Link</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              <span>Suggest Screener Link</span>
               }
             </button>
           </div>
-          <input
-            id="pdfUrlInput"
-            type="url"
-            class="cyber-input"
-            placeholder="https://www.bseindia.com/annualreport/reliance.pdf"
-            [value]="pdfUrl()"
+          <input id="pdfUrlInput" type="url" class="cyber-input"
+            placeholder="https://www.bseindia.com/annualreport/reliance.pdf" [value]="pdfUrl()"
             (input)="pdfUrl.set($any($event.target).value.trim())"
-            (change)="pdfUrl.set($any($event.target).value.trim())"
-            [disabled]="isExtracting()"
-          />
+            (change)="pdfUrl.set($any($event.target).value.trim())" [disabled]="isExtracting()" />
         </div>
       </div>
     </div>
@@ -196,20 +161,15 @@
     <!-- Footer Actions -->
     <div class="modal-footer">
       <button type="button" class="btn-cancel" [disabled]="isExtracting()" (click)="closeModal()">Cancel</button>
-      <button
-        type="button"
-        class="btn-primary-action"
-        [disabled]="isSaveDisabled()"
-        (click)="saveAndExtract()"
-      >
+      <button type="button" class="btn-primary-action" [disabled]="isSaveDisabled()" (click)="saveAndExtract()">
         @if (isExtracting()) {
-          <span class="mini-spinner-sm"></span>
-          <span>Extracting Insights...</span>
+        <span class="mini-spinner-sm"></span>
+        <span>Extracting Insights...</span>
         } @else {
-          <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
-          </svg>
-          <span>Save & Extract via Gemini</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
+        </svg>
+        <span>Save & Extract via Gemini</span>
         }
       </button>
     </div>

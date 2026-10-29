@@ -1,6 +1,6 @@
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StockShareholdingResponse, ShareholdingPeriod } from '../../models/stock-shareholding.model';
+import { StockShareholdingResponse } from '../../models/stock-shareholding.model';
 
 @Component({
   selector: 'app-stock-shareholding-card',
@@ -11,60 +11,103 @@ import { StockShareholdingResponse, ShareholdingPeriod } from '../../models/stoc
 })
 export class StockShareholdingCardComponent {
   @Input() shareholding: StockShareholdingResponse | null = null;
-  @Input() loadingState: 'idle' | 'loading' | 'success' | 'empty' | 'error' = 'idle';
-  @Input() errorMessage: string = '';
-  @Input() isRefreshing: boolean = false;
+  @Input() isLightTheme: boolean = true;
 
-  @Output() refreshRequested = new EventEmitter<void>();
+  get ownershipBreakdown(): {
+    promoter: string;
+    fii: string;
+    dii: string;
+    public: string;
+    promoterPp: string;
+    fiiPp: string;
+    diiPp: string;
+    publicPp: string;
+    promoterIsPos: boolean;
+    promoterIsNeg: boolean;
+    fiiIsPos: boolean;
+    fiiIsNeg: boolean;
+    diiIsPos: boolean;
+    diiIsNeg: boolean;
+    publicIsPos: boolean;
+    publicIsNeg: boolean;
+    totalInstitutional: string;
+    history: { period: string; promoter: string; fii: string; dii: string; public: string }[];
+  } {
+    const sh = this.shareholding;
+    const curr = sh?.currentPeriod;
 
-  selectedHistoricalPeriod = signal<ShareholdingPeriod | null>(null);
+    const formatPct = (val?: number | null) => {
+      if (val === null || val === undefined || isNaN(val)) return '—';
+      return `${val.toFixed(2)}%`;
+    };
 
-  get activePeriod(): ShareholdingPeriod | null {
-    return this.selectedHistoricalPeriod() || this.shareholding?.currentPeriod || null;
-  }
+    const promoter = formatPct(curr?.promoter);
+    const fii = formatPct(curr?.fii);
+    const dii = formatPct(curr?.dii);
+    const pub = formatPct(curr?.public);
 
-  get displayedHistory(): ShareholdingPeriod[] {
-    return this.shareholding?.history?.slice(0, 3) || [];
-  }
+    // Deltas: handles positive, negative, and neutral (0 / missing) cleanly
+    const formatDelta = (val?: number | null) => {
+      if (val === null || val === undefined || isNaN(val)) {
+        return { text: '—', isPos: false, isNeg: false };
+      }
+      const rounded = Number(val.toFixed(2));
+      if (rounded === 0) {
+        return { text: '0.00%', isPos: false, isNeg: false };
+      }
+      const isPos = rounded > 0;
+      const arrow = isPos ? '▲' : '▼';
+      const sign = isPos ? '+' : '';
+      return {
+        text: `${arrow} ${sign}${Math.abs(val).toFixed(2)}%`,
+        isPos,
+        isNeg: !isPos
+      };
+    };
 
-  selectPeriod(period: ShareholdingPeriod | null): void {
-    this.selectedHistoricalPeriod.set(period);
-  }
+    const promDelta = formatDelta(sh?.change?.promoter);
+    const fiiDelta = formatDelta(sh?.change?.fii);
+    const diiDelta = formatDelta(sh?.change?.dii);
+    const pubDelta = formatDelta(sh?.change?.public);
 
-  onRefreshClick(): void {
-    this.selectedHistoricalPeriod.set(null);
-    this.refreshRequested.emit();
-  }
+    const fiiNum = curr?.fii ?? 0;
+    const diiNum = curr?.dii ?? 0;
+    const totalInst =
+      curr?.fii !== null && curr?.fii !== undefined && curr?.dii !== null && curr?.dii !== undefined
+        ? (fiiNum + diiNum).toFixed(2) + '%'
+        : '—';
 
-  getChangeClass(val: number | null | undefined): 'positive' | 'negative' | 'neutral' {
-    if (val === null || val === undefined || val === 0) return 'neutral';
-    return val > 0 ? 'positive' : 'negative';
-  }
+    // History table rows from actual API response
+    let historyRows: { period: string; promoter: string; fii: string; dii: string; public: string }[] = [];
+    if (sh?.history && sh.history.length > 0) {
+      historyRows = sh.history.slice(0, 4).map(h => ({
+        period: h.period || '—',
+        promoter: h.promoter !== null && h.promoter !== undefined ? `${h.promoter}%` : '—',
+        fii: h.fii !== null && h.fii !== undefined ? `${h.fii}%` : '—',
+        dii: h.dii !== null && h.dii !== undefined ? `${h.dii}%` : '—',
+        public: h.public !== null && h.public !== undefined ? `${h.public}%` : '—'
+      }));
+    }
 
-  getArrow(val: number | null | undefined): string {
-    if (val === null || val === undefined || val === 0) return '—';
-    return val > 0 ? '↑' : '↓';
-  }
-
-  formatPp(val: number | null | undefined): string {
-    if (val === null || val === undefined) return '—';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(2)}%`;
-  }
-
-  formatHolding(val: number | null | undefined): string {
-    if (val === null || val === undefined) return '—';
-    return `${val.toFixed(2)}%`;
-  }
-
-  formatRelative(val: number | null | undefined): string {
-    if (val === null || val === undefined) return '';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(2)}% relative`;
-  }
-
-  formatCount(val: number | null | undefined): string {
-    if (val === null || val === undefined) return '—';
-    return val.toLocaleString('en-IN');
+    return {
+      promoter,
+      fii,
+      dii,
+      public: pub,
+      promoterPp: promDelta.text,
+      fiiPp: fiiDelta.text,
+      diiPp: diiDelta.text,
+      publicPp: pubDelta.text,
+      promoterIsPos: promDelta.isPos,
+      promoterIsNeg: promDelta.isNeg,
+      fiiIsPos: fiiDelta.isPos,
+      fiiIsNeg: fiiDelta.isNeg,
+      diiIsPos: diiDelta.isPos,
+      diiIsNeg: diiDelta.isNeg,
+      publicIsPos: pubDelta.isPos,
+      publicIsNeg: pubDelta.isNeg,
+      totalInstitutional: totalInst,
+      history: historyRows
+    };
   }
 }

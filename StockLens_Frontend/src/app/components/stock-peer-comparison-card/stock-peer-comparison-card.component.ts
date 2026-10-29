@@ -1,6 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CompanyOverview } from '../../models/company-overview.model';
+import { formatNumber } from '../../utils/formatters.util';
 
 @Component({
   selector: 'app-stock-peer-comparison-card',
@@ -20,8 +21,7 @@ export class StockPeerComparisonCardComponent {
   @Input() isLightTheme: boolean = false;
 
   formatNumber(val: number | undefined | null, decimals = 2): string {
-    if (val == null) return '-';
-    return val.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return formatNumber(val, decimals, '-');
   }
 
   formatInCrores(val: number | undefined | null): string {

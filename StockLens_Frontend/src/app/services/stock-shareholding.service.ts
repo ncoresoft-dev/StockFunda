@@ -12,14 +12,6 @@ export class StockShareholdingService {
   private readonly baseUrl = environment.apiUrl;
 
   /**
-   * Fetch shareholding details by stock database ID.
-   */
-  getShareholdingByStockId(stockId: number, refresh = false): Observable<StockShareholdingResponse> {
-    const params = new HttpParams().set('refresh', refresh.toString());
-    return this.http.get<StockShareholdingResponse>(`${this.baseUrl}/api/stocks/${stockId}/shareholding`, { params });
-  }
-
-  /**
    * Fetch shareholding details by stock symbol and exchange.
    */
   getShareholdingBySymbol(symbol: string, exchange = 'NSE', refresh = false): Observable<StockShareholdingResponse> {

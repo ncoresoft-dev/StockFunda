@@ -39,12 +39,4 @@ export class StockPriceHistoryService {
 
     return this.http.get<PriceHistoryResponseDto>(`${this.apiUrl}/api/stocks/prices`, { params });
   }
-
-  getPriceHistoryByStockId(stockId: number, period = '5yr', refresh = false, filter = 'price'): Observable<PriceHistoryResponseDto> {
-    const params = new HttpParams()
-      .set('period', period)
-      .set('filter', filter)
-      .set('refresh', refresh.toString());
-    return this.http.get<PriceHistoryResponseDto>(`${this.apiUrl}/api/stocks/${stockId}/prices`, { params });
-  }
 }

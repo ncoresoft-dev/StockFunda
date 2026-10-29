@@ -12,14 +12,6 @@ export class StockCashflowService {
   private readonly baseUrl = environment.apiUrl;
 
   /**
-   * Fetch annual cash flow metrics and statements by stock database ID.
-   */
-  getCashflowByStockId(stockId: number, refresh = false): Observable<StockCashflowResponse> {
-    const params = new HttpParams().set('refresh', refresh.toString());
-    return this.http.get<StockCashflowResponse>(`${this.baseUrl}/api/stocks/${stockId}/cashflow`, { params });
-  }
-
-  /**
    * Fetch annual cash flow metrics and statements by stock symbol and exchange.
    */
   getCashflowBySymbol(symbol: string, exchange = 'NSE', refresh = false): Observable<StockCashflowResponse> {

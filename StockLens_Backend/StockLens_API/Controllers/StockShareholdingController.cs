@@ -23,53 +23,6 @@ namespace StockLens_API.Controllers
         }
 
         /// <summary>
-        /// Retrieves the shareholding pattern and historical comparisons for a stock by its database ID.
-        /// </summary>
-        /// <param name="stockId">The database ID of the stock.</param>
-        /// <param name="refresh">Force fresh synchronization from BharatStock API.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        [HttpGet("{stockId:int}/shareholding")]
-        [ProducesResponseType(typeof(StockShareholdingResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetShareholdingByStockId(
-            int stockId,
-            [FromQuery] bool refresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var response = await _shareholdingService.GetShareholdingByStockIdAsync(stockId, refresh, cancellationToken);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ProviderNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message, ticker = ex.Ticker });
-            }
-            catch (ProviderRateLimitException ex)
-            {
-                if (ex.RetryAfter.HasValue)
-                {
-                    Response.Headers["Retry-After"] = ((int)ex.RetryAfter.Value.TotalSeconds).ToString();
-                }
-                return StatusCode(StatusCodes.Status429TooManyRequests, new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    message = "An error occurred while retrieving shareholding data.",
-                    detail = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
         /// Retrieves the shareholding pattern and historical comparisons for a stock by symbol and exchange.
         /// </summary>
         /// <param name="symbol">Stock ticker symbol (e.g. RELIANCE, TCS, INFY).</param>

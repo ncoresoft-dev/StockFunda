@@ -11,9 +11,5 @@ namespace StockLens_BusinessLayer.Interfaces
             string? exchange = "NSE",
             bool forceRefresh = false,
             CancellationToken cancellationToken = default);
-        Task<BalanceSheetResponseDto> GetBalanceSheetByStockIdAsync(
-            int stockId,
-            bool forceRefresh = false,
-            CancellationToken cancellationToken = default);
     }
 }

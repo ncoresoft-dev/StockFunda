@@ -12,7 +12,8 @@ import { RecentResearchService, RecentStockItem } from '../../services/recent-re
 import { MarketTickerQuote, ExploreLensCompany, LensMetric } from '../../models/market-ticker.model';
 import { Company } from '../../models/stock-news.model';
 import { Nifty50StockItem } from '../../models/stock-index.model';
-import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
+import { HeaderComponent } from '../header/header.component';
+import { formatCurrency, formatCrores } from '../../utils/formatters.util';
 
 export type LensType = 'Growth' | 'Cash Flow' | 'Ownership' | 'Risk';
 
@@ -39,7 +40,7 @@ export interface NiftyMapItem {
 @Component({
   selector: 'app-home-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminNotificationBellComponent],
+  imports: [CommonModule, FormsModule, HeaderComponent],
   templateUrl: './home-dashboard.component.html',
   styleUrls: ['./home-dashboard.component.css']
 })
@@ -138,7 +139,7 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
         sector,
         price: priceVal,
         formattedPrice: priceVal && priceVal > 0 
-          ? `₹${priceVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+          ? formatCurrency(priceVal, 2) 
           : '—',
         marketCap: mcapVal,
         formattedMarketCap: mcapVal && mcapVal > 0 
@@ -597,8 +598,7 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   }
 
   private formatMarketCapCr(val: number): string {
-    const rounded = Math.round(val);
-    return `₹${rounded.toLocaleString('en-IN')} Cr`;
+    return formatCrores(val, 0);
   }
 
   private loadNifty50Map(): void {

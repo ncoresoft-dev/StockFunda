@@ -1,297 +1,120 @@
-<div class="quarters-container">
-  <!-- State 1: Loading Skeleton -->
-  @if (loadingState === 'loading') {
-    <div class="skeleton-wrapper">
-      <div class="skeleton-header shimmer"></div>
-      <div class="kpi-grid">
-        @for (i of [1, 2, 3, 4, 5]; track i) {
-          <div class="skeleton-card shimmer"></div>
+<div class="quarters-wrapper" [class.light-theme]="isLightTheme" [class.dark-theme]="!isLightTheme">
+  <div class="card-top-bar">
+    <div class="card-title-group">
+      <div class="card-icon-box bg-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <div class="title-with-subtitle">
+        <span class="card-title-text">Latest Quarter Financials</span>
+        @if (latestQuarterPeriod && latestQuarterPeriod !== '—') {
+          <span class="card-subtitle-tag">{{ latestQuarterPeriod }}</span>
         }
       </div>
-      <div class="skeleton-table shimmer"></div>
     </div>
-  }
+  </div>
 
-  <!-- State 2: Error State -->
-  @if (loadingState === 'error') {
-    <div class="state-card error-state">
-      <div class="state-icon-wrapper error-icon-bg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg error-color">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+  <div class="latest-quarter-grid screener-quarter-grid">
+    <!-- 1. Sales -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Sales (Revenue)</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.sales }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.salesQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.salesQoQ.isNegative">
+          {{ quarterlyFinancialsData.salesQoQ.text }}
+        </span>
       </div>
-      <h3 class="state-title">Unable to Load Quarterly Results</h3>
-      <p class="state-description">{{ errorMessage || 'An error occurred while communicating with quarterly API provider.' }}</p>
-      <button type="button" class="action-btn" (click)="onRefreshClick()">
-        Retry Sync
-      </button>
     </div>
-  }
 
-  <!-- State 3: Empty State -->
-  @if (loadingState === 'empty') {
-    <div class="state-card empty-state">
-      <div class="state-icon-wrapper">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="state-svg">
-          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="9" y1="21" x2="9" y2="9"></line>
-        </svg>
-      </div>
-      <h3 class="state-title">Quarterly Results Not Available</h3>
-      <p class="state-description">No quarterly filing records were found for this stock.</p>
-      <button type="button" class="action-btn" (click)="onRefreshClick()">
-        Sync Now
-      </button>
-    </div>
-  }
-
-  <!-- State 4: Success Content -->
-  @if (loadingState === 'success' && quarters && activeQuarter; as current) {
-    <!-- 1. Header Bar -->
-    <div class="pattern-header-card">
-      <div class="header-left">
-        <div class="header-title-box">
-          <div class="header-icon-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="header-svg-icon">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-          </div>
-          <div>
-            <h3 class="header-card-title">Quarterly Results</h3>
-            <p class="header-card-subtitle">Key Performance Indicators &amp; 4-Quarter Trend (Figures in ₹ Crores)</p>
-          </div>
-        </div>
-
-        @if (selectedQuarter) {
-          <div class="period-badge-group">
-            <button type="button" class="reset-view-btn" (click)="selectQuarter(null)">
-              ✕ Reset to Latest Quarter
-            </button>
-          </div>
+    <!-- 2. Operating Profit -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Operating Profit</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.operatingProfit }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.operatingProfitQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.operatingProfitQoQ.isNegative">
+          {{ quarterlyFinancialsData.operatingProfitQoQ.text }}
+        </span>
+        @if (quarterlyFinancialsData.opMargin) {
+          <span class="qr-margin-badge" title="Operating Profit Margin (OPM)">{{ quarterlyFinancialsData.opMargin }}</span>
         }
       </div>
     </div>
 
-    <!-- 2. KPI Summary Grid (5 Key Metrics Only: Revenue, Net Profit, EPS, Tax, Depreciation) -->
-    <div class="kpi-grid">
-      <!-- 1. Revenue / Sales -->
-      <div class="kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Revenue / Sales</span>
-          <span class="kpi-tag blue">Topline</span>
-        </div>
-        <div class="kpi-value">{{ formatCurrency(current.sales) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.salesGrowthPercent !== null && quarters.qoQGrowth.salesGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.salesGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.salesGrowthPercent < 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.salesGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.salesGrowthPercent !== null && quarters.yoYGrowth.salesGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.salesGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.salesGrowthPercent < 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.salesGrowthPercent) }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- 2. Net Profit -->
-      <div class="kpi-card highlight-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Net Profit (PAT)</span>
-          <span class="kpi-tag green">Bottomline</span>
-        </div>
-        <div class="kpi-value highlight-val">{{ formatCurrency(current.netProfit) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.netProfitGrowthPercent !== null && quarters.qoQGrowth.netProfitGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.netProfitGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.netProfitGrowthPercent < 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.netProfitGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.netProfitGrowthPercent !== null && quarters.yoYGrowth.netProfitGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.netProfitGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.netProfitGrowthPercent < 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.netProfitGrowthPercent) }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- 3. EPS -->
-      <div class="kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Earnings Per Share</span>
-          <span class="kpi-tag cyan">EPS</span>
-        </div>
-        <div class="kpi-value">{{ formatEps(current.eps) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.epsGrowthPercent !== null && quarters.qoQGrowth.epsGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.epsGrowthPercent > 0" [class.negative]="quarters.qoQGrowth.epsGrowthPercent < 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.epsGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.epsGrowthPercent !== null && quarters.yoYGrowth.epsGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.epsGrowthPercent > 0" [class.negative]="quarters.yoYGrowth.epsGrowthPercent < 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.epsGrowthPercent) }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- 4. Tax -->
-      <div class="kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Tax</span>
-          <span class="kpi-tag orange">{{ current.taxPercentage ? ('Rate: ' + current.taxPercentage + '%') : 'Expense' }}</span>
-        </div>
-        <div class="kpi-value">{{ formatCurrency(current.tax) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.taxGrowthPercent !== null && quarters.qoQGrowth.taxGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.taxGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.taxGrowthPercent > 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.taxGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.taxGrowthPercent !== null && quarters.yoYGrowth.taxGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.taxGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.taxGrowthPercent > 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.taxGrowthPercent) }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- 5. Depreciation -->
-      <div class="kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Depreciation</span>
-          <span class="kpi-tag purple">Non-Cash</span>
-        </div>
-        <div class="kpi-value">{{ formatCurrency(current.depreciation) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.depreciationGrowthPercent !== null && quarters.qoQGrowth.depreciationGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.depreciationGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.depreciationGrowthPercent > 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.depreciationGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.depreciationGrowthPercent !== null && quarters.yoYGrowth.depreciationGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.depreciationGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.depreciationGrowthPercent > 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.depreciationGrowthPercent) }}
-            </span>
-          }
-        </div>
-      </div>
-
-      <!-- 6. Interest -->
-      <div class="kpi-card">
-        <div class="kpi-top">
-          <span class="kpi-label">Interest</span>
-          <span class="kpi-tag amber">Finance</span>
-        </div>
-        <div class="kpi-value">{{ formatCurrency(current.interest) }}</div>
-        <div class="kpi-bottom">
-          @if (quarters.qoQGrowth.interestGrowthPercent !== null && quarters.qoQGrowth.interestGrowthPercent !== undefined) {
-            <span class="growth-badge" [class.positive]="quarters.qoQGrowth.interestGrowthPercent < 0" [class.negative]="quarters.qoQGrowth.interestGrowthPercent > 0">
-              QoQ: {{ formatPercent(quarters.qoQGrowth.interestGrowthPercent) }}
-            </span>
-          }
-          @if (quarters.yoYGrowth.interestGrowthPercent !== null && quarters.yoYGrowth.interestGrowthPercent !== undefined) {
-            <span class="growth-badge yoy" [class.positive]="quarters.yoYGrowth.interestGrowthPercent < 0" [class.negative]="quarters.yoYGrowth.interestGrowthPercent > 0">
-              YoY: {{ formatPercent(quarters.yoYGrowth.interestGrowthPercent) }}
-            </span>
-          }
-        </div>
+    <!-- 3. Net Profit -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Net Profit (PAT)</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.netProfit }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.netProfitQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.netProfitQoQ.isNegative">
+          {{ quarterlyFinancialsData.netProfitQoQ.text }}
+        </span>
       </div>
     </div>
 
-    <!-- 3. Screener-Style 4-Quarter Historical Financial Table -->
-    <div class="table-container-card">
-      <div class="table-header-bar">
-        <div class="table-title-group">
-          <h4 class="table-title">Quarterly Results Statement</h4>
-          <span class="table-unit-tag">Last 4 Quarters (Figures in ₹ Crores)</span>
-        </div>
-      </div>
-
-      <div class="table-responsive-wrapper">
-        <table class="screener-table">
-          <thead>
-            <tr>
-              <th class="sticky-col header-label-col">Metric</th>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <th class="quarter-col" [class.selected-col]="current.period === q.period" (click)="selectQuarter(q)">
-                  <div class="col-head-content">
-                    <span class="col-period-name">{{ q.periodEndDate ? (q.periodEndDate | date:'MMM yyyy') : q.period }}</span>
-                  </div>
-                </th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            <!-- 1. Revenue / Sales -->
-            <tr class="row-highlight">
-              <td class="sticky-col line-item-label bold">Revenue (Sales)</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell bold text-blue" [class.selected-col]="current.period === q.period">
-                  {{ formatNumber(q.sales, 0) }}
-                </td>
-              }
-            </tr>
-
-            <!-- 2. Net Profit -->
-            <tr class="row-total">
-              <td class="sticky-col line-item-label super-bold">Net Profit (PAT)</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell super-bold text-accent" [class.selected-col]="current.period === q.period">
-                  {{ formatNumber(q.netProfit, 0) }}
-                </td>
-              }
-            </tr>
-
-            <!-- 3. EPS in Rs -->
-            <tr class="row-highlight">
-              <td class="sticky-col line-item-label bold">EPS (Rs)</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell bold text-cyan" [class.selected-col]="current.period === q.period">
-                  {{ formatEps(q.eps) }}
-                </td>
-              }
-            </tr>
-
-            <!-- 4. Tax -->
-            <tr>
-              <td class="sticky-col line-item-label">Tax</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell text-orange" [class.selected-col]="current.period === q.period">
-                  {{ formatNumber(q.tax, 0) }}
-                </td>
-              }
-            </tr>
-
-            <!-- 5. Depreciation -->
-            <tr>
-              <td class="sticky-col line-item-label">Depreciation</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell text-purple" [class.selected-col]="current.period === q.period">
-                  {{ formatNumber(q.depreciation, 0) }}
-                </td>
-              }
-            </tr>
-
-            <!-- 6. Interest -->
-            <tr>
-              <td class="sticky-col line-item-label">Interest</td>
-              @for (q of displayedHistory; track q.periodKey || q.period) {
-                <td class="data-cell text-amber" [class.selected-col]="current.period === q.period">
-                  {{ formatNumber(q.interest, 0) }}
-                </td>
-              }
-            </tr>
-          </tbody>
-        </table>
+    <!-- 4. EPS -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Earnings Per Share (EPS)</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.eps }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.epsQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.epsQoQ.isNegative">
+          {{ quarterlyFinancialsData.epsQoQ.text }}
+        </span>
       </div>
     </div>
-  }
+
+    <!-- 5. Interest -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Interest</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.interest }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.interestQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.interestQoQ.isNegative">
+          {{ quarterlyFinancialsData.interestQoQ.text }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 6. Tax -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Tax</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.tax }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.taxQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.taxQoQ.isNegative">
+          {{ quarterlyFinancialsData.taxQoQ.text }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 7. Depreciation -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Depreciation</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val">{{ quarterlyFinancialsData.depreciation }}</span>
+        <span class="qr-mini-delta" [class.positive]="quarterlyFinancialsData.depreciationQoQ.isPositive"
+          [class.negative]="quarterlyFinancialsData.depreciationQoQ.isNegative">
+          {{ quarterlyFinancialsData.depreciationQoQ.text }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 8. YoY Sales Growth -->
+    <div class="tab-metric-box">
+      <span class="metric-box-lbl">Sales YoY Growth</span>
+      <div class="metric-box-val-row">
+        <span class="metric-box-val" [class.text-green]="quarterlyFinancialsData.salesYoY.isPositive"
+          [class.text-red]="quarterlyFinancialsData.salesYoY.isNegative">
+          {{ quarterlyFinancialsData.salesYoY.text }}
+        </span>
+      </div>
+    </div>
+  </div>
 </div>

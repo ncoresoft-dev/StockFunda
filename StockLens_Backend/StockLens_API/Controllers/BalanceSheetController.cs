@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using StockLens_BusinessLayer.Interfaces;
+using StockLens_BusinessLayer.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,37 +13,23 @@ namespace StockLens_API.Controllers
     public class BalanceSheetController : ControllerBase
     {
         private readonly IStockBalanceSheetService _balanceSheetService;
-        public BalanceSheetController(
-            IStockBalanceSheetService balanceSheetService,
-            StockLens_Infrastructure.ExternalServices.BharatStock.IFinancialProvider bharatStockApi)
+
+        public BalanceSheetController(IStockBalanceSheetService balanceSheetService)
         {
             _balanceSheetService = balanceSheetService;
         }
 
-        [HttpGet("{stockId:int}/balancesheet")]
-        public async Task<IActionResult> GetBalanceSheetByStockId(
-            int stockId,
-            [FromQuery] bool refresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var result = await _balanceSheetService.GetBalanceSheetByStockIdAsync(stockId, refresh, cancellationToken);
-                
-                if (!string.IsNullOrEmpty(result.ErrorMessage))
-                {
-                    return BadRequest(new { Message = result.ErrorMessage });
-                }
-
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { Message = ex.Message });
-            }
-        }
-
+        /// <summary>
+        /// Retrieves annual balance sheet statements and metrics for a stock by symbol and exchange.
+        /// </summary>
+        /// <param name="symbol">Stock ticker symbol (e.g. RELIANCE, TCS, INFY).</param>
+        /// <param name="exchange">Exchange code (NSE or BSE, default: NSE).</param>
+        /// <param name="refresh">Force fresh synchronization from external providers.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("balancesheet")]
+        [ProducesResponseType(typeof(BalanceSheetResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetBalanceSheet(
             [FromQuery] string symbol, 
             [FromQuery] string? exchange = "NSE",
@@ -50,14 +38,14 @@ namespace StockLens_API.Controllers
         {
             if (string.IsNullOrWhiteSpace(symbol))
             {
-                return BadRequest(new { Message = "The 'symbol' query parameter is required." });
+                return BadRequest(new { message = "The 'symbol' query parameter is required." });
             }
 
             var result = await _balanceSheetService.GetBalanceSheetAsync(symbol, exchange, refresh, cancellationToken);
 
             if (!string.IsNullOrEmpty(result.ErrorMessage))
             {
-                return BadRequest(new { Message = result.ErrorMessage });
+                return BadRequest(new { message = result.ErrorMessage });
             }
 
             return Ok(result);

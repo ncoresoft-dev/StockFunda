@@ -6,8 +6,8 @@ import { StockAnnualReportService } from '../../services/stock-annual-report.ser
 import { AdminAuthService } from '../../services/admin-auth.service';
 import { AdminModalService } from '../../services/admin-modal.service';
 import { AnnualReportDirectoryItem } from '../../models/stock-annual-report.model';
-import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
 import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
+import { HeaderComponent } from '../header/header.component';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -16,8 +16,8 @@ import { Subscription } from 'rxjs';
   imports: [
     CommonModule,
     FormsModule,
-    AdminNotificationBellComponent,
-    AdminAnnualReportModalComponent
+    AdminAnnualReportModalComponent,
+    HeaderComponent
   ],
   templateUrl: './annual-reports-list.component.html',
   styleUrls: ['./annual-reports-list.component.css']
@@ -140,5 +140,9 @@ export class AnnualReportsListComponent implements OnInit, OnDestroy {
 
   navigateToHome(): void {
     this.router.navigate(['/']);
+  }
+
+  navigateToNifty50(): void {
+    this.router.navigate(['/nifty50']);
   }
 }

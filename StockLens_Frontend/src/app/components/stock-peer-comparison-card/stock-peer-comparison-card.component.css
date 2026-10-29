@@ -1,49 +1,73 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
 .deals-dashboard-card-light {
   background: #0a0e18;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
-  padding: 0.85rem 1rem;
+  padding: 0;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-top-bar {
+  min-height: 46px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  padding: 0.75rem 1.15rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  gap: 0.75rem;
+}
+
+:not(.light-mode).deals-dashboard-card-light .card-top-bar,
+:host-context(.dark-theme) .card-top-bar,
+.dark-theme .card-top-bar {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .card-title-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 .sector-breadcrumbs {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-  padding-left: 0.2rem;
+  gap: 0.35rem;
+  margin-bottom: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(129, 140, 248, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.25);
 }
 
 .breadcrumb-icon {
-  width: 14px;
-  height: 14px;
-  color: #64748b;
+  width: 13px;
+  height: 13px;
+  color: #818cf8;
 }
 
 .breadcrumb-item {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #818cf8;
-  font-weight: 500;
-  cursor: pointer;
+  font-weight: 600;
+  cursor: default;
 }
 
 .breadcrumb-item:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .breadcrumb-separator {
@@ -55,14 +79,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .card-icon-box svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   color: #a855f7;
 }
 
@@ -72,9 +97,27 @@
 
 .card-title-text {
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
   text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.peer-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.peer-count-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  letter-spacing: 0.02em;
 }
 
 .peer-comparison-card {
@@ -84,10 +127,11 @@
 }
 
 .peer-card-body {
-  padding: 0;
+  padding: 0.85rem 1.15rem;
   flex: 1;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .peer-table-wrapper {
@@ -108,15 +152,43 @@
   background-color: rgba(30, 41, 59, 0.6);
   color: #94a3b8;
   font-weight: 500;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   white-space: nowrap;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .peer-table td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.75rem;
   color: #e2e8f0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.peer-table th.col-sno,
+.peer-table td.col-sno {
+  width: 54px;
+  min-width: 48px;
+  max-width: 60px;
+  text-align: center;
+  padding-left: 1rem;
+  padding-right: 0.4rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.peer-table th:first-child,
+.peer-table td:first-child {
+  padding-left: 1rem;
+}
+
+.peer-table th:last-child,
+.peer-table td:last-child {
+  padding-right: 1.35rem !important;
+}
+
+.col-median-label {
+  text-align: left;
+  padding-left: 1rem !important;
+  font-weight: 600;
 }
 
 .peer-table tbody tr:hover {
@@ -275,6 +347,13 @@
   color: #0f172a !important;
 }
 
+.light-mode .card-top-bar,
+:host-context(.light-theme) .card-top-bar,
+:host-context([data-theme="light"]) .card-top-bar {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
 .light-mode .card-title-text,
 :host-context(.light-theme) .card-title-text,
 :host-context([data-theme="light"]) .card-title-text {
@@ -293,15 +372,30 @@
   color: #9333ea !important;
 }
 
+.light-mode .sector-breadcrumbs,
+:host-context(.light-theme) .sector-breadcrumbs,
+:host-context([data-theme="light"]) .sector-breadcrumbs {
+  background: #ede9fe !important;
+  border: 1px solid #ddd6fe !important;
+}
+
 .light-mode .sector-breadcrumbs .breadcrumb-item,
 :host-context(.light-theme) .sector-breadcrumbs .breadcrumb-item,
 :host-context([data-theme="light"]) .sector-breadcrumbs .breadcrumb-item {
-  color: #4f46e5 !important;
+  color: #6d28d9 !important;
 }
 
 .light-mode .sector-breadcrumbs .breadcrumb-icon,
 :host-context(.light-theme) .sector-breadcrumbs .breadcrumb-icon,
 :host-context([data-theme="light"]) .sector-breadcrumbs .breadcrumb-icon {
+  color: #7c3aed !important;
+}
+
+.light-mode .peer-count-badge,
+:host-context(.light-theme) .peer-count-badge,
+:host-context([data-theme="light"]) .peer-count-badge {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
   color: #64748b !important;
 }
 
@@ -327,6 +421,25 @@
 :host-context([data-theme="light"]) .peer-table td {
   color: #1e293b !important;
   border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.light-mode .peer-table th.col-sno,
+:host-context(.light-theme) .peer-table th.col-sno,
+:host-context([data-theme="light"]) .peer-table th.col-sno,
+.light-mode .peer-table td.col-sno,
+:host-context(.light-theme) .peer-table td.col-sno,
+:host-context([data-theme="light"]) .peer-table td.col-sno {
+  color: #64748b !important;
+  text-align: center !important;
+}
+
+.light-mode .peer-table th:last-child,
+:host-context(.light-theme) .peer-table th:last-child,
+:host-context([data-theme="light"]) .peer-table th:last-child,
+.light-mode .peer-table td:last-child,
+:host-context(.light-theme) .peer-table td:last-child,
+:host-context([data-theme="light"]) .peer-table td:last-child {
+  padding-right: 1.35rem !important;
 }
 
 .light-mode .peer-table tbody tr:hover,

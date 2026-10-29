@@ -155,7 +155,7 @@ export class StockCompanyAboutCardComponent implements OnInit, OnChanges, OnDest
       next: (data) => {
         if (this.symbol && targetSymbol.toUpperCase() === this.symbol.toUpperCase()) {
           this.annualReportResponse.set(data);
-          this.requestFeedback.set('Annual report requested! Admin Hetvi has been notified.');
+          this.requestFeedback.set('Annual report requested! Admin has been notified.');
         }
         this.isRequesting.set(false);
       },

@@ -8,6 +8,5 @@ namespace StockLens_BusinessLayer.Interfaces
     public interface IPeerService
     {
         Task<List<PeerDto>> GetStockPeersAsync(string symbol, string? exchange = "NSE", bool forceRefresh = false, CancellationToken cancellationToken = default);
-        Task<List<PeerDto>> GetStockPeersByStockIdAsync(int stockId, bool forceRefresh = false, CancellationToken cancellationToken = default);
     }
 }

@@ -9,13 +9,19 @@ using StockLens_BusinessLayer.MapperProfile;
 using StockLens_Infrastructure.ExternalServices.GoogleNews;
 using StockLens_Infrastructure.Repositories;
 using StockLens_Infrastructure.Seeders;
+using StockLens_API.Middleware;
 using System.Net;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 
 // Add services to the container.
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options => options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+
+// Global Exception Handler & ProblemDetails
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
@@ -147,6 +153,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Configure Global Exception Handling Middleware
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

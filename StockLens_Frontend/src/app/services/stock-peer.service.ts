@@ -22,14 +22,4 @@ export class StockPeerService {
 
     return this.http.get<Peer[]>(`${this.baseUrl}/api/peers/symbol/${encodeURIComponent(symbol)}`, { params });
   }
-
-  /**
-   * Fetch company peers by stock ID
-   */
-  getCompanyPeersByStockId(stockId: number, forceRefresh = false): Observable<Peer[]> {
-    const params = new HttpParams()
-      .set('forceRefresh', forceRefresh.toString());
-
-    return this.http.get<Peer[]>(`${this.baseUrl}/api/peers/${stockId}`, { params });
-  }
 }

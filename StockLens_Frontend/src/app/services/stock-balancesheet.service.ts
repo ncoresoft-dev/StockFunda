@@ -40,9 +40,4 @@ export class StockBalanceSheetService {
 
     return this.http.get<BalanceSheetResponseDto>(`${this.apiUrl}/api/stocks/balancesheet`, { params });
   }
-
-  getBalanceSheetByStockId(stockId: number, refresh = false): Observable<BalanceSheetResponseDto> {
-    const params = new HttpParams().set('refresh', refresh.toString());
-    return this.http.get<BalanceSheetResponseDto>(`${this.apiUrl}/api/stocks/${stockId}/balancesheet`, { params });
-  }
 }

@@ -12,14 +12,6 @@ export class StockQuarterlyResultsService {
   private readonly baseUrl = environment.apiUrl;
 
   /**
-   * Fetch quarterly results by stock database ID.
-   */
-  getQuarterlyResultsByStockId(stockId: number, refresh = false): Observable<StockQuarterlyResultsResponse> {
-    const params = new HttpParams().set('refresh', refresh.toString());
-    return this.http.get<StockQuarterlyResultsResponse>(`${this.baseUrl}/api/stocks/${stockId}/quarterly-results`, { params });
-  }
-
-  /**
    * Fetch quarterly results by stock symbol and exchange.
    */
   getQuarterlyResultsBySymbol(symbol: string, exchange = 'NSE', refresh = false): Observable<StockQuarterlyResultsResponse> {

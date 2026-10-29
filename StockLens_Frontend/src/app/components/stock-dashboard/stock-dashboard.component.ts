@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, Subscription, of, timer } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
+import { Subscription, timer } from 'rxjs';
+import { formatNumber, formatPercent, formatCurrency, formatCrores } from '../../utils/formatters.util';
 import { StockNewsService } from '../../services/stock-news.service';
 import { StockCompanyService } from '../../services/stock-company.service';
 import { StockShareholdingService } from '../../services/stock-shareholding.service';
@@ -28,9 +28,13 @@ import { StockVolumeDeliveryCardComponent } from '../stock-volume-delivery-card/
 import { StockCompanyAboutCardComponent } from '../stock-company-about-card/stock-company-about-card.component';
 import { StockDealsCardComponent } from '../stock-deals-card/stock-deals-card.component';
 import { StockPeerComparisonCardComponent } from '../stock-peer-comparison-card/stock-peer-comparison-card.component';
+import { StockQuartersCardComponent } from '../stock-quarters-card/stock-quarters-card.component';
+import { StockShareholdingCardComponent } from '../stock-shareholding-card/stock-shareholding-card.component';
+import { StockCashflowCardComponent } from '../stock-cashflow-card/stock-cashflow-card.component';
+import { StockAssetGrowthCardComponent } from '../stock-asset-growth-card/stock-asset-growth-card.component';
 
-import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
 import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
+import { HeaderComponent } from '../header/header.component';
 
 export type NewsFilterTab = 'all' | 'filings' | 'announcements';
 export type DetailModalType = null | 'ownership' | 'quarters' | 'profitability' | 'cashflow' | 'balancesheet' | 'valuation';
@@ -49,8 +53,12 @@ export type OverviewTabType = 'overview' | 'quarters' | 'ownership' | 'news' | '
     StockDealsCardComponent,
     StockPeerComparisonCardComponent,
     StockCompanyAboutCardComponent,
-    AdminNotificationBellComponent,
-    AdminAnnualReportModalComponent
+    StockQuartersCardComponent,
+    StockShareholdingCardComponent,
+    StockCashflowCardComponent,
+    StockAssetGrowthCardComponent,
+    AdminAnnualReportModalComponent,
+    HeaderComponent
   ],
   templateUrl: './stock-dashboard.component.html',
   styleUrl: './stock-dashboard.component.css'
@@ -88,7 +96,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   availableStocks = signal<Stock[]>([]);
   selectedSymbol = signal<string>('RELIANCE');
   selectedExchange = signal<string>('NSE');
-  searchQuery = signal<string>('');
   chartPeriod = signal<string>('1yr');
   candlestickPeriod = signal<string>('1yr');
   selectedChartType = signal<'candlestick' | 'area'>('candlestick');
@@ -239,18 +246,9 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   isSyncingAll = signal<boolean>(false);
   technicalRefreshTrigger = signal<number>(0);
 
-  // Typeahead search
-  searchResults = signal<Company[]>([]);
-  isSearching = signal<boolean>(false);
-  isSearchDropdownOpen = signal<boolean>(false);
-  @ViewChild('searchWrapper') searchWrapper?: ElementRef<HTMLElement>;
-  private searchSubject = new Subject<string>();
-  private searchSubscription?: Subscription;
-
   ngOnInit(): void {
     this.applyThemeToDom();
     this.loadAvailableStocks();
-    this.setupSearch();
 
     const routeSym = this.route.snapshot.paramMap.get('symbol');
     if (routeSym) {
@@ -336,7 +334,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
-    this.searchSubscription?.unsubscribe();
     this.stopLivePricePolling();
     this.indexService.clearCache();
   }
@@ -391,48 +388,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  setupSearch(): void {
-    this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(200),
-      distinctUntilChanged(),
-      switchMap((query) => {
-        const clean = query.trim();
-        if (!clean || clean.length < 2) {
-          this.searchResults.set([]);
-          this.isSearching.set(false);
-          this.isSearchDropdownOpen.set(false);
-          return of([]);
-        }
-        this.isSearching.set(true);
 
-        const localMatches: Company[] = this.availableStocks()
-          .filter(s => s.symbol.toLowerCase().includes(clean.toLowerCase()) || (s.companyName && s.companyName.toLowerCase().includes(clean.toLowerCase())))
-          .map(s => ({
-            id: s.id,
-            symbol: s.symbol,
-            companyName: s.companyName || s.symbol,
-            industry: s.industry || '',
-            exchange: s.exchange || 'NSE'
-          } as Company));
-
-        return this.newsService.searchCompanies(clean).pipe(
-          map(apiResults => {
-            if (apiResults && apiResults.length > 0) {
-              return apiResults;
-            }
-            return localMatches;
-          }),
-          catchError(() => of(localMatches))
-        );
-      })
-    ).subscribe((results) => {
-      this.searchResults.set(results);
-      this.isSearching.set(false);
-      if (results && results.length > 0) {
-        this.isSearchDropdownOpen.set(true);
-      }
-    });
-  }
 
   loadAvailableStocks(): void {
     this.newsService.getStocks().subscribe({
@@ -447,16 +403,12 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
     // Prevent clearing data if the user searches for the exact same stock they are already viewing
     if (this.selectedSymbol() === cleanSymbol && this.selectedExchange() === cleanExchange) {
-      this.searchQuery.set('');
-      this.searchResults.set([]);
       return;
     }
 
     this.isLoadingStock.set(true);
     this.selectedSymbol.set(cleanSymbol);
     this.selectedExchange.set(cleanExchange);
-    this.searchQuery.set('');
-    this.searchResults.set([]);
 
     if (this.route.snapshot.paramMap.get('symbol') !== cleanSymbol) {
       this.router.navigate(['/stock', cleanSymbol]);
@@ -517,50 +469,18 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.activeDetailModal.set(null);
   }
 
-  onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchQuery.set(value);
-    if (value.trim().length >= 2) {
-      this.isSearchDropdownOpen.set(true);
-    } else {
-      this.isSearchDropdownOpen.set(false);
-      this.searchResults.set([]);
-    }
-    this.searchSubject.next(value);
-  }
 
-  onSearchFocus(): void {
-    if (this.searchResults().length > 0 && this.searchQuery().trim().length >= 2) {
-      this.isSearchDropdownOpen.set(true);
+
+  onHeaderStockSelected(company: Company | Stock): void {
+    if (company && company.symbol) {
+      this.selectStock(company.symbol, this.selectedExchange());
     }
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as Node;
-    if (this.isSearchDropdownOpen() && this.searchWrapper?.nativeElement && !this.searchWrapper.nativeElement.contains(target)) {
-      this.isSearchDropdownOpen.set(false);
+  onHeaderSearchSubmit(query: string): void {
+    if (query && query.trim()) {
+      this.selectStock(query.trim(), this.selectedExchange());
     }
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscapePress(): void {
-    this.isSearchDropdownOpen.set(false);
-  }
-
-  onSearchSubmit(): void {
-    this.isSearchDropdownOpen.set(false);
-    const query = this.searchQuery().trim();
-    if (query) {
-      this.selectStock(query, this.selectedExchange());
-    }
-  }
-
-  selectSearchResult(company: Company): void {
-    this.isSearchDropdownOpen.set(false);
-    this.searchQuery.set('');
-    this.searchResults.set([]);
-    this.selectStock(company.symbol, this.selectedExchange());
   }
 
   fetchAllData(isRefresh: boolean = false): void {
@@ -940,18 +860,17 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return val > 0 ? 'negative' : 'positive';
   }
 
-  // Formatters
+  // Formatters (delegated to formatters.util.ts)
   formatCurrency(val?: number | null): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    return '₹' + val.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    return formatCurrency(val, 2, '—', 0);
   }
 
   formatMarketCap(val?: number | null): string {
     if (val === null || val === undefined || isNaN(val)) return '—';
     if (val >= 10000000) {
-      return '₹' + (val / 10000000).toLocaleString('en-IN', { maximumFractionDigits: 0 }) + ' Cr.';
+      return formatCrores(val / 10000000, 0, '—', 0, ' Cr.');
     }
-    return '₹' + val.toLocaleString('en-IN', { maximumFractionDigits: 0 }) + ' Cr.';
+    return formatCrores(val, 0, '—', 0, ' Cr.');
   }
 
   getValueColorClass(val?: number | null): string {
@@ -960,10 +879,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   formatCrores(val?: number | null): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    const isNeg = val < 0;
-    const absVal = Math.abs(val);
-    return (isNeg ? '-₹' : '₹') + Math.round(absVal).toLocaleString('en-IN') + ' Cr.';
+    return formatCrores(val, 0, '—', 0, ' Cr.');
   }
 
   formatRatio(val?: number | null): string {
@@ -972,27 +888,19 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
   }
 
   formatPercent(val?: number | null): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    return (val >= 0 ? '+' : '') + val.toFixed(1) + '%';
+    return formatPercent(val, 1, true, '—');
   }
 
   formatPp(val?: number | null): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(2)}%`;
+    return formatPercent(val, 2, true, '—');
   }
 
   formatEps(val?: number | null): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    return '₹' + val.toFixed(2);
+    return formatCurrency(val, 2, '—', 2);
   }
 
   formatNumber(val?: number | null, decimals: number = 0): string {
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    return val.toLocaleString('en-IN', {
-      maximumFractionDigits: decimals,
-      minimumFractionDigits: decimals
-    });
+    return formatNumber(val, decimals);
   }
 
   formatAsOfDate(dateStr?: string | null): string {
@@ -1010,14 +918,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return item.values[item.values.length - 1];
   }
 
-  getLatestFixedAssets(): number | null {
-    const bs = this.assetsResponse();
-    if (!bs || !bs.lineItems || bs.lineItems.length === 0) return null;
-    const item = bs.lineItems.find(i => i.name && (i.name.toLowerCase().includes('fixed assets') || i.name.toLowerCase().includes('property')));
-    if (!item || !item.values || item.values.length === 0) return this.getLatestTotalAssets();
-    return item.values[item.values.length - 1];
-  }
-
   getLatestBorrowings(): number | null {
     const bs = this.assetsResponse();
     if (bs && bs.lineItems && bs.lineItems.length > 0) {
@@ -1027,138 +927,6 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
         if (nonNullVals.length > 0) return nonNullVals[nonNullVals.length - 1];
       }
     }
-    return null;
-  }
-
-  getBorrowingsYoY(): number | null {
-    const bs = this.assetsResponse();
-    if (!bs || !bs.lineItems || bs.lineItems.length === 0) return null;
-    const item = bs.lineItems.find(i => i.name && i.name.toLowerCase() === 'borrowings');
-    if (!item || !item.values || item.values.length < 2) return null;
-
-    const periods = bs.periods || [];
-    const paired: { period: string, val: number }[] = [];
-    for (let i = 0; i < item.values.length; i++) {
-      const v = item.values[i];
-      const p = periods[i] || `P${i}`;
-      if (v !== null && v !== undefined && !isNaN(v)) {
-        const existingIdx = paired.findIndex(x => x.period === p);
-        if (existingIdx >= 0) {
-          paired[existingIdx].val = v;
-        } else {
-          paired.push({ period: p, val: v });
-        }
-      }
-    }
-
-    if (paired.length >= 2) {
-      const latest = paired[paired.length - 1].val;
-      const prev = paired[paired.length - 2].val;
-      if (prev !== 0) {
-        return +(((latest - prev) / Math.abs(prev)) * 100).toFixed(1);
-      } else if (latest > 0) {
-        return 100;
-      } else {
-        return 0;
-      }
-    }
-
-    return null;
-  }
-
-  getLatestLongTermBorrowings(): number | null {
-    const bs = this.assetsResponse();
-    if (bs && bs.lineItems && bs.lineItems.length > 0) {
-      const item = bs.lineItems.find(i => i.name && (i.name.toLowerCase().includes('long term') || i.name.toLowerCase().includes('long-term')));
-      if (item && item.values && item.values.length > 0) {
-        const nonNullVals = item.values.filter((v): v is number => v !== null && v !== undefined && !isNaN(v));
-        if (nonNullVals.length > 0) return nonNullVals[nonNullVals.length - 1];
-      }
-    }
-    return null;
-  }
-
-  getLongTermBorrowingsYoY(): number | null {
-    const bs = this.assetsResponse();
-    if (!bs || !bs.lineItems || bs.lineItems.length === 0) return null;
-    const item = bs.lineItems.find(i => i.name && (i.name.toLowerCase().includes('long term') || i.name.toLowerCase().includes('long-term')));
-    if (!item || !item.values || item.values.length < 2) return null;
-
-    const periods = bs.periods || [];
-    const paired: { period: string, val: number }[] = [];
-    for (let i = 0; i < item.values.length; i++) {
-      const v = item.values[i];
-      const p = periods[i] || `P${i}`;
-      if (v !== null && v !== undefined && !isNaN(v)) {
-        const existingIdx = paired.findIndex(x => x.period === p);
-        if (existingIdx >= 0) {
-          paired[existingIdx].val = v;
-        } else {
-          paired.push({ period: p, val: v });
-        }
-      }
-    }
-
-    if (paired.length >= 2) {
-      const latest = paired[paired.length - 1].val;
-      const prev = paired[paired.length - 2].val;
-      if (prev !== 0) {
-        return +(((latest - prev) / Math.abs(prev)) * 100).toFixed(1);
-      } else if (latest > 0) {
-        return 100;
-      } else {
-        return 0;
-      }
-    }
-
-    return null;
-  }
-
-  getLatestShortTermBorrowings(): number | null {
-    const bs = this.assetsResponse();
-    if (bs && bs.lineItems && bs.lineItems.length > 0) {
-      const item = bs.lineItems.find(i => i.name && (i.name.toLowerCase().includes('short term') || i.name.toLowerCase().includes('short-term')));
-      if (item && item.values && item.values.length > 0) {
-        const nonNullVals = item.values.filter((v): v is number => v !== null && v !== undefined && !isNaN(v));
-        if (nonNullVals.length > 0) return nonNullVals[nonNullVals.length - 1];
-      }
-    }
-    return null;
-  }
-
-  getShortTermBorrowingsYoY(): number | null {
-    const bs = this.assetsResponse();
-    if (!bs || !bs.lineItems || bs.lineItems.length === 0) return null;
-    const item = bs.lineItems.find(i => i.name && (i.name.toLowerCase().includes('short term') || i.name.toLowerCase().includes('short-term')));
-    if (!item || !item.values || item.values.length < 2) return null;
-
-    const periods = bs.periods || [];
-    const paired: { period: string, val: number }[] = [];
-    for (let i = 0; i < item.values.length; i++) {
-      const v = item.values[i];
-      const p = periods[i] || `P${i}`;
-      if (v !== null && v !== undefined && !isNaN(v)) {
-        const existingIdx = paired.findIndex(x => x.period === p);
-        if (existingIdx >= 0) {
-          paired[existingIdx].val = v;
-        } else {
-          paired.push({ period: p, val: v });
-        }
-      }
-    }
-
-    if (paired.length >= 2) {
-      const latest = paired[paired.length - 1].val;
-      const prev = paired[paired.length - 2].val;
-      if (prev !== 0) {
-        return +(((latest - prev) / Math.abs(prev)) * 100).toFixed(1);
-      } else if (latest > 0) {
-        return 100;
-      } else {
-        return 0;
-      }
-    }
-
     return null;
   }
 
@@ -1229,41 +997,11 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return { icr: null, label: 'Safe', statusClass: 'text-green' };
   }
 
-  getPegRatio(): number | null {
-    const directPeg = this.cashflowResponse()?.ratios?.pegRatio ??
-      this.cashflowResponse()?.summary?.ratios?.pegRatio;
-
-    if (directPeg !== null && directPeg !== undefined && !isNaN(directPeg) && directPeg > 0) {
-      return directPeg;
-    }
-    return null;
-  }
-
-  getCfoToOpRatio(): number | null {
-    const fromSummary = this.cashflowResponse()?.summary?.cfoToOperatingProfitRatio;
-    if (fromSummary !== null && fromSummary !== undefined && !isNaN(fromSummary)) {
-      return fromSummary;
-    }
-    const cfo = this.cashflowResponse()?.summary?.operatingCashFlow;
-    const op = this.cashflowResponse()?.summary?.operatingProfit;
-    if (cfo !== null && cfo !== undefined && op !== null && op !== undefined && op !== 0) {
-      return +(cfo / op).toFixed(2);
-    }
-    return null;
-  }
-
   getTotalInstitutional(): string {
     const sh = this.shareholdingResponse()?.currentPeriod;
     if (!sh || (sh.fii === null && sh.dii === null)) return '—';
     const total = (sh.fii || 0) + (sh.dii || 0);
     return `${total.toFixed(2)}%`;
-  }
-
-  formatCfoToOp(value?: number | null): string {
-    const val = value !== undefined ? value : this.getCfoToOpRatio();
-    if (val === null || val === undefined || isNaN(val)) return '—';
-    const pct = val > 5 ? val : val * 100;
-    return `${Math.round(pct)}%`;
   }
 
   setChartType(type: 'candlestick' | 'area'): void {
@@ -1482,196 +1220,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     return overview?.websiteUrl || 'https://www.nseindia.com';
   }
 
-  // --- OWNERSHIP BREAKDOWN HELPERS ---
 
-  getOwnershipBreakdown(): {
-    promoter: string;
-    fii: string;
-    dii: string;
-    public: string;
-    promoterPp: string;
-    fiiPp: string;
-    diiPp: string;
-    publicPp: string;
-    promoterIsPos: boolean;
-    promoterIsNeg: boolean;
-    fiiIsPos: boolean;
-    fiiIsNeg: boolean;
-    diiIsPos: boolean;
-    diiIsNeg: boolean;
-    publicIsPos: boolean;
-    publicIsNeg: boolean;
-    totalInstitutional: string;
-    history: { period: string, promoter: string, fii: string, dii: string, public: string }[];
-  } {
-    const sh = this.shareholdingResponse();
-    const curr = sh?.currentPeriod;
-
-    const formatPct = (val?: number | null) => {
-      if (val === null || val === undefined || isNaN(val)) return '—';
-      return `${val.toFixed(2)}%`;
-    };
-
-    const promoter = formatPct(curr?.promoter);
-    const fii = formatPct(curr?.fii);
-    const dii = formatPct(curr?.dii);
-    const pub = formatPct(curr?.public);
-
-    // Deltas: handles positive, negative, and neutral (0 / missing) cleanly
-    const formatDelta = (val?: number | null) => {
-      if (val === null || val === undefined || isNaN(val)) {
-        return { text: '—', isPos: false, isNeg: false };
-      }
-      const rounded = Number(val.toFixed(2));
-      if (rounded === 0) {
-        return { text: '0.00%', isPos: false, isNeg: false };
-      }
-      const isPos = rounded > 0;
-      const arrow = isPos ? '▲' : '▼';
-      const sign = isPos ? '+' : '';
-      return {
-        text: `${arrow} ${sign}${Math.abs(val).toFixed(2)}%`,
-        isPos,
-        isNeg: !isPos
-      };
-    };
-
-    const promDelta = formatDelta(sh?.change?.promoter);
-    const fiiDelta = formatDelta(sh?.change?.fii);
-    const diiDelta = formatDelta(sh?.change?.dii);
-    const pubDelta = formatDelta(sh?.change?.public);
-
-    const fiiNum = curr?.fii ?? 0;
-    const diiNum = curr?.dii ?? 0;
-    const totalInst = (curr?.fii !== null && curr?.fii !== undefined && curr?.dii !== null && curr?.dii !== undefined)
-      ? (fiiNum + diiNum).toFixed(2) + '%'
-      : '—';
-
-    // History table rows from actual API response
-    let historyRows: { period: string, promoter: string, fii: string, dii: string, public: string }[] = [];
-    if (sh?.history && sh.history.length > 0) {
-      historyRows = sh.history.slice(0, 4).map(h => ({
-        period: h.period || '—',
-        promoter: h.promoter !== null && h.promoter !== undefined ? `${h.promoter}%` : '—',
-        fii: h.fii !== null && h.fii !== undefined ? `${h.fii}%` : '—',
-        dii: h.dii !== null && h.dii !== undefined ? `${h.dii}%` : '—',
-        public: h.public !== null && h.public !== undefined ? `${h.public}%` : '—'
-      }));
-    }
-
-    return {
-      promoter,
-      fii,
-      dii,
-      public: pub,
-      promoterPp: promDelta.text,
-      fiiPp: fiiDelta.text,
-      diiPp: diiDelta.text,
-      publicPp: pubDelta.text,
-      promoterIsPos: promDelta.isPos,
-      promoterIsNeg: promDelta.isNeg,
-      fiiIsPos: fiiDelta.isPos,
-      fiiIsNeg: fiiDelta.isNeg,
-      diiIsPos: diiDelta.isPos,
-      diiIsNeg: diiDelta.isNeg,
-      publicIsPos: pubDelta.isPos,
-      publicIsNeg: pubDelta.isNeg,
-      totalInstitutional: totalInst,
-      history: historyRows
-    };
-  }
-
-  // --- FINANCIALS CARD HELPERS ---
-
-  getQuarterlyFinancialsData(): {
-    sales: string;
-    salesQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    salesYoY: { text: string, isPositive: boolean, isNegative: boolean };
-    netProfit: string;
-    netProfitQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    netProfitYoY: { text: string, isPositive: boolean, isNegative: boolean };
-    operatingProfit: string;
-    operatingProfitQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    operatingProfitYoY: { text: string, isPositive: boolean, isNegative: boolean };
-    opMargin: string;
-    eps: string;
-    epsQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    interest: string;
-    interestQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    tax: string;
-    taxQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    depreciation: string;
-    depreciationQoQ: { text: string, isPositive: boolean, isNegative: boolean };
-    depreciationType: string;
-  } {
-    const q = this.quartersResponse();
-    const sum = q?.summary;
-
-    const formatGrowth = (val?: number | null, prefix: string = 'QoQ') => {
-      if (val === null || val === undefined || isNaN(val)) {
-        return { text: `${prefix}: —`, isPositive: false, isNegative: false };
-      }
-      const rounded = Number(val.toFixed(1));
-      if (rounded === 0) {
-        return { text: `${prefix}: 0.0%`, isPositive: false, isNegative: false };
-      }
-      const isPositive = rounded > 0;
-      const sign = isPositive ? '+' : '';
-      return {
-        text: `${prefix}: ${sign}${val.toFixed(1)}%`,
-        isPositive,
-        isNegative: !isPositive
-      };
-    };
-
-    const sales = sum?.sales !== null && sum?.sales !== undefined ? this.formatCrores(sum.sales) : '—';
-    const salesQoQ = formatGrowth(q?.qoQGrowth?.salesGrowthPercent, 'QoQ');
-    const salesYoY = formatGrowth(q?.yoYGrowth?.salesGrowthPercent, 'YoY');
-
-    const netProfit = sum?.netProfit !== null && sum?.netProfit !== undefined ? this.formatCrores(sum.netProfit) : '—';
-    const netProfitQoQ = formatGrowth(q?.qoQGrowth?.netProfitGrowthPercent, 'QoQ');
-    const netProfitYoY = formatGrowth(q?.yoYGrowth?.netProfitGrowthPercent, 'YoY');
-
-    const operatingProfit = sum?.operatingProfit !== null && sum?.operatingProfit !== undefined ? this.formatCrores(sum.operatingProfit) : '—';
-    const operatingProfitQoQ = formatGrowth(q?.qoQGrowth?.operatingProfitGrowthPercent, 'QoQ');
-    const operatingProfitYoY = formatGrowth(q?.yoYGrowth?.operatingProfitGrowthPercent, 'YoY');
-    const opMargin = sum?.opmPercentage !== null && sum?.opmPercentage !== undefined ? `Margin: ${sum.opmPercentage.toFixed(1)}%` : 'Margin: —';
-
-    const eps = sum?.eps !== null && sum?.eps !== undefined ? `₹${sum.eps.toFixed(2)}` : '—';
-    const epsQoQ = formatGrowth(q?.qoQGrowth?.epsGrowthPercent, 'QoQ');
-
-    const interest = sum?.interest !== null && sum?.interest !== undefined ? this.formatCrores(sum.interest) : '—';
-    const interestQoQ = formatGrowth(q?.qoQGrowth?.interestGrowthPercent, 'QoQ');
-
-    const tax = sum?.tax !== null && sum?.tax !== undefined ? this.formatCrores(sum.tax) : '—';
-    const taxQoQ = formatGrowth(q?.qoQGrowth?.taxGrowthPercent, 'QoQ');
-
-    const depreciation = sum?.depreciation !== null && sum?.depreciation !== undefined ? this.formatCrores(sum.depreciation) : '—';
-    const depreciationQoQ = formatGrowth(q?.qoQGrowth?.depreciationGrowthPercent, 'QoQ');
-    const depreciationType = depreciation !== '—' ? 'Non-Cash' : '—';
-
-    return {
-      sales,
-      salesQoQ,
-      salesYoY,
-      netProfit,
-      netProfitQoQ,
-      netProfitYoY,
-      operatingProfit,
-      operatingProfitQoQ,
-      operatingProfitYoY,
-      opMargin,
-      eps,
-      epsQoQ,
-      interest,
-      interestQoQ,
-      tax,
-      taxQoQ,
-      depreciation,
-      depreciationQoQ,
-      depreciationType
-    };
-  }
 
   // --- NEWS FEED HELPERS ---
 
@@ -1708,10 +1257,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.lqTimeframe.set(tf);
   }
 
-  getLatestQuarterPeriod(): string {
-    const q = this.quartersResponse();
-    return q?.latestQuarter || q?.summary?.period || this.selectedLatestQuarterPeriod() || 'Jun 2026';
-  }
+
 
   getBookValueFormatted(): string {
     const bv = this.cashflowResponse()?.ratios?.bookValue;

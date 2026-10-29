@@ -9,6 +9,7 @@ namespace StockLens_API.Controllers
 {
     [ApiController]
     [Route("api/peers")]
+    [Produces("application/json")]
     public class PeerController : ControllerBase
     {
         private readonly IPeerService _peerService;
@@ -18,30 +19,29 @@ namespace StockLens_API.Controllers
             _peerService = peerService;
         }
 
-        [HttpGet("{stockId:int}")]
-        [ProducesResponseType(typeof(List<PeerDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetStockPeersByStockId(
-            [FromRoute] int stockId,
-            [FromQuery] bool forceRefresh = false)
-        {
-            try
-            {
-                var peers = await _peerService.GetStockPeersByStockIdAsync(stockId, forceRefresh, HttpContext.RequestAborted);
-                return Ok(peers);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { Message = ex.Message });
-            }
-        }
-
+        /// <summary>
+        /// Retrieves sector and industry peer comparison metrics for a stock by symbol.
+        /// Supports both standard route GET /api/peers/{symbol} and legacy GET /api/peers/symbol/{symbol}.
+        /// </summary>
+        /// <param name="symbol">Stock symbol (e.g. RELIANCE, TCS, INFY).</param>
+        /// <param name="exchange">Exchange code (NSE or BSE, default: NSE).</param>
+        /// <param name="forceRefresh">Force fresh synchronization from providers.</param>
+        [HttpGet("{symbol}")]
         [HttpGet("symbol/{symbol}")]
         [ProducesResponseType(typeof(List<PeerDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetStockPeersBySymbol(
             [FromRoute] string symbol,
             [FromQuery] string? exchange = "NSE",
             [FromQuery] bool forceRefresh = false)
         {
+            if (string.IsNullOrWhiteSpace(symbol))
+            {
+                return BadRequest(new { message = "Stock symbol is required." });
+            }
+
             var peers = await _peerService.GetStockPeersAsync(symbol, exchange, forceRefresh, HttpContext.RequestAborted);
             return Ok(peers);
         }

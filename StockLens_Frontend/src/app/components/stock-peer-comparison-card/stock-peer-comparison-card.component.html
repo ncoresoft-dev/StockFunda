@@ -9,9 +9,9 @@
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
       </div>
-      <span class="card-title-text">Peer Comparison</span>
+      <span class="card-title-text">PEER COMPARISON</span>
       @if (industry) {
-        <div class="sector-breadcrumbs" style="margin-bottom: 0; margin-left: 1rem;">
+        <div class="sector-breadcrumbs">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="breadcrumb-icon">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -21,6 +21,11 @@
         </div>
       }
     </div>
+    @if (peers && peers.length > 0) {
+      <div class="peer-header-right">
+        <span class="peer-count-badge">{{ peers.length }} Companies</span>
+      </div>
+    }
   </div>
 
   <div class="peer-card-body">
@@ -49,7 +54,7 @@
         <table class="peer-table">
           <thead>
             <tr>
-              <th class="col-num">S.No.</th>
+              <th class="col-sno">S.No.</th>
               <th class="col-name">Company</th>
               <th class="col-num">CMP Rs.</th>
               @if (hasPeRatio) { <th class="col-num">P/E</th> }
@@ -63,7 +68,7 @@
           <tbody>
             @for (peer of peers; track peer.companyName; let i = $index) {
               <tr [class.highlight]="isCurrentCompany(peer.companyName)">
-                <td class="col-num">{{ i + 1 }}.</td>
+                <td class="col-sno">{{ i + 1 }}.</td>
                 <td class="col-name fw-500">{{ peer.companyName }}</td>
                 <td class="col-num">{{ formatNumber(peer.price) }}</td>
                 @if (hasPeRatio) { <td class="col-num">{{ formatNumber(peer.peRatio) }}</td> }
@@ -75,7 +80,7 @@
               </tr>
             }
             <tr class="median-row">
-              <td colspan="2" class="text-center fw-600">Median: {{ peers.length }} Co.</td>
+              <td colspan="2" class="col-median-label">Median: {{ peers.length }} Co.</td>
               <td class="col-num fw-500">{{ formatNumber(getMedian('price')) }}</td>
               @if (hasPeRatio) { <td class="col-num fw-500">{{ formatNumber(getMedian('peRatio')) }}</td> }
               @if (hasPbRatio) { <td class="col-num fw-500">{{ formatNumber(getMedian('pbRatio')) }}</td> }

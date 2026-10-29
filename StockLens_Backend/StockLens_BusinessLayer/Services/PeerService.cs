@@ -48,7 +48,7 @@ namespace StockLens_BusinessLayer.Services
             return await GetStockPeersByStockIdAsync(stock.Id, forceRefresh, cancellationToken);
         }
 
-        public async Task<List<PeerDto>> GetStockPeersByStockIdAsync(int stockId, bool forceRefresh = false, CancellationToken cancellationToken = default)
+        private async Task<List<PeerDto>> GetStockPeersByStockIdAsync(int stockId, bool forceRefresh = false, CancellationToken cancellationToken = default)
         {
             var stock = await _stockRepository.GetByIdAsync(stockId);
             if (stock == null)

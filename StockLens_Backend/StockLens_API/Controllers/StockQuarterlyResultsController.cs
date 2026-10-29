@@ -22,40 +22,6 @@ namespace StockLens_API.Controllers
         }
 
         /// <summary>
-        /// Retrieves the latest quarterly results (Revenue, Operating Profit, Depreciation, Tax, Net Profit, EPS) and historical quarter trends for a stock by its database ID.
-        /// </summary>
-        /// <param name="stockId">The database ID of the stock.</param>
-        /// <param name="refresh">Force fresh synchronization from external Indian APIs.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        [HttpGet("{stockId:int}/quarterly-results")]
-        [ProducesResponseType(typeof(StockQuarterlyResultsResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetQuarterlyResultsByStockId(
-            int stockId,
-            [FromQuery] bool refresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var response = await _quarterlyResultsService.GetQuarterlyResultsByStockIdAsync(stockId, refresh, cancellationToken);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    message = "An error occurred while retrieving quarterly results.",
-                    detail = ex.Message
-                });
-            }
-        }
-
-        /// <summary>
         /// Retrieves the latest quarterly results (Revenue, Operating Profit, Depreciation, Tax, Net Profit, EPS) and historical quarter trends for a stock by symbol and exchange.
         /// </summary>
         /// <param name="symbol">Stock ticker symbol (e.g. RELIANCE, TCS, INFY, HDFCBANK).</param>

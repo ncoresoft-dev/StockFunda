@@ -62,20 +62,6 @@ namespace StockLens_BusinessLayer.Services
             _yahooFinanceClient = yahooFinanceClient;
         }
 
-        public async Task<StockCashflowResponseDto> GetCashflowByStockIdAsync(
-            int stockId,
-            bool forceRefresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            var stock = await _stockRepository.GetByIdAsync(stockId);
-            if (stock == null)
-            {
-                throw new KeyNotFoundException($"Stock with ID {stockId} was not found.");
-            }
-
-            return await ProcessCashflowAsync(stock, forceRefresh, cancellationToken);
-        }
-
         public async Task<StockCashflowResponseDto> GetCashflowBySymbolAsync(
             string symbol,
             string? exchange = "NSE",

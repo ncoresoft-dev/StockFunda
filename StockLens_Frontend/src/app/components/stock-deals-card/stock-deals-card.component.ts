@@ -2,6 +2,7 @@ import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, ChangeDetec
 import { CommonModule } from '@angular/common';
 import { StockDealsService } from '../../services/stock-deals.service';
 import { StockDealsSummary } from '../../models/stock-deals.model';
+import { formatNumber } from '../../utils/formatters.util';
 
 @Component({
   selector: 'app-stock-deals-card',
@@ -12,7 +13,6 @@ import { StockDealsSummary } from '../../models/stock-deals.model';
 })
 export class StockDealsCardComponent implements OnInit, OnChanges {
   @Input() symbol!: string;
-  @Input() stockId?: number;
   @Input() isLightTheme: boolean = false;
 
   private dealsService = inject(StockDealsService);
@@ -44,15 +44,13 @@ export class StockDealsCardComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
-    if (this.symbol || this.stockId) {
+    if (this.symbol) {
       this.fetchDeals();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['symbol'] && !changes['symbol'].firstChange) {
-      this.fetchDeals();
-    } else if (changes['stockId'] && !changes['stockId'].firstChange) {
       this.fetchDeals();
     }
   }
@@ -67,9 +65,7 @@ export class StockDealsCardComponent implements OnInit, OnChanges {
     this.error = '';
     this.cdr.detectChanges(); // Force UI update to show loading
     
-    const request$ = this.stockId 
-      ? this.dealsService.getDealsByStockId(this.stockId)
-      : this.dealsService.getDealsBySymbol(this.symbol);
+    const request$ = this.dealsService.getDealsBySymbol(this.symbol);
 
     request$.subscribe({
       next: (data) => {
@@ -109,7 +105,6 @@ export class StockDealsCardComponent implements OnInit, OnChanges {
   }
 
   formatNumber(value: number): string {
-    if (!value) return '-';
-    return new Intl.NumberFormat('en-IN').format(value);
+    return formatNumber(value, 0, '-');
   }
 }

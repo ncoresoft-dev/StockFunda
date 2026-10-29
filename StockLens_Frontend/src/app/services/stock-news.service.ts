@@ -27,18 +27,6 @@ export class StockNewsService {
   }
 
   /**
-   * Fetch latest news by Stock ID.
-   */
-  getNewsByStockId(stockId: number, limit = 5, page = 1, refresh = false): Observable<StockNewsResponse> {
-    const params = new HttpParams()
-      .set('limit', limit.toString())
-      .set('page', page.toString())
-      .set('refresh', refresh.toString());
-
-    return this.http.get<StockNewsResponse>(`${this.baseUrl}/api/stocks/${stockId}/news`, { params });
-  }
-
-  /**
    * Fetch latest news by Stock Ticker Symbol and Exchange.
    */
   getNewsBySymbol(symbol: string, exchange = 'NSE', limit = 5, page = 1, refresh = false): Observable<StockNewsResponse> {

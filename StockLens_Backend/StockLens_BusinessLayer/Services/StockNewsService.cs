@@ -51,22 +51,6 @@ namespace StockLens_BusinessLayer.Services
             _companyRepository = companyRepository;
         }
 
-        public async Task<StockNewsResponseDto> GetLatestNewsByStockIdAsync(
-            int stockId,
-            int limit = 5,
-            int page = 1,
-            bool forceRefresh = false,
-            CancellationToken cancellationToken = default)
-        {
-            var stock = await _stockRepository.GetByIdAsync(stockId);
-            if (stock == null)
-            {
-                throw new KeyNotFoundException($"Stock with ID {stockId} was not found.");
-            }
-
-            return await ProcessStockNewsAsync(stock, limit, page, forceRefresh, cancellationToken);
-        }
-
         public async Task<StockNewsResponseDto> GetLatestNewsBySymbolAsync(
             string symbol,
             string? exchange = "NSE",

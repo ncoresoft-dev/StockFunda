@@ -31,26 +31,6 @@ namespace StockLens_BusinessLayer.Services
             _logger = logger;
         }
 
-        public async Task<StockDealsSummaryDto> GetDealsByStockIdAsync(
-            int stockId, bool forceRefresh = false, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var stock = await _stockRepository.GetByIdAsync(stockId);
-                if (stock == null)
-                {
-                    throw new KeyNotFoundException($"Stock with ID {stockId} was not found.");
-                }
-
-                return await ProcessDealsAsync(stock, forceRefresh, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing deals for Stock ID {StockId}", stockId);
-                return new StockDealsSummaryDto { ErrorMessage = "An error occurred while fetching deal data." };
-            }
-        }
-
         public async Task<StockDealsSummaryDto> GetDealsBySymbolAsync(
             string symbol, string? exchange = null, bool forceRefresh = false, CancellationToken cancellationToken = default)
         {

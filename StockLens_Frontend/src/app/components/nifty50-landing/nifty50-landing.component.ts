@@ -1,17 +1,14 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, Subscription, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { StockIndexService } from '../../services/stock-index.service';
 import { WatchlistService } from '../../services/watchlist.service';
-import { StockNewsService } from '../../services/stock-news.service';
 import { Nifty50StockItem } from '../../models/stock-index.model';
-import { Company } from '../../models/stock-news.model';
 
-import { AdminNotificationBellComponent } from '../admin-notification-bell/admin-notification-bell.component';
 import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
+import { HeaderComponent } from '../header/header.component';
 
 export type SortField = 'weightage' | 'symbol' | 'name' | 'sector' | 'industry';
 export type SortOrder = 'asc' | 'desc';
@@ -20,7 +17,7 @@ export type ViewTab = 'nifty50' | 'watchlist';
 @Component({
   selector: 'app-nifty50-landing',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminNotificationBellComponent, AdminAnnualReportModalComponent],
+  imports: [CommonModule, FormsModule, AdminAnnualReportModalComponent, HeaderComponent],
   templateUrl: './nifty50-landing.component.html',
   styleUrl: './nifty50-landing.component.css'
 })
@@ -29,7 +26,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly indexService = inject(StockIndexService);
   readonly watchlistService = inject(WatchlistService);
-  private readonly newsService = inject(StockNewsService);
 
   // Active View Tab: 'nifty50' or 'watchlist'
   activeTab = signal<ViewTab>('nifty50');
@@ -37,14 +33,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   // Theme
   isLightTheme = signal<boolean>(true);
 
-  // Header Search Typeahead
-  headerSearchQuery = signal<string>('');
-  headerSearchResults = signal<Company[]>([]);
-  isHeaderSearching = signal<boolean>(false);
-  isHeaderSearchDropdownOpen = signal<boolean>(false);
-  @ViewChild('headerSearchWrapper') headerSearchWrapper?: ElementRef<HTMLElement>;
-  private headerSearchSubject = new Subject<string>();
-  private headerSearchSub?: Subscription;
   private queryParamsSub?: Subscription;
 
   // Table Data & Filtering
@@ -209,7 +197,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.applyThemeToDom();
-    this.setupHeaderSearch();
 
     // Check query params immediately before triggering initial loads
     const initialView = this.route.snapshot.queryParams['tab'] || this.route.snapshot.queryParams['view'];
@@ -232,7 +219,6 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.headerSearchSub?.unsubscribe();
     this.queryParamsSub?.unsubscribe();
     this.customStocksSub?.unsubscribe();
   }
@@ -404,95 +390,5 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     this.selectedSector.set(sector);
   }
 
-  // Typeahead Header Search
-  onHeaderSearchInput(event: Event): void {
-    const val = (event.target as HTMLInputElement).value;
-    this.headerSearchQuery.set(val);
-    if (val.trim().length >= 2) {
-      this.isHeaderSearchDropdownOpen.set(true);
-    } else {
-      this.isHeaderSearchDropdownOpen.set(false);
-      this.headerSearchResults.set([]);
-    }
-    this.headerSearchSubject.next(val);
-  }
 
-  onHeaderSearchFocus(): void {
-    if (this.headerSearchResults().length > 0 && this.headerSearchQuery().trim().length >= 2) {
-      this.isHeaderSearchDropdownOpen.set(true);
-    }
-  }
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as Node;
-    if (this.isHeaderSearchDropdownOpen() && this.headerSearchWrapper?.nativeElement && !this.headerSearchWrapper.nativeElement.contains(target)) {
-      this.isHeaderSearchDropdownOpen.set(false);
-    }
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscapePress(): void {
-    this.isHeaderSearchDropdownOpen.set(false);
-  }
-
-  onHeaderSearchSubmit(): void {
-    this.isHeaderSearchDropdownOpen.set(false);
-    const q = this.headerSearchQuery().trim();
-    if (q) {
-      this.navigateToStock(q);
-      this.headerSearchQuery.set('');
-      this.headerSearchResults.set([]);
-    }
-  }
-
-  selectHeaderSearchResult(company: Company): void {
-    this.isHeaderSearchDropdownOpen.set(false);
-    if (company && company.symbol) {
-      this.navigateToStock(company.symbol);
-      this.headerSearchQuery.set('');
-      this.headerSearchResults.set([]);
-    }
-  }
-
-  private setupHeaderSearch(): void {
-    this.headerSearchSub = this.headerSearchSubject.pipe(
-      debounceTime(200),
-      distinctUntilChanged(),
-      switchMap(query => {
-        const clean = query.trim();
-        if (!clean || clean.length < 2) {
-          this.headerSearchResults.set([]);
-          this.isHeaderSearching.set(false);
-          this.isHeaderSearchDropdownOpen.set(false);
-          return of([]);
-        }
-        this.isHeaderSearching.set(true);
-
-        const localMatches: Company[] = this.allStocks()
-          .filter(s =>
-            s.symbol.toLowerCase().includes(clean.toLowerCase()) ||
-            s.companyName.toLowerCase().includes(clean.toLowerCase())
-          )
-          .map(s => ({
-            id: 0,
-            symbol: s.symbol,
-            companyName: s.companyName,
-            industry: s.industry || '',
-            exchange: s.exchange || 'NSE'
-          } as Company));
-
-        return this.newsService.searchCompanies(clean).pipe(
-          map(apiRes => (apiRes && apiRes.length > 0 ? apiRes : localMatches)),
-          catchError(() => of(localMatches))
-        );
-      })
-    ).subscribe(results => {
-      this.headerSearchResults.set(results);
-      this.isHeaderSearching.set(false);
-      if (results && results.length > 0) {
-        this.isHeaderSearchDropdownOpen.set(true);
-      }
-    });
-  }
 }

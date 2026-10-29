@@ -77,17 +77,6 @@ describe('StockShareholdingService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should fetch shareholding by stockId', () => {
-    service.getShareholdingByStockId(1, false).subscribe(data => {
-      expect(data).toEqual(mockResponse);
-      expect(data.currentPeriod.promoter).toBe(50.25);
-      expect(data.change.promoter).toBe(0.45);
-    });
-
-    const req = httpTesting.expectOne(`${environment.apiUrl}/api/stocks/1/shareholding?refresh=false`);
-    expect(req.request.method).toBe('GET');
-    req.flush(mockResponse);
-  });
 
   it('should fetch shareholding by symbol and exchange', () => {
     service.getShareholdingBySymbol('RELIANCE', 'NSE', true).subscribe(data => {

@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StockQuarterlyResultsResponse, QuarterlyRecord } from '../../models/stock-quarterly-results.model';
-import { LoadingState } from '../../models/stock-news.model';
+import { StockQuarterlyResultsResponse } from '../../models/stock-quarterly-results.model';
+import { formatCrores } from '../../utils/formatters.util';
 
 @Component({
   selector: 'app-stock-quarters-card',
@@ -12,74 +12,97 @@ import { LoadingState } from '../../models/stock-news.model';
 })
 export class StockQuartersCardComponent {
   @Input() quarters: StockQuarterlyResultsResponse | null = null;
-  @Input() loadingState: LoadingState = 'idle';
-  @Input() errorMessage: string = '';
-  @Input() isRefreshing: boolean = false;
+  @Input() isLightTheme: boolean = true;
 
-  @Output() refreshRequested = new EventEmitter<void>();
-
-  selectedQuarter: QuarterlyRecord | null = null;
-
-  get activeQuarter(): QuarterlyRecord | null {
-    if (this.selectedQuarter) return this.selectedQuarter;
-    return this.quarters?.summary || this.quarters?.history?.[0] || null;
+  get latestQuarterPeriod(): string {
+    const q = this.quarters;
+    return q?.latestQuarter || q?.summary?.period || '—';
   }
 
-  get displayedHistory(): QuarterlyRecord[] {
-    if (!this.quarters?.history) return [];
+  get quarterlyFinancialsData(): {
+    sales: string;
+    salesQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    salesYoY: { text: string; isPositive: boolean; isNegative: boolean };
+    netProfit: string;
+    netProfitQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    netProfitYoY: { text: string; isPositive: boolean; isNegative: boolean };
+    operatingProfit: string;
+    operatingProfitQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    operatingProfitYoY: { text: string; isPositive: boolean; isNegative: boolean };
+    opMargin: string;
+    eps: string;
+    epsQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    interest: string;
+    interestQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    tax: string;
+    taxQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+    depreciation: string;
+    depreciationQoQ: { text: string; isPositive: boolean; isNegative: boolean };
+  } {
+    const q = this.quarters;
+    const sum = q?.summary;
 
-    // Deduplicate history by normalized period date / label
-    const seen = new Set<string>();
-    const uniqueRecords: QuarterlyRecord[] = [];
-
-    for (const record of this.quarters.history) {
-      const key = record.periodEndDate
-        ? new Date(record.periodEndDate).toISOString().slice(0, 7) // 'yyyy-MM'
-        : (record.period || record.periodKey || '').trim().toUpperCase();
-
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        uniqueRecords.push(record);
+    const formatGrowth = (val?: number | null, prefix: string = 'QoQ') => {
+      if (val === null || val === undefined || isNaN(val)) {
+        return { text: `${prefix}: —`, isPositive: false, isNegative: false };
       }
-    }
+      const rounded = Number(val.toFixed(1));
+      if (rounded === 0) {
+        return { text: `${prefix}: 0.0%`, isPositive: false, isNegative: false };
+      }
+      const isPositive = rounded > 0;
+      const sign = isPositive ? '+' : '';
+      return {
+        text: `${prefix}: ${sign}${val.toFixed(1)}%`,
+        isPositive,
+        isNegative: !isPositive
+      };
+    };
 
-    // Show in chronological order for tables (oldest to newest left to right, exactly last 4 quarters)
-    const reversed = [...uniqueRecords].reverse();
-    return reversed.slice(-4);
-  }
+    const sales = sum?.sales !== null && sum?.sales !== undefined ? formatCrores(sum.sales, 0, '—', 0, ' Cr.') : '—';
+    const salesQoQ = formatGrowth(q?.qoQGrowth?.salesGrowthPercent, 'QoQ');
+    const salesYoY = formatGrowth(q?.yoYGrowth?.salesGrowthPercent, 'YoY');
 
-  selectQuarter(q: QuarterlyRecord | null): void {
-    this.selectedQuarter = q;
-  }
+    const netProfit = sum?.netProfit !== null && sum?.netProfit !== undefined ? formatCrores(sum.netProfit, 0, '—', 0, ' Cr.') : '—';
+    const netProfitQoQ = formatGrowth(q?.qoQGrowth?.netProfitGrowthPercent, 'QoQ');
+    const netProfitYoY = formatGrowth(q?.yoYGrowth?.netProfitGrowthPercent, 'YoY');
 
-  onRefreshClick(): void {
-    this.refreshRequested.emit();
-  }
+    const operatingProfit = sum?.operatingProfit !== null && sum?.operatingProfit !== undefined ? formatCrores(sum.operatingProfit, 0, '—', 0, ' Cr.') : '—';
+    const operatingProfitQoQ = formatGrowth(q?.qoQGrowth?.operatingProfitGrowthPercent, 'QoQ');
+    const operatingProfitYoY = formatGrowth(q?.yoYGrowth?.operatingProfitGrowthPercent, 'YoY');
+    const opMargin = sum?.opmPercentage !== null && sum?.opmPercentage !== undefined ? `Margin: ${sum.opmPercentage.toFixed(1)}%` : 'Margin: —';
 
-  formatCurrency(value?: number | null): string {
-    if (value === null || value === undefined || isNaN(value)) return '—';
-    return '₹' + Number(value).toLocaleString('en-IN', {
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0
-    }) + ' Cr';
-  }
+    const eps = sum?.eps !== null && sum?.eps !== undefined ? `₹${sum.eps.toFixed(2)}` : '—';
+    const epsQoQ = formatGrowth(q?.qoQGrowth?.epsGrowthPercent, 'QoQ');
 
-  formatNumber(value?: number | null, decimals = 2): string {
-    if (value === null || value === undefined || isNaN(value)) return '—';
-    return Number(value).toLocaleString('en-IN', {
-      maximumFractionDigits: decimals,
-      minimumFractionDigits: decimals
-    });
-  }
+    const interest = sum?.interest !== null && sum?.interest !== undefined ? formatCrores(sum.interest, 0, '—', 0, ' Cr.') : '—';
+    const interestQoQ = formatGrowth(q?.qoQGrowth?.interestGrowthPercent, 'QoQ');
 
-  formatPercent(value?: number | null): string {
-    if (value === null || value === undefined || isNaN(value)) return '—';
-    const sign = value > 0 ? '+' : '';
-    return `${sign}${Number(value).toFixed(2)}%`;
-  }
+    const tax = sum?.tax !== null && sum?.tax !== undefined ? formatCrores(sum.tax, 0, '—', 0, ' Cr.') : '—';
+    const taxQoQ = formatGrowth(q?.qoQGrowth?.taxGrowthPercent, 'QoQ');
 
-  formatEps(value?: number | null): string {
-    if (value === null || value === undefined || isNaN(value)) return '—';
-    return '₹' + Number(value).toFixed(2);
+    const depreciation = sum?.depreciation !== null && sum?.depreciation !== undefined ? formatCrores(sum.depreciation, 0, '—', 0, ' Cr.') : '—';
+    const depreciationQoQ = formatGrowth(q?.qoQGrowth?.depreciationGrowthPercent, 'QoQ');
+
+    return {
+      sales,
+      salesQoQ,
+      salesYoY,
+      netProfit,
+      netProfitQoQ,
+      netProfitYoY,
+      operatingProfit,
+      operatingProfitQoQ,
+      operatingProfitYoY,
+      opMargin,
+      eps,
+      epsQoQ,
+      interest,
+      interestQoQ,
+      tax,
+      taxQoQ,
+      depreciation,
+      depreciationQoQ
+    };
   }
 }

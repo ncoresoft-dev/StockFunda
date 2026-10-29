@@ -1,0 +1,159 @@
+<!-- Top Animated Cyber Reload Progress Bar (Optional) -->
+@if (showProgressBar) {
+<div class="top-reload-bar" [class.active]="isLoading"></div>
+}
+
+<header class="cockpit-header" [class.is-sticky]="isSticky" [class.variant-transparent]="variant === 'transparent'"
+  [class.variant-flat]="variant === 'flat'" [class.light-theme]="theme === 'light'"
+  [class.dark-theme]="theme === 'dark'" [attr.data-theme]="theme !== 'auto' ? theme : null">
+  <!-- 1. LEFT: Brand Logo & Navigation / Subtitle / Page Tag -->
+  <div class="header-left">
+    <div class="brand-box" (click)="navigateToHome()" title="StockLens Home">
+      <div class="brand-icon">
+        <img src="images/logo2.png" alt="StockLens Logo" class="brand-logo-img" />
+      </div>
+      @if (tagline) {
+      <div class="brand-titles">
+        <span class="brand-name">Stock<span class="brand-highlight">Lens</span></span>
+        <span class="brand-tagline">{{ tagline }}</span>
+      </div>
+      } @else {
+      <span class="brand-title">Stock<span class="brand-highlight">Lens</span></span>
+      }
+    </div>
+
+    @if (pageTag) {
+    <div class="header-divider"></div>
+    <span class="header-page-tag">{{ pageTag }}</span>
+    }
+
+    <!-- Extra slot on the left if parent component needs it -->
+    <ng-content select="[brand-extra]"></ng-content>
+  </div>
+
+  <!-- 2. CENTER: Global Search with Typeahead, Shortcut & Autocomplete -->
+  @if (showSearch) {
+  <div class="header-center">
+    <div class="search-input-wrapper" #searchWrapper>
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+
+      <input #searchInput type="text" class="search-input" [placeholder]="searchPlaceholder" [value]="searchQuery()"
+        (input)="onSearchInput($event)" (keydown.enter)="onSearchSubmit()" (focus)="onSearchFocus()"
+        (click)="onSearchFocus()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+
+      <div class="search-shortcut-badge" title="Press Ctrl+K or ⌘K to search">Ctrl K</div>
+
+      <!-- Autocomplete Menu -->
+      @if (isSearchDropdownOpen() && (searchResults().length > 0 || isSearching())) {
+      <ul class="search-results-menu">
+        @if (isSearching()) {
+        <li class="result-item searching">
+          <span class="mini-spinner"></span>
+          <span>Searching equities...</span>
+        </li>
+        } @else {
+        @for (company of searchResults(); track company.symbol) {
+        <li class="result-item" (click)="selectSearchResult(company)">
+          <div class="res-item-left">
+            @if (company.logoUrl && !isLogoFailed(company.symbol)) {
+            <div class="res-logo-box">
+              <img [src]="company.logoUrl" [alt]="company.symbol" class="res-logo-img"
+                (error)="onLogoError(company.symbol)" />
+            </div>
+            } @else {
+            <div class="res-logo-placeholder">{{ company.symbol.substring(0, 2).toUpperCase() }}</div>
+            }
+            <div class="res-text-group">
+              <span class="res-name">{{ company.companyName }}</span>
+              <span class="res-symbol">({{ company.symbol }})</span>
+            </div>
+          </div>
+        </li>
+        }
+        }
+      </ul>
+      }
+    </div>
+  </div>
+  }
+
+  <!-- 3. RIGHT: Watchlist Nav, Exchange Switcher, Sync, Admin Bell & Actions -->
+  <div class="header-right">
+    <!-- Back Button (e.g. Back to NIFTY 50) -->
+    @if (showBackButton) {
+    <button type="button" class="btn-back-home" (click)="onBackClick()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"></path>
+      </svg>
+      <span>{{ backButtonText }}</span>
+    </button>
+    }
+
+    <!-- 📄 Annual Reports Directory Button -->
+    @if (showAnnualReports) {
+    <button type="button" class="nav-watchlist-btn nav-reports-btn" [class.active]="isAnnualReportsActive()"
+      (click)="navigateToAnnualReports()" title="Companies with Annual Reports">
+      <svg class="star-nav-icon reports-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      <span>Annual Reports</span>
+    </button>
+    }
+
+    <!-- Admin Bell Component (Only visible to) -->
+    @if (showAdminBell) {
+    <app-admin-notification-bell></app-admin-notification-bell>
+    }
+
+    <!-- ⭐ Watchlist Button -->
+    @if (showWatchlist) {
+    <button type="button" class="nav-watchlist-btn" (click)="navigateToWatchlist()" title="View My Watchlist">
+      <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+        <polygon
+          points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+        </polygon>
+      </svg>
+      <span>Watchlist</span>
+      @if (watchlistService.watchlistCount() > 0) {
+      <span class="watchlist-pill-count">{{ watchlistService.watchlistCount() }}</span>
+      }
+    </button>
+    }
+
+    <!-- Exchange Switcher Pills -->
+    @if (showExchangeSwitcher) {
+    <div class="exchange-pills">
+      <button type="button" class="exchange-btn" [class.active]="selectedExchange === 'NSE'"
+        (click)="toggleExchange('NSE')" title="Switch to NSE">
+        NSE
+      </button>
+      <button type="button" class="exchange-btn" [class.active]="selectedExchange === 'BSE'"
+        (click)="toggleExchange('BSE')" title="Switch to BSE">
+        BSE
+      </button>
+    </div>
+    }
+
+    <!-- Live Data Sync Button -->
+    @if (showSync) {
+    <button type="button" class="sync-all-btn" [disabled]="isSyncing" (click)="onSyncClick()" title="Sync live data">
+      <svg class="sync-icon" [class.spinning]="isSyncing" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+      </svg>
+      <span>{{ isSyncing ? 'Syncing...' : 'Sync' }}</span>
+    </button>
+    }
+
+    <!-- Custom page actions slot -->
+    <ng-content select="[header-actions]"></ng-content>
+    <ng-content></ng-content>
+  </div>
+</header>

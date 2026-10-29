@@ -28,7 +28,7 @@
       <div class="header-actions-group">
         @if (authService.isAdmin()) {
         <button type="button" class="admin-extract-btn" (click)="openAdminModal()"
-          title="Admin Hetvi: Add / Extract Annual Report">
+          title="Admin: Add / Extract Annual Report">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L14.4 7.6L20 10L14.4 12.4L12 18L9.6 12.4L4 10L9.6 7.6L12 2Z"></path>
           </svg>
@@ -83,13 +83,14 @@
         </svg>
         <div class="requested-text-group">
           <strong>Annual Report Requested</strong>
-          <span>A request has been submitted for {{ symbol }}. Admin Hetvi has been notified and will extract verified growth insights soon.</span>
+          <span>A request has been submitted for {{ symbol }}. Admin has been notified and will extract verified growth
+            insights soon.</span>
         </div>
       </div>
       @if (authService.isAdmin()) {
-        <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
-          <span>⚡ Extract Now (Admin)</span>
-        </button>
+      <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
+        <span>⚡ Extract Now (Admin)</span>
+      </button>
       }
     </div>
     }
@@ -97,7 +98,8 @@
     <!-- ========================================================================= -->
     <!-- 3. NOT AVAILABLE / NOT YET ADDED FALLBACK                                  -->
     <!-- ========================================================================= -->
-    @if (!isReportLoading() && !annualReportResponse()?.insights && annualReportResponse()?.extractionStatus === 'NotAvailable') {
+    @if (!isReportLoading() && !annualReportResponse()?.insights && annualReportResponse()?.extractionStatus ===
+    'NotAvailable') {
     <div class="ar-info-box not-available-box">
       <div class="not-avail-left">
         <svg class="info-icon text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,32 +109,29 @@
         </svg>
         <div class="not-avail-texts">
           <strong>Annual report insights not yet added for {{ symbol }}</strong>
-          <span>{{ requestFeedback() || 'You can request the annual report for this company, and Admin will extract and add it to your dashboard.' }}</span>
+          <span>{{ requestFeedback() || 'You can request the annual report for this company, and Admin will extract and
+            add it to your dashboard.' }}</span>
         </div>
       </div>
       <div class="not-avail-actions">
         @if (authService.isAdmin()) {
-          <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
-            <span>➕ Add Report (Admin)</span>
-          </button>
+        <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
+          <span>➕ Add Report (Admin)</span>
+        </button>
         } @else {
-          <button
-            type="button"
-            class="btn-request-ar"
-            (click)="requestAnnualReport()"
-            [disabled]="isRequesting() || requestFeedback() !== ''"
-          >
-            @if (isRequesting()) {
-              <span class="mini-spinner-xs"></span>
-              <span>Sending...</span>
-            } @else {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-              </svg>
-              <span>{{ requestFeedback() ? 'Requested!' : 'Request Annual Report' }}</span>
-            }
-          </button>
+        <button type="button" class="btn-request-ar" (click)="requestAnnualReport()"
+          [disabled]="isRequesting() || requestFeedback() !== ''">
+          @if (isRequesting()) {
+          <span class="mini-spinner-xs"></span>
+          <span>Sending...</span>
+          } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          <span>{{ requestFeedback() ? 'Requested!' : 'Request Annual Report' }}</span>
+          }
+        </button>
         }
       </div>
     </div>
@@ -141,15 +140,17 @@
     <!-- ========================================================================= -->
     <!-- 4. PENDING EXTRACTION FALLBACK                                            -->
     <!-- ========================================================================= -->
-    @if (!isReportLoading() && !annualReportResponse()?.insights && annualReportResponse()?.extractionStatus !== 'NotAvailable' && annualReportResponse()?.extractionStatus !== 'Requested') {
+    @if (!isReportLoading() && !annualReportResponse()?.insights && annualReportResponse()?.extractionStatus !==
+    'NotAvailable' && annualReportResponse()?.extractionStatus !== 'Requested') {
     <div class="ar-info-box pending-box">
       <div class="pending-text">
-        <strong>Annual report filing record present.</strong> Click 'OFFICIAL PDF' above to inspect the filing, or request Admin to run deep Gemini extraction.
+        <strong>Annual report filing record present.</strong> Click 'OFFICIAL PDF' above to inspect the filing, or
+        request Admin to run deep Gemini extraction.
       </div>
       @if (authService.isAdmin()) {
-        <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
-          <span>⚡ Extract Insights</span>
-        </button>
+      <button type="button" class="btn-admin-action-inline" (click)="openAdminModal()">
+        <span>⚡ Extract Insights</span>
+      </button>
       }
     </div>
     }

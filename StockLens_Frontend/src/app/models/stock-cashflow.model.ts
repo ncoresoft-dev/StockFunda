@@ -1,4 +1,4 @@
-export type LoadingState = 'idle' | 'loading' | 'success' | 'empty' | 'error';
+export type { LoadingState } from './stock-news.model';
 
 export interface CashflowYoYChange {
   freeCashFlowChange?: number | null;

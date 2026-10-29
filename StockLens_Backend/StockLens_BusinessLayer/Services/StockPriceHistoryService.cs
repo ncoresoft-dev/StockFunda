@@ -59,17 +59,6 @@ namespace StockLens_BusinessLayer.Services
             return await ProcessPriceHistoryAsync(stock, period, forceRefresh, filter, cancellationToken);
         }
 
-        public async Task<PriceHistoryResponseDto> GetPriceHistoryByStockIdAsync(int stockId, string period = "5yr", bool forceRefresh = false, string filter = "price", CancellationToken cancellationToken = default)
-        {
-            var stock = await _stockRepository.GetByIdAsync(stockId);
-            if (stock == null)
-            {
-                return new PriceHistoryResponseDto { ErrorMessage = "Stock not found." };
-            }
-
-            return await ProcessPriceHistoryAsync(stock, period, forceRefresh, filter, cancellationToken);
-        }
-
         private void ParsePeriod(string period, out DateTime fromDate, out int expectedDays)
         {
             var p = (period ?? "5yr").ToLowerInvariant().Trim();

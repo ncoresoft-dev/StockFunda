@@ -49,6 +49,15 @@
 }
 
 /* 1. Header */
+app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  display: block;
+  flex-shrink: 0;
+}
+
 .directory-top-header {
   height: 60px;
   min-height: 60px;

@@ -1,6 +1,5 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { StockVolumeDeliveryService } from '../../services/stock-volume-delivery.service';
 import { VolumeDeliveryAnalysisResponse } from '../../models/stock-volume-delivery.model';
 
 export type DeliveryPeriodTab = 'Day' | 'Week' | '1 Month';
@@ -18,8 +17,6 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   @Input() companyName: string = '';
   @Input() analysisData: VolumeDeliveryAnalysisResponse | null = null;
   @Input() isLightTheme: boolean = false;
-
-  private readonly deliveryService = inject(StockVolumeDeliveryService);
 
   deliveryData = signal<VolumeDeliveryAnalysisResponse | null>(null);
   isLoading = computed(() => !this.deliveryData());
