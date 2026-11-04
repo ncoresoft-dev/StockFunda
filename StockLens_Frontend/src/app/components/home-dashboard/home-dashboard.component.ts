@@ -14,27 +14,47 @@ import { Company } from '../../models/stock-news.model';
 import { Nifty50StockItem } from '../../models/stock-index.model';
 import { HeaderComponent } from '../header/header.component';
 import { formatCurrency, formatCrores } from '../../utils/formatters.util';
+import { computeSquarifiedTreemap, TreemapBounds } from '../../utils/squarified-treemap.util';
 
 export type LensType = 'Growth' | 'Cash Flow' | 'Ownership' | 'Risk';
 
-export interface NiftyTop5Item {
-  name: string;
-  symbol: string;
-  marketCapFormatted: string;
-  marketCapRaw: number;
-  barPercent: number;
-  color: string;
-}
-
-export interface NiftyMapItem {
+export interface HeatmapTile {
   symbol: string;
   name: string;
   sector: string;
-  marketCapRaw: number;
-  formattedLakhCr: string;
-  bg: string;
+  marketCap: number;
+  formattedMarketCap: string;
+  formattedMarketCapCr: string;
+  price: number;
+  formattedPrice: string;
+  changePercent: number;
+  formattedChange: string;
+  isPositive: boolean;
+  weightPercent: number;
+  logoUrl?: string;
+
+  leftPct: number;
+  topPct: number;
+  widthPct: number;
+  heightPct: number;
+
+  bgColor: string;
   textColor: string;
-  flexWeight: number;
+  borderColor: string;
+  badgeBg: string;
+  badgeColor: string;
+  sizeTier: 'hero' | 'large' | 'medium' | 'small' | 'micro';
+  isNarrow?: boolean;
+  isShort?: boolean;
+}
+
+export interface HeatmapStats {
+  totalMarketCapFormatted: string;
+  stockCount: number;
+  advances: number;
+  declines: number;
+  topStockSymbol: string;
+  topStockWeight: string;
 }
 
 @Component({
@@ -54,7 +74,6 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
 
   // Live Ticker Quotes
   tickerQuotes = signal<MarketTickerQuote[]>([]);
-  isLoadingTicker = signal<boolean>(true);
 
   // Time-based Greeting
   greeting = signal<string>('Good afternoon');
@@ -82,7 +101,6 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   // Real Explore Lens Data
   currentLensItems = signal<ExploreLensCompany[]>([]);
   focusedCompany = signal<ExploreLensCompany | null>(null);
-  isLoadingLens = signal<boolean>(false);
 
   // Continue Research Section State (100% Dynamic - driven by WatchlistService, Backend API & browser history)
   activeResearchTab = signal<'recent' | 'watchlist'>('recent');
@@ -167,61 +185,201 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // NIFTY 50 Market Cap Map (100% Dynamic from Backend API - No static data)
-  niftyMapItems = signal<NiftyMapItem[]>([]);
-  isLoadingNiftyMap = signal<boolean>(true);
-  niftyMapRow1 = computed(() => this.niftyMapItems().slice(0, 6));
-  niftyMapRow2 = computed(() => this.niftyMapItems().slice(6, 8));
+  // Heatmap View State (Default 11 companies with Market Cap color design)
+  heatmapLimit = signal<number>(11);
+  hoveredTile = signal<HeatmapTile | null>(null);
+  hoverTooltipPos = signal<{ x: number; y: number } | null>(null);
 
-  // Top 5 NIFTY 50 Companies by Market Cap (100% Dynamic from Backend API - No static data)
-  niftyTop5 = signal<NiftyTop5Item[]>([]);
-  isLoadingNiftyTop5 = signal<boolean>(true);
-  niftyTotalConstituents = signal<number>(50);
-  niftyTotalSectors = signal<number>(17);
-  niftyTopWeightSymbol = signal<string>('RELIANCE');
+  // Full 50 Nifty Constituents with live merges
+  niftyHeatmapStocks = signal<Nifty50StockItem[]>([]);
+
+  // Pure dynamic Nifty 50 constituents from API, enriched with live quote/lens data
+  enrichedHeatmapStocks = computed<Nifty50StockItem[]>(() => {
+    const apiStocks = this.niftyHeatmapStocks();
+    if (!apiStocks || apiStocks.length === 0) return [];
+
+    const backendMap = this.backendStocksMap();
+    const exploreList = this.currentLensItems();
+    const tickerList = this.tickerQuotes();
+
+    const exploreMap = new Map(exploreList.map(c => [c.symbol.toUpperCase(), c]));
+    const tickerMap = new Map(tickerList.map(t => [t.symbol.toUpperCase(), t]));
+
+    const mergedList: Nifty50StockItem[] = apiStocks.map(s => {
+      const upper = s.symbol.toUpperCase();
+      const backendItem = backendMap.get(upper);
+      const exploreItem = exploreMap.get(upper);
+      const tickerItem = tickerMap.get(upper);
+
+      const price = s.price ?? backendItem?.price ?? exploreItem?.currentPrice ?? (tickerItem?.currentPrice ?? 0);
+      const marketCap = s.marketCap ?? backendItem?.marketCap ?? 0;
+      const sector = s.sector || backendItem?.sector || 'Equities';
+      const companyName = s.companyName || backendItem?.companyName || s.symbol;
+      const logoUrl = s.logoUrl || backendItem?.logoUrl || undefined;
+      const changePct = exploreItem?.changePercent ?? (tickerItem ? tickerItem.changePercent : (s.profitGrowthYoy || 0));
+
+      return {
+        ...s,
+        symbol: upper,
+        companyName,
+        sector,
+        price,
+        marketCap,
+        logoUrl,
+        profitGrowthYoy: changePct
+      } as Nifty50StockItem;
+    });
+
+    const totalCap = mergedList.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+    if (totalCap > 0) {
+      mergedList.forEach(s => {
+        s.weightagePercentage = Math.round(((s.marketCap || 0) / totalCap) * 10000) / 100;
+      });
+    }
+
+    return mergedList;
+  });
+
+  // Overall Heatmap Stats for the top 7 to 9 displayed Nifty 50 market cap leaders
+  heatmapStats = computed<HeatmapStats>(() => {
+    const allStocks = this.enrichedHeatmapStocks();
+    const limit = this.heatmapLimit();
+    const topStocks = [...allStocks]
+      .filter(s => s.marketCap && s.marketCap > 0)
+      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
+      .slice(0, limit);
+
+    const totalCap = topStocks.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+    const advances = topStocks.filter(s => (s.profitGrowthYoy || 0) >= 0).length;
+    const declines = topStocks.filter(s => (s.profitGrowthYoy || 0) < 0).length;
+
+    const sectorMap = new Map<string, number>();
+    topStocks.forEach(s => {
+      const sec = s.sector || 'Others';
+      sectorMap.set(sec, (sectorMap.get(sec) || 0) + (s.marketCap || 0));
+    });
+
+    let topSecName = 'Financial Services';
+    let topSecCap = 0;
+    sectorMap.forEach((cap, sec) => {
+      if (cap > topSecCap) {
+        topSecCap = cap;
+        topSecName = sec;
+      }
+    });
+    const topSecWeight = totalCap > 0 ? ((topSecCap / totalCap) * 100).toFixed(1) : '33.8';
+
+    const topStock = topStocks[0];
+    const topStockSym = topStock ? topStock.symbol : 'RELIANCE';
+    const topStockWeight = totalCap > 0 && topStock ? (((topStock.marketCap || 0) / totalCap) * 100).toFixed(1) : '22.5';
+
+    return {
+      totalMarketCapFormatted: this.formatMarketCapLakhCr(totalCap),
+      totalMarketCapCr: totalCap,
+      stockCount: topStocks.length,
+      advances,
+      declines,
+      topSectorName: topSecName,
+      topSectorWeight: `${topSecWeight}%`,
+      topStockSymbol: topStockSym,
+      topStockWeight: `${topStockWeight}%`
+    };
+  });
+
+  // Treemap View showing only 7 to 9 companies strictly from the Nifty 50 list (Area strictly proportional to Market Cap)
+  heatmapUnifiedTiles = computed<HeatmapTile[]>(() => {
+    const allStocks = this.enrichedHeatmapStocks();
+    const limit = this.heatmapLimit();
+
+    if (allStocks.length === 0) return [];
+
+    // Filter strictly to the top 7 to 9 companies by market cap from the Nifty 50 list
+    const topStocks = [...allStocks]
+      .filter(s => s.marketCap && s.marketCap > 0)
+      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
+      .slice(0, limit);
+
+    const totalGroupCap = topStocks.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+    const maxStockCap = Math.max(...topStocks.map(s => s.marketCap || 0), 1);
+
+    const stockItems = topStocks.map(s => ({
+      ...s,
+      value: s.marketCap || 1000
+    }));
+
+    const bounds: TreemapBounds = { x: 0, y: 0, width: 1000, height: 500 };
+    const stockLayout = computeSquarifiedTreemap(stockItems, bounds);
+
+    return stockLayout.map(st => {
+      const stock = st.item;
+      const changeVal = stock.profitGrowthYoy || 0;
+      const isPos = changeVal >= 0;
+      const mcap = stock.marketCap || 0;
+      const sizeTier = this.computeTileSizeTier(st.width, st.height);
+      const isNarrow = st.width < 170;
+      const isShort = st.height < 100;
+      const mcapStyle = this.getTileMcapDensityStyle(mcap, maxStockCap);
+      const bg = mcapStyle.bg;
+      const text = mcapStyle.text;
+      const border = mcapStyle.border;
+      const badgeBg = mcapStyle.badgeBg;
+      const badgeColor = mcapStyle.badgeColor;
+
+      return {
+        symbol: stock.symbol,
+        name: stock.companyName || stock.symbol,
+        sector: stock.sector || 'Equities',
+        marketCap: mcap,
+        formattedMarketCap: this.formatMarketCapLakhCr(mcap),
+        formattedMarketCapCr: this.formatMarketCapCr(mcap),
+        price: stock.price || 0,
+        formattedPrice: stock.price ? formatCurrency(stock.price, 2) : '—',
+        changePercent: changeVal,
+        formattedChange: `${isPos ? '+' : ''}${changeVal.toFixed(2)}%`,
+        isPositive: isPos,
+        weightPercent: totalGroupCap > 0 ? (mcap / totalGroupCap) * 100 : 0,
+        logoUrl: stock.logoUrl,
+        leftPct: st.leftPct,
+        topPct: st.topPct,
+        widthPct: st.widthPct,
+        heightPct: st.heightPct,
+        bgColor: bg,
+        textColor: text,
+        borderColor: border,
+        badgeBg,
+        badgeColor,
+        sizeTier,
+        isNarrow,
+        isShort
+      };
+    });
+  });
+
+  // Heatmap Loading State
+  isLoadingNiftyMap = signal<boolean>(true);
 
   ngOnInit(): void {
     this.updateGreeting();
     this.loadTickers();
     this.loadExploreLens(this.activeLens());
     this.setupSearch();
-    this.loadNiftyTop5();
-    this.loadNifty50Map();
-    this.loadInitialBackendStocks();
+    this.loadNifty50Data();
   }
 
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
   }
 
-  private loadInitialBackendStocks(): void {
-    // 1. Populate constituents from Nifty 50 list into backendStocksMap
-    this.indexService.getNifty50List().subscribe({
-      next: (stocks) => {
-        if (stocks && stocks.length > 0) {
-          this.backendStocksMap.update(map => {
-            const newMap = new Map(map);
-            for (const s of stocks) {
-              newMap.set(s.symbol.toUpperCase(), s);
-            }
-            return newMap;
-          });
-        }
-      }
-    });
-
-    // 2. Fetch details for all symbols in watchlist and recent search history from backend
-    const allSymbols = Array.from(new Set([
-      ...this.watchlistService.watchlistSymbols(),
-      ...this.recentService.recentSymbols()
-    ])).map(s => s.toUpperCase());
-
-    this.fetchBackendStocks(allSymbols);
-  }
+  private lastFetchedSymbolsKey = '';
 
   fetchBackendStocks(symbols: string[]): void {
     if (!symbols || symbols.length === 0) return;
-    this.indexService.getStocksBySymbols(symbols).subscribe({
+    const cleanSymbols = Array.from(new Set(symbols.map(s => s.trim().toUpperCase()))).filter(Boolean).sort();
+    const key = cleanSymbols.join(',');
+    if (this.lastFetchedSymbolsKey === key) return; // Prevent duplicate network calls for identical symbols
+    this.lastFetchedSymbolsKey = key;
+
+    this.indexService.getStocksBySymbols(cleanSymbols).subscribe({
       next: (stocks) => {
         if (!stocks || stocks.length === 0) return;
         this.backendStocksMap.update(currentMap => {
@@ -258,21 +416,17 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadTickers(forceRefresh = false): void {
-    this.isLoadingTicker.set(true);
     this.tickerService.getTickerQuotes(forceRefresh).subscribe({
       next: (quotes) => {
         this.tickerQuotes.set(quotes);
-        this.isLoadingTicker.set(false);
       },
       error: (err) => {
         console.error('Error in loadTickers:', err);
-        this.isLoadingTicker.set(false);
       }
     });
   }
 
   loadExploreLens(lens: LensType, forceRefresh = false): void {
-    this.isLoadingLens.set(true);
     this.tickerService.getExploreLensData(lens, forceRefresh).subscribe({
       next: (res) => {
         if (res && res.companies && res.companies.length > 0) {
@@ -303,11 +457,9 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
           const matched = res.companies.find(c => c.symbol === currentSym) || res.companies[0];
           this.focusedCompany.set(matched);
         }
-        this.isLoadingLens.set(false);
       },
       error: (err) => {
         console.warn('Failed to load real explore lens data, using existing state:', err);
-        this.isLoadingLens.set(false);
       }
     });
   }
@@ -332,12 +484,6 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   getPlanetTop(item: ExploreLensCompany): number {
     const rad = (item.orbitAngle * Math.PI) / 180;
     return Math.round(240 + item.orbitRadius * Math.sin(rad) - 31);
-  }
-
-  // Radar Sector beam angle for focused item
-  getRadarBeamTransform(): string {
-    const angle = this.focusedCompany()?.orbitAngle ?? 320;
-    return `rotate(${angle - 25} 240 240)`;
   }
 
   // Navigation
@@ -375,10 +521,6 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   openResearchStock(item: RecentStockItem): void {
     this.recentService.addRecentSymbol(item.symbol);
     this.router.navigate(['/stock', item.symbol]);
-  }
-
-  goToMarketMap(): void {
-    this.router.navigate(['/nifty50']);
   }
 
   getSevenDayChangeText(comp: ExploreLensCompany): string {
@@ -502,10 +644,6 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  closeDropdown(): void {
-    this.isDropdownOpen.set(false);
-  }
-
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as Node;
@@ -542,12 +680,15 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/nifty50']);
   }
 
-  private loadNiftyTop5(): void {
-    this.isLoadingNiftyTop5.set(true);
+  private loadNifty50Data(): void {
+    this.isLoadingNiftyMap.set(true);
+
     this.indexService.getNifty50List().subscribe({
       next: (stocks) => {
         if (stocks && stocks.length > 0) {
           this.allStocks.set(stocks);
+          this.niftyHeatmapStocks.set(stocks);
+
           this.backendStocksMap.update(currentMap => {
             const newMap = new Map(currentMap);
             for (const s of stocks) {
@@ -560,39 +701,12 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
             }
             return newMap;
           });
-
-          // Dynamic constituents and sectors count from real API data
-          this.niftyTotalConstituents.set(stocks.length);
-          const uniqueSectors = new Set(stocks.map(s => s.sector).filter(Boolean));
-          if (uniqueSectors.size > 0) {
-            this.niftyTotalSectors.set(uniqueSectors.size);
-          }
-
-          const validStocks = stocks.filter(s => s.marketCap && s.marketCap > 0);
-          const sorted = (validStocks.length >= 5 ? validStocks : stocks)
-            .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
-            .slice(0, 5);
-
-          if (sorted.length > 0) {
-            this.niftyTopWeightSymbol.set(sorted[0].symbol);
-            const maxCap = sorted[0].marketCap || 1;
-            const colors = ['#d4f77c', '#bee6fd', '#fed7aa', '#fed7aa', '#fed7aa'];
-
-            this.niftyTop5.set(sorted.map((s, idx) => ({
-              name: s.companyName || s.symbol,
-              symbol: s.symbol,
-              marketCapFormatted: s.marketCap && s.marketCap > 0 ? this.formatMarketCapCr(s.marketCap) : '—',
-              marketCapRaw: s.marketCap || 0,
-              barPercent: maxCap > 0 ? Math.round(((s.marketCap || 0) / maxCap) * 1000) / 10 : 50,
-              color: colors[idx] || '#fed7aa'
-            })));
-          }
         }
-        this.isLoadingNiftyTop5.set(false);
+        this.isLoadingNiftyMap.set(false);
       },
       error: (err) => {
         console.warn('Could not load Nifty 50 constituents from API:', err);
-        this.isLoadingNiftyTop5.set(false);
+        this.isLoadingNiftyMap.set(false);
       }
     });
   }
@@ -601,41 +715,145 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     return formatCrores(val, 0);
   }
 
-  private loadNifty50Map(): void {
-    this.isLoadingNiftyMap.set(true);
-    this.indexService.getNifty50List().subscribe({
-      next: (stocks) => {
-        if (stocks && stocks.length > 0) {
-          const sorted = [...stocks]
-            .filter(s => s.marketCap && s.marketCap > 0)
-            .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
-            .slice(0, 8);
+  trackBySymbol(_index: number, tile: HeatmapTile): string {
+    return tile.symbol;
+  }
 
-          if (sorted.length > 0) {
-            const mapped: NiftyMapItem[] = sorted.map(s => {
-              const cap = s.marketCap || 0;
-              const sectorColor = this.getSectorMapColor(s.sector);
-              return {
-                symbol: s.symbol,
-                name: s.companyName || s.symbol,
-                sector: s.sector || 'Equities',
-                marketCapRaw: cap,
-                formattedLakhCr: this.formatMarketCapLakhCr(cap),
-                bg: sectorColor.bg,
-                textColor: sectorColor.text,
-                flexWeight: Math.max(Math.round(cap / 10000), 20)
-              };
-            });
-            this.niftyMapItems.set(mapped);
-          }
+  computeTileSizeTier(width: number, height: number): 'hero' | 'large' | 'medium' | 'small' | 'micro' {
+    if ((width >= 110 && height >= 70) || (width * height >= 18000)) return 'hero';
+    if (width >= 85 && height >= 52) return 'large';
+    if (width >= 50 && height >= 36) return 'medium';
+    if (width >= 32 && height >= 22) return 'small';
+    return 'micro';
+  }
+
+  getTileMcapDensityStyle(mcap: number, maxCap?: number): { bg: string; text: string; border: string; badgeBg: string; badgeColor: string } {
+    const lakhCr = (mcap || 0) / 100000;
+
+    // Step 4: > ₹14 L Cr (matches legend .mcap-step.s4: #064e3b)
+    if (lakhCr >= 11.5) {
+      return { 
+        bg: '#064e3b', 
+        text: '#ffffff', 
+        border: '#ffffff', 
+        badgeBg: 'rgba(255, 255, 255, 0.22)', 
+        badgeColor: '#ffffff' 
+      };
+    }
+
+    // Step 3: ₹8 L Cr (matches legend .mcap-step.s3: #047857)
+    if (lakhCr >= 6.5) {
+      return { 
+        bg: '#047857', 
+        text: '#ffffff', 
+        border: '#ffffff', 
+        badgeBg: 'rgba(255, 255, 255, 0.20)', 
+        badgeColor: '#ffffff' 
+      };
+    }
+
+    // Step 2: ₹5 L Cr (matches legend .mcap-step.s2: #10b981)
+    if (lakhCr >= 3.5) {
+      return { 
+        bg: '#10b981', 
+        text: '#ffffff', 
+        border: '#ffffff', 
+        badgeBg: 'rgba(0, 0, 0, 0.16)', 
+        badgeColor: '#ffffff' 
+      };
+    }
+
+    // Step 1: < ₹3 L Cr (matches legend .mcap-step.s1: #6ee7b7)
+    return { 
+      bg: '#6ee7b7', 
+      text: '#064e3b', 
+      border: '#ffffff', 
+      badgeBg: 'rgba(6, 78, 59, 0.12)', 
+      badgeColor: '#064e3b' 
+    };
+  }
+
+  onHeatmapTileEnter(tile: HeatmapTile, event: MouseEvent): void {
+    this.hoveredTile.set(tile);
+    this.positionTooltipForTile(tile, event);
+  }
+
+  onHeatmapTileLeave(): void {
+    this.hoveredTile.set(null);
+    this.hoverTooltipPos.set(null);
+  }
+
+  private positionTooltipForTile(tile: HeatmapTile, event: MouseEvent): void {
+    const target = event.currentTarget as HTMLElement;
+    const container = target?.closest('.heatmap-canvas-wrapper') as HTMLElement;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const containerW = containerRect.width;
+    const containerH = containerRect.height;
+
+    // Fixed tooltip dimensions
+    const tooltipW = 250;
+    const tooltipH = 195;
+    const margin = 12;
+
+    // If narrow viewport (e.g. mobile/small tablet), center horizontally
+    if (containerW < 560) {
+      const tileRect = target.getBoundingClientRect();
+      const tileTop = tileRect.top - containerRect.top;
+      const tileH = tileRect.height;
+
+      const x = Math.round((containerW - tooltipW) / 2);
+      let y = tileTop < containerH / 2 
+        ? tileTop + tileH + 8 
+        : tileTop - tooltipH - 8;
+      y = Math.max(margin, Math.min(y, containerH - tooltipH - margin));
+      this.hoverTooltipPos.set({ x: Math.max(margin, x), y: Math.round(y) });
+      return;
+    }
+
+    const tileRect = target.getBoundingClientRect();
+    const tileLeft = tileRect.left - containerRect.left;
+    const tileTop = tileRect.top - containerRect.top;
+    const tileW = tileRect.width;
+    const tileH = tileRect.height;
+
+    const tileCenterX = tileLeft + tileW / 2;
+    const tileCenterY = tileTop + tileH / 2;
+
+    let x: number;
+    // If tile is in the right half of the canvas, place tooltip to the LEFT of the tile
+    if (tileCenterX > containerW / 2) {
+      x = tileLeft - tooltipW - 10;
+      if (x < margin) {
+        x = tileLeft + tileW + 10;
+        if (x + tooltipW > containerW - margin) {
+          x = containerW - tooltipW - margin;
         }
-        this.isLoadingNiftyMap.set(false);
-      },
-      error: (err) => {
-        console.warn('Could not load Nifty 50 market cap map from API:', err);
-        this.isLoadingNiftyMap.set(false);
       }
-    });
+    } else {
+      // Tile is in the left half: place tooltip to the RIGHT of the tile
+      x = tileLeft + tileW + 10;
+      if (x + tooltipW > containerW - margin) {
+        x = tileLeft - tooltipW - 10;
+        if (x < margin) {
+          x = margin;
+        }
+      }
+    }
+
+    // Determine vertical placement: vertically align with tile center
+    let y = tileCenterY - tooltipH / 2;
+
+    // Hard boundary clamping: ensures zero clipping on all 4 borders
+    x = Math.max(margin, Math.min(x, containerW - tooltipW - margin));
+    y = Math.max(margin, Math.min(y, containerH - tooltipH - margin));
+
+    this.hoverTooltipPos.set({ x: Math.round(x), y: Math.round(y) });
+  }
+
+  onHeatmapTileClick(tile: HeatmapTile): void {
+    this.goToStock(tile.symbol);
   }
 
   formatMarketCapLakhCr(mcapInCrores: number): string {
@@ -644,37 +862,4 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     return `₹${lakhCr.toFixed(1)} L Cr`;
   }
 
-  getSectorMapColor(sector?: string): { bg: string; text: string } {
-    if (!sector) return { bg: '#e8ede0', text: '#14180d' };
-    const s = sector.toUpperCase().trim();
-
-    if (s.includes('FINANC') || s.includes('BANK')) {
-      return { bg: '#fedbb3', text: '#14180d' };
-    }
-    if (s.includes('OIL') || s.includes('GAS') || s.includes('FUEL') || s.includes('ENERGY')) {
-      return { bg: '#e2f99d', text: '#14180d' };
-    }
-    if (s.includes('TELECOM')) {
-      return { bg: '#c9e8fd', text: '#14180d' };
-    }
-    if (s.includes('TECH') || s.includes('IT') || s.includes('SOFTWARE')) {
-      return { bg: '#ebdcfb', text: '#14180d' };
-    }
-    if (s.includes('CONSTRUCT') || s.includes('CAPITAL') || s.includes('INDUSTRIAL') || s.includes('INFRA')) {
-      return { bg: '#cbf3db', text: '#14180d' };
-    }
-    if (s.includes('AUTO')) {
-      return { bg: '#fee2e2', text: '#14180d' };
-    }
-    if (s.includes('CONSUMER') || s.includes('FMCG') || s.includes('FOOD')) {
-      return { bg: '#fef08a', text: '#14180d' };
-    }
-    if (s.includes('HEALTH') || s.includes('PHARMA')) {
-      return { bg: '#e0e7ff', text: '#14180d' };
-    }
-    if (s.includes('METAL') || s.includes('MINING') || s.includes('STEEL')) {
-      return { bg: '#e2e8f0', text: '#14180d' };
-    }
-    return { bg: '#fedbb3', text: '#14180d' };
-  }
 }

@@ -38,14 +38,18 @@ namespace StockLens_Infrastructure.Repositories
             if (string.IsNullOrWhiteSpace(symbol))
                 return null;
 
+            var cleanSymbol = symbol.Trim().ToUpperInvariant();
+
             return await _context.CompanyMaster
-                .FirstOrDefaultAsync(c => c.Symbol.ToLower() == symbol.ToLower());
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Symbol == cleanSymbol);
         }
 
         public async Task<Company> SaveOrUpdateCompanyAsync(Company company)
         {
+            var cleanSymbol = company.Symbol.Trim().ToUpperInvariant();
             var existing = await _context.CompanyMaster
-                .FirstOrDefaultAsync(c => c.Symbol.ToLower() == company.Symbol.ToLower());
+                .FirstOrDefaultAsync(c => c.Symbol == cleanSymbol);
 
             if (existing == null)
             {
@@ -71,6 +75,7 @@ namespace StockLens_Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return existing;
         }
+
         public async Task EnsureCompaniesExistAsync(IEnumerable<Company> companies, System.Threading.CancellationToken cancellationToken = default)
         {
             var companyList = companies.ToList();

@@ -63,6 +63,7 @@
               @if (hasRoe) { <th class="col-num">ROE %</th> }
               @if (hasRoce) { <th class="col-num">ROCE %</th> }
               @if (hasDividendYield) { <th class="col-num">Div Yld %</th> }
+              <th class="col-action">Compare</th>
             </tr>
           </thead>
           <tbody>
@@ -77,6 +78,13 @@
                 @if (hasRoe) { <td class="col-num" [class.text-emerald]="(peer.roe || 0) > 15">{{ formatNumber(peer.roe) }}</td> }
                 @if (hasRoce) { <td class="col-num" [class.text-emerald]="(peer.roce || 0) > 15">{{ formatNumber(peer.roce) }}</td> }
                 @if (hasDividendYield) { <td class="col-num">{{ formatNumber(peer.dividendYield) }}</td> }
+                <td class="col-action">
+                  @if (!isCurrentCompany(peer.companyName)) {
+                    <button type="button" class="btn-peer-vs" (click)="compareWithPeer(peer.companyName)" title="Compare {{symbol}} with {{peer.companyName}}">
+                      VS
+                    </button>
+                  }
+                </td>
               </tr>
             }
             <tr class="median-row">
@@ -88,6 +96,7 @@
               @if (hasRoe) { <td class="col-num fw-500">{{ formatNumber(getMedian('roe')) }}</td> }
               @if (hasRoce) { <td class="col-num fw-500">{{ formatNumber(getMedian('roce')) }}</td> }
               @if (hasDividendYield) { <td class="col-num fw-500">{{ formatNumber(getMedian('dividendYield')) }}</td> }
+              <td class="col-action"></td>
             </tr>
           </tbody>
         </table>

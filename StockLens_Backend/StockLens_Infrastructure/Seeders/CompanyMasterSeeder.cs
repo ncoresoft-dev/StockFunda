@@ -23,6 +23,12 @@ namespace StockLens_Infrastructure.Seeders
 
         [JsonPropertyName("ISIN NUMBER")]
         public string? IsinNumber { get; set; }
+
+        [JsonPropertyName("SECTOR")]
+        public string? Sector { get; set; }
+
+        [JsonPropertyName("INDUSTRY")]
+        public string? Industry { get; set; }
     }
 
     public class CompanyMasterSeeder
@@ -52,6 +58,9 @@ namespace StockLens_Infrastructure.Seeders
 
             try
             {
+                // Increase command timeout for seeding large tables
+                _dbContext.Database.SetCommandTimeout(120);
+
                 var filePath = Path.Combine(AppContext.BaseDirectory, "Seeders", "Data", "companies.json");
                 if (!File.Exists(filePath))
                 {
@@ -69,35 +78,72 @@ namespace StockLens_Infrastructure.Seeders
                     return;
                 }
 
-                // 1. Build fast dictionary for Symbol -> ISIN
+                // 1. Build fast dictionaries for Symbol -> ISIN, Sector, Industry
                 var isinMap = jsonCompanies
                     .Where(j => !string.IsNullOrWhiteSpace(j.Symbol) && !string.IsNullOrWhiteSpace(j.IsinNumber))
                     .GroupBy(j => j.Symbol!.Trim().ToUpperInvariant())
                     .ToDictionary(g => g.Key, g => g.First().IsinNumber!.Trim(), StringComparer.OrdinalIgnoreCase);
 
+                var sectorMap = jsonCompanies
+                    .Where(j => !string.IsNullOrWhiteSpace(j.Symbol) && !string.IsNullOrWhiteSpace(j.Sector))
+                    .GroupBy(j => j.Symbol!.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First().Sector!.Trim(), StringComparer.OrdinalIgnoreCase);
+
+                var industryMap = jsonCompanies
+                    .Where(j => !string.IsNullOrWhiteSpace(j.Symbol) && !string.IsNullOrWhiteSpace(j.Industry))
+                    .GroupBy(j => j.Symbol!.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First().Industry!.Trim(), StringComparer.OrdinalIgnoreCase);
+
                 // 2. Fetch existing companies from DB
                 var existingCompanies = await _dbContext.CompanyMaster.ToListAsync(cancellationToken);
                 var existingSymbols = new HashSet<string>(existingCompanies.Select(c => c.Symbol.Trim().ToUpperInvariant()), StringComparer.OrdinalIgnoreCase);
 
-                // 3. Update existing records if LogoUrl is missing
+                // 3. Update existing records: enforce Sector and Industry from companies.json (Single Source of Truth)
                 int updatedCount = 0;
                 foreach (var company in existingCompanies)
                 {
                     var cleanSym = company.Symbol.Trim().ToUpperInvariant();
+                    bool modified = false;
+
                     if (string.IsNullOrWhiteSpace(company.LogoUrl))
                     {
                         if (isinMap.TryGetValue(cleanSym, out var isin) && !string.IsNullOrWhiteSpace(isin))
                         {
                             company.LogoUrl = BuildLogoUrl(isin);
-                            company.UpdatedAt = DateTime.UtcNow;
-                            updatedCount++;
+                            modified = true;
                         }
+                    }
+
+                    // Enforce Sector from companies.json (SSOT - overrides mismatched legacy API values)
+                    if (sectorMap.TryGetValue(cleanSym, out var sectorVal) && !string.IsNullOrWhiteSpace(sectorVal))
+                    {
+                        if (company.Sector != sectorVal)
+                        {
+                            company.Sector = sectorVal;
+                            modified = true;
+                        }
+                    }
+
+                    // Enforce Industry from companies.json (SSOT - overrides mismatched legacy API values)
+                    if (industryMap.TryGetValue(cleanSym, out var industryVal) && !string.IsNullOrWhiteSpace(industryVal))
+                    {
+                        if (company.Industry != industryVal)
+                        {
+                            company.Industry = industryVal;
+                            modified = true;
+                        }
+                    }
+
+                    if (modified)
+                    {
+                        company.UpdatedAt = DateTime.UtcNow;
+                        updatedCount++;
                     }
                 }
 
                 if (updatedCount > 0)
                 {
-                    _logger.LogInformation("Updated LogoUrl for {Count} existing Companies in CompanyMaster.", updatedCount);
+                    _logger.LogInformation("Synchronized LogoUrl, Sector, and Industry for {Count} existing Companies in CompanyMaster.", updatedCount);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
 
@@ -123,6 +169,8 @@ namespace StockLens_Infrastructure.Seeders
                             Symbol = symbol,
                             CompanyName = companyName,
                             LogoUrl = logoUrl,
+                            Sector = item.Sector,
+                            Industry = item.Industry,
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow
                         });
@@ -133,7 +181,7 @@ namespace StockLens_Infrastructure.Seeders
 
                 if (newCompaniesToAdd.Count > 0)
                 {
-                    _logger.LogInformation("Adding {Count} new Companies with LogoUrl to the database...", newCompaniesToAdd.Count);
+                    _logger.LogInformation("Adding {Count} new Companies with LogoUrl, Sector, and Industry to the database...", newCompaniesToAdd.Count);
                     await _dbContext.CompanyMaster.AddRangeAsync(newCompaniesToAdd, cancellationToken);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     _logger.LogInformation("CompanyMasterSeeder completed successfully. Added {Count} companies.", newCompaniesToAdd.Count);

@@ -93,8 +93,8 @@ namespace StockLens_BusinessLayer.Services
                 if (indianOverview != null)
                 {
                     if (!string.IsNullOrWhiteSpace(indianOverview.CompanyName)) company.CompanyName = indianOverview.CompanyName;
-                    if (!string.IsNullOrWhiteSpace(indianOverview.Industry)) company.Industry = indianOverview.Industry;
-                    if (!string.IsNullOrWhiteSpace(indianOverview.SectorName)) company.Sector = indianOverview.SectorName;
+                    // Sector and Industry are managed exclusively by companies.json (Single Source of Truth)
+                    
                     if (!string.IsNullOrWhiteSpace(indianOverview.WebsiteUrl)) company.WebsiteUrl = indianOverview.WebsiteUrl;
                     if (!string.IsNullOrWhiteSpace(indianOverview.About)) company.About = indianOverview.About;
 
@@ -139,15 +139,9 @@ namespace StockLens_BusinessLayer.Services
                             company.WebsiteUrl = yahooProfile.Website;
                         }
 
-                        if (string.IsNullOrWhiteSpace(company.Industry) && !string.IsNullOrWhiteSpace(yahooProfile.Industry))
-                        {
-                            company.Industry = yahooProfile.Industry;
-                        }
+                        // Sector and Industry managed exclusively by companies.json
 
-                        if (string.IsNullOrWhiteSpace(company.Sector) && !string.IsNullOrWhiteSpace(yahooProfile.Sector))
-                        {
-                            company.Sector = yahooProfile.Sector;
-                        }
+                        
 
                         if (!company.EmployeesCount.HasValue && yahooProfile.FullTimeEmployees.HasValue)
                         {

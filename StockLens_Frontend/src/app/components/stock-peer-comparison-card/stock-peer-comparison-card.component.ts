@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { CompanyOverview } from '../../models/company-overview.model';
 import { formatNumber } from '../../utils/formatters.util';
 
@@ -11,6 +12,8 @@ import { formatNumber } from '../../utils/formatters.util';
   styleUrls: ['./stock-peer-comparison-card.component.css']
 })
 export class StockPeerComparisonCardComponent {
+  private readonly router = inject(Router);
+
   @Input() symbol: string = '';
   @Input() companyName: string = '';
   @Input() exchange: string = 'NSE';
@@ -26,9 +29,6 @@ export class StockPeerComparisonCardComponent {
 
   formatInCrores(val: number | undefined | null): string {
     if (val == null) return '-';
-    // BharatStock returns absolute Rupees (e.g. 7602000000000 for TCS)
-    // IndianApi returns already in Crores (e.g. 755746.12 for TCS)
-    // We use a threshold of 10,000,000 (1 Crore). No listed company has an absolute market cap < 1 Crore.
     let inCrores = val;
     if (val >= 10000000) {
       inCrores = val / 10000000;
@@ -78,15 +78,25 @@ export class StockPeerComparisonCardComponent {
     const cName = (this.companyName || '').toLowerCase();
     const sym = (this.symbol || '').toLowerCase();
     
-    // Simple checks: exact match, or symbol is in the name, or the first word matches
     if (pName === cName || pName.includes(sym)) return true;
     
-    // For cases like "Tata Consultancy Services Ltd" vs "Tata Consultancy Services Limited"
     const firstWord = cName.split(' ')[0];
     if (firstWord && firstWord.length > 3 && pName.startsWith(firstWord) && cName.includes(pName.split(' ')[1] || '')) {
       return true;
     }
     
     return false;
+  }
+
+  compareWithPeer(peerName: string): void {
+    if (!peerName) return;
+    const cleanPeer = peerName.trim().split(' ')[0].toUpperCase();
+    this.router.navigate(['/compare'], {
+      queryParams: {
+        stock1: this.symbol,
+        stock2: cleanPeer,
+        exchange: this.exchange
+      }
+    });
   }
 }

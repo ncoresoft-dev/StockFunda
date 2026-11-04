@@ -1,0 +1,840 @@
+<div class="compare-page-container">
+  <!-- Top App Navigation Header -->
+  <app-header [pageTag]="'Comparison Lens'" [showSearch]="false" [theme]="'light'"></app-header>
+
+  <main class="compare-main-content">
+    <!-- Comparison Controls & Selector Bar -->
+    <section class="compare-selector-card">
+      <div class="selector-header">
+        <div class="title-with-badge">
+          <span class="badge-tag">BATTLEGROUND</span>
+          <h1 class="page-title">Stock Comparison Lens</h1>
+        </div>
+        <p class="page-subtitle">Head-to-head fundamental valuation, technical return performance, and health score comparison.</p>
+      </div>
+
+      <div class="stocks-input-row">
+        <!-- Stock 1 Input Box -->
+        <div class="stock-search-box">
+          <div class="label-status-line">
+            <label class="input-label">Stock A (Base)</label>
+            @if (stock1()) {
+              <span class="status-badge badge-selected">✓ Selected: {{ stock1() }}</span>
+            } @else {
+              <span class="status-badge badge-pending">⚠️ Select stock A</span>
+            }
+          </div>
+          <div class="input-relative-wrapper">
+            <svg class="search-mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              class="stock-symbol-input"
+              [value]="searchQuery1()"
+              (input)="onSearchInput1($event)"
+              (keydown.enter)="onSearchSubmit1()"
+              placeholder="Search or type stock e.g. TCS, RELIANCE..."
+              autocomplete="off"
+            />
+            @if (isSearching1()) {
+              <div class="spinner-inline"></div>
+            }
+          </div>
+
+          <!-- Autocomplete Dropdown 1 -->
+          @if (isDropdownOpen1() && searchResults1().length > 0) {
+            <ul class="dropdown-results-menu">
+              @for (item of searchResults1(); track item.symbol) {
+                <li class="dropdown-item" (click)="selectStock1(item)">
+                  <div class="item-info">
+                    <span class="item-sym">{{ item.symbol }}</span>
+                    <span class="item-name">{{ item.companyName }}</span>
+                  </div>
+                  @if (item.industry) {
+                    <span class="item-ind">{{ item.industry }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Swap Button -->
+        <div class="swap-action-wrapper">
+          <button type="button" class="btn-swap-stocks" (click)="swapStocks()" title="Swap Stock A and Stock B">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="swap-icon">
+              <path d="M7 16V4M7 4L3 8M7 4l4 4M17 8v12M17 20l4-4M17 20l-4-4"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Stock 2 Input Box -->
+        <div class="stock-search-box">
+          <div class="label-status-line">
+            <label class="input-label">Stock B (Rival)</label>
+            @if (stock2()) {
+              <span class="status-badge badge-selected">✓ Selected: {{ stock2() }}</span>
+            } @else {
+              <span class="status-badge badge-pending">⚠️ Select stock B</span>
+            }
+          </div>
+          <div class="input-relative-wrapper">
+            <svg class="search-mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              class="stock-symbol-input"
+              [value]="searchQuery2()"
+              (input)="onSearchInput2($event)"
+              (keydown.enter)="onSearchSubmit2()"
+              placeholder="Search or type stock e.g. INFY, ICICIBANK..."
+              autocomplete="off"
+            />
+            @if (isSearching2()) {
+              <div class="spinner-inline"></div>
+            }
+          </div>
+
+          <!-- Autocomplete Dropdown 2 -->
+          @if (isDropdownOpen2() && searchResults2().length > 0) {
+            <ul class="dropdown-results-menu">
+              @for (item of searchResults2(); track item.symbol) {
+                <li class="dropdown-item" (click)="selectStock2(item)">
+                  <div class="item-info">
+                    <span class="item-sym">{{ item.symbol }}</span>
+                    <span class="item-name">{{ item.companyName }}</span>
+                  </div>
+                  @if (item.industry) {
+                    <span class="item-ind">{{ item.industry }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Compare Execute Button -->
+        <div class="compare-action-btn-wrap">
+          <button
+            type="button"
+            class="btn-compare-execute"
+            [disabled]="!canCompare() || isLoading()"
+            (click)="onCompareClick()"
+            title="Compare selected stocks"
+          >
+            @if (isLoading()) {
+              <span class="mini-btn-spinner"></span>
+              <span>Comparing...</span>
+            } @else if (canCompare()) {
+              <span>⚔️ Compare Now</span>
+            } @else if (!stock1() && !stock2()) {
+              <span>Select Both Stocks</span>
+            } @else if (!stock1()) {
+              <span>Select Stock A</span>
+            } @else if (!stock2()) {
+              <span>Select Stock B</span>
+            } @else {
+              <span>Pick Different Stocks</span>
+            }
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="loading-state-box">
+        <div class="cyber-spinner"></div>
+        <p class="loading-text">Compiling head-to-head metrics and performance series for {{ stock1() }} vs {{ stock2() }}...</p>
+      </div>
+    }
+
+    <!-- Error State -->
+    @if (!isLoading() && hasError()) {
+      <div class="error-state-box">
+        <div class="error-icon-box">⚠️</div>
+        <h3 class="error-title">Comparison Unavailable</h3>
+        <p class="error-desc">{{ errorMessage() }}</p>
+        <button type="button" class="btn-retry" (click)="fetchComparison(stock1(), stock2(), exchange(), selectedPeriod(), true)">
+          Retry Comparison
+        </button>
+      </div>
+    }
+
+    <!-- Guidance / Awaiting Selection State (Only when both stocks are not yet selected/compared) -->
+    @if (!isLoading() && !hasError() && !comparisonData()) {
+      <section class="awaiting-compare-card">
+        <div class="awaiting-icon-circle">⚖️</div>
+        <h2 class="awaiting-heading">Select Stock A & Stock B to Begin Head-to-Head Comparison</h2>
+        <p class="awaiting-sub">
+          Comparison API call will be triggered after both company names are selected. Search or enter any stock symbols above to compare across any sector.
+        </p>
+
+        <div class="selection-status-track">
+          <div class="status-step-card" [class.is-done]="!!stock1().trim()">
+            <div class="status-chip">{{ stock1().trim() ? '✓ READY' : 'STEP 1' }}</div>
+            <span class="status-role">Stock A (Base)</span>
+            <strong class="status-stock-name">{{ stock1().trim() ? stock1().trim() : 'Select Stock A' }}</strong>
+          </div>
+
+          <div class="status-connector">VS</div>
+
+          <div class="status-step-card" [class.is-done]="!!stock2().trim()">
+            <div class="status-chip">{{ stock2().trim() ? '✓ READY' : 'STEP 2' }}</div>
+            <span class="status-role">Stock B (Rival)</span>
+            <strong class="status-stock-name">{{ stock2().trim() ? stock2().trim() : 'Select Stock B' }}</strong>
+          </div>
+        </div>
+
+        @if (canCompare()) {
+          <button type="button" class="btn-launch-compare-pulse" (click)="onCompareClick()">
+            Launch Comparison for {{ stock1() }} vs {{ stock2() }} ⚔️
+          </button>
+        } @else {
+          <div class="prompt-hint-pill">
+            💡 Select two different companies above to unlock comparison metrics & performance chart.
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Comparison Results -->
+    @if (!isLoading() && !hasError() && comparisonData(); as data) {
+      <!-- 1. Hero Battleground Card -->
+      <section class="hero-battle-card">
+        <!-- Stock A Column -->
+        <div class="hero-stock-side side-a" [class.is-winner]="data.headToHead.overallScoreWinner === 'StockA'">
+          @if (data.headToHead.overallScoreWinner === 'StockA') {
+            <div class="winner-crown-tag">🏆 OVERALL WINNER</div>
+          }
+          <div class="stock-header-meta">
+            @if (data.stockA.logoUrl) {
+              <img [src]="data.stockA.logoUrl" [alt]="data.stockA.symbol" class="stock-hero-logo" />
+            } @else {
+              <div class="stock-hero-logo-fallback">{{ data.stockA.symbol.substring(0, 2) }}</div>
+            }
+            <div class="stock-names-wrap">
+              <h2 class="stock-hero-symbol">{{ data.stockA.symbol }}</h2>
+              <span class="stock-hero-name">{{ data.stockA.companyName }}</span>
+              <span class="stock-hero-sector">{{ data.stockA.sector || data.stockA.industry || 'NSE Equity' }}</span>
+            </div>
+          </div>
+
+          <div class="stock-hero-price-wrap">
+            <span class="price-val">₹{{ formatNum(data.stockA.currentPrice) }}</span>
+            <span class="mcap-tag">MCap: {{ formatCr(data.stockA.marketCap) }}</span>
+          </div>
+
+          <div class="stock-score-block">
+            <div class="score-circle">
+              <span class="score-number">{{ data.stockA.healthScore }}</span>
+              <span class="score-max">/100</span>
+            </div>
+            <div class="score-text-details">
+              <span class="score-label">Health Score</span>
+              <span class="badge-signal" [ngClass]="data.stockA.signalClass">{{ data.stockA.signal }}</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn-view-details" (click)="navigateToStock(data.stockA.symbol)">
+            View Detailed Analysis
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-icon">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Center Matchup & Verdict Banner -->
+        <div class="hero-center-vs">
+          <div class="vs-badge">VS</div>
+          @if (data.headToHead.summaryVerdict) {
+            <div class="verdict-banner">
+              <span class="verdict-header">⚡ ANALYST VERDICT</span>
+              <p class="verdict-text">{{ data.headToHead.summaryVerdict }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Stock B Column -->
+        <div class="hero-stock-side side-b" [class.is-winner]="data.headToHead.overallScoreWinner === 'StockB'">
+          @if (data.headToHead.overallScoreWinner === 'StockB') {
+            <div class="winner-crown-tag">🏆 OVERALL WINNER</div>
+          }
+          <div class="stock-header-meta">
+            @if (data.stockB.logoUrl) {
+              <img [src]="data.stockB.logoUrl" [alt]="data.stockB.symbol" class="stock-hero-logo" />
+            } @else {
+              <div class="stock-hero-logo-fallback">{{ data.stockB.symbol.substring(0, 2) }}</div>
+            }
+            <div class="stock-names-wrap">
+              <h2 class="stock-hero-symbol">{{ data.stockB.symbol }}</h2>
+              <span class="stock-hero-name">{{ data.stockB.companyName }}</span>
+              <span class="stock-hero-sector">{{ data.stockB.sector || data.stockB.industry || 'NSE Equity' }}</span>
+            </div>
+          </div>
+
+          <div class="stock-hero-price-wrap">
+            <span class="price-val">₹{{ formatNum(data.stockB.currentPrice) }}</span>
+            <span class="mcap-tag">MCap: {{ formatCr(data.stockB.marketCap) }}</span>
+          </div>
+
+          <div class="stock-score-block">
+            <div class="score-circle">
+              <span class="score-number">{{ data.stockB.healthScore }}</span>
+              <span class="score-max">/100</span>
+            </div>
+            <div class="score-text-details">
+              <span class="score-label">Health Score</span>
+              <span class="badge-signal" [ngClass]="data.stockB.signalClass">{{ data.stockB.signal }}</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn-view-details" (click)="navigateToStock(data.stockB.symbol)">
+            View Detailed Analysis
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="arrow-icon">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- 2. Performance Comparison Chart -->
+      <section class="section-card chart-comparison-card">
+        <div class="card-header-bar">
+          <div class="header-left-title">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <h3 class="card-section-title">Performance Comparison (% Return)</h3>
+            <span class="chart-tagline">Normalized return from period baseline (0%)</span>
+          </div>
+
+          <!-- Period Buttons -->
+          <div class="period-pills-wrap">
+            @for (p of periods; track p.key) {
+              <button
+                type="button"
+                class="btn-period-pill"
+                [class.active]="selectedPeriod() === p.key"
+                (click)="setPeriod(p.key)"
+              >
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="chart-body-container">
+          @if (data.normalizedHistory && data.normalizedHistory.length > 0) {
+            <highcharts-chart
+              [options]="chartOptions"
+              [(update)]="updateFlag"
+              [oneToOne]="true"
+              style="width: 100%; height: 380px; display: block;"
+            ></highcharts-chart>
+          } @else {
+            <div class="no-chart-data">No historical price overlap available for the selected timeframe.</div>
+          }
+        </div>
+      </section>
+
+      <!-- 3. Holistic Chart Pattern Comparison Suite -->
+      <!-- 3.1 Radar / Spider Factor Battle Hero Card -->
+      <section class="section-card spider-battle-card">
+        <div class="card-header-bar">
+          <div class="header-left-title">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <div>
+              <h3 class="card-section-title">5-Pillar Spider Factor Battleground</h3>
+              <span class="chart-tagline">Holistic multi-factor evaluation across Health, Valuation, Profitability, Growth, and Institutional Trust</span>
+            </div>
+          </div>
+          <div class="header-right-meta">
+            <div class="legend-chip-pair">
+              <span class="legend-chip cyan">
+                <span class="chip-dot"></span>
+                <strong>{{ data.stockA.symbol }}</strong>
+              </span>
+              <span class="vs-mini">VS</span>
+              <span class="legend-chip rose">
+                <span class="chip-dot"></span>
+                <strong>{{ data.stockB.symbol }}</strong>
+              </span>
+            </div>
+            <span class="battle-hint-tag">⚡ Click any pillar to jump directly to its chart below</span>
+          </div>
+        </div>
+
+          <div class="spider-battle-body">
+            <!-- Left: Spider Polar Chart -->
+            <div class="spider-chart-pane">
+              <highcharts-chart
+                [options]="radarChartOptions"
+                [(update)]="chartsUpdateFlag"
+                [oneToOne]="true"
+                style="width: 100%; height: 360px; display: block;"
+              ></highcharts-chart>
+            </div>
+
+            <!-- Right: 5 Pillar Breakdown Scorecards -->
+            <div class="pillar-cards-list">
+              <!-- Pillar 1: Health Score -->
+              <div class="pillar-card is-interactive" [class.winner-a]="getPillarWinner('health') === 'A'" [class.winner-b]="getPillarWinner('health') === 'B'">
+                <div class="pillar-meta">
+                  <span class="pillar-name">1. Overall Health Score</span>
+                  <span class="pillar-edge">
+                    @if (getPillarWinner('health') === 'A') {
+                      <span class="winner-tag cyan">🏆 {{ data.stockA.symbol }} (+{{ data.stockA.healthScore - data.stockB.healthScore }} pts)</span>
+                    } @else if (getPillarWinner('health') === 'B') {
+                      <span class="winner-tag rose">🏆 {{ data.stockB.symbol }} (+{{ data.stockB.healthScore - data.stockA.healthScore }} pts)</span>
+                    } @else {
+                      <span class="winner-tag tie">Tie</span>
+                    }
+                  </span>
+                </div>
+                <div class="pillar-meter-track">
+                  <div class="meter-bar cyan" [style.width.%]="data.stockA.healthScore"></div>
+                  <div class="meter-bar rose" [style.width.%]="data.stockB.healthScore"></div>
+                </div>
+                <div class="pillar-foot-vals">
+                  <span class="val-cyan">{{ data.stockA.symbol }}: {{ data.stockA.healthScore }}/100</span>
+                  <span class="val-rose">{{ data.stockB.symbol }}: {{ data.stockB.healthScore }}/100</span>
+                </div>
+              </div>
+
+              <!-- Pillar 2: Valuation Appeal -->
+              <div
+                class="pillar-card is-interactive"
+                [class.active-tab]="activeChartTab() === 'valuation'"
+                [class.winner-a]="getPillarWinner('valuation') === 'A'"
+                [class.winner-b]="getPillarWinner('valuation') === 'B'"
+                (click)="setActiveChartTab('valuation')"
+                title="Click to view Valuation Multiples chart"
+              >
+                <div class="pillar-meta">
+                  <span class="pillar-name">
+                    2. Valuation Appeal
+                    <span class="jump-icon">↗</span>
+                  </span>
+                  <span class="pillar-edge">
+                    @if (getPillarWinner('valuation') === 'A') {
+                      <span class="winner-tag cyan">🏆 {{ data.stockA.symbol }} (Cheaper Multiple)</span>
+                    } @else if (getPillarWinner('valuation') === 'B') {
+                      <span class="winner-tag rose">🏆 {{ data.stockB.symbol }} (Cheaper Multiple)</span>
+                    } @else {
+                      <span class="winner-tag tie">Similar Valuation</span>
+                    }
+                  </span>
+                </div>
+                <div class="pillar-meter-track">
+                  <div class="meter-bar cyan" [style.width.%]="getPillarScore('valuation', true)"></div>
+                  <div class="meter-bar rose" [style.width.%]="getPillarScore('valuation', false)"></div>
+                </div>
+                <div class="pillar-foot-vals">
+                  <span class="val-cyan">{{ data.stockA.symbol }} Factor Score: {{ getPillarScore('valuation', true) }}/100</span>
+                  <span class="val-rose">{{ data.stockB.symbol }} Factor Score: {{ getPillarScore('valuation', false) }}/100</span>
+                </div>
+              </div>
+
+              <!-- Pillar 3: Profitability & Margins -->
+              <div
+                class="pillar-card is-interactive"
+                [class.active-tab]="activeChartTab() === 'profitability'"
+                [class.winner-a]="getPillarWinner('profitability') === 'A'"
+                [class.winner-b]="getPillarWinner('profitability') === 'B'"
+                (click)="setActiveChartTab('profitability')"
+                title="Click to view Profitability & Margins chart"
+              >
+                <div class="pillar-meta">
+                  <span class="pillar-name">
+                    3. Profitability & Margins
+                    <span class="jump-icon">↗</span>
+                  </span>
+                  <span class="pillar-edge">
+                    @if (getPillarWinner('profitability') === 'A') {
+                      <span class="winner-tag cyan">🏆 {{ data.stockA.symbol }} (Higher Returns)</span>
+                    } @else if (getPillarWinner('profitability') === 'B') {
+                      <span class="winner-tag rose">🏆 {{ data.stockB.symbol }} (Higher Returns)</span>
+                    } @else {
+                      <span class="winner-tag tie">Comparable Efficiency</span>
+                    }
+                  </span>
+                </div>
+                <div class="pillar-meter-track">
+                  <div class="meter-bar cyan" [style.width.%]="getPillarScore('profitability', true)"></div>
+                  <div class="meter-bar rose" [style.width.%]="getPillarScore('profitability', false)"></div>
+                </div>
+                <div class="pillar-foot-vals">
+                  <span class="val-cyan">{{ data.stockA.symbol }} Factor Score: {{ getPillarScore('profitability', true) }}/100</span>
+                  <span class="val-rose">{{ data.stockB.symbol }} Factor Score: {{ getPillarScore('profitability', false) }}/100</span>
+                </div>
+              </div>
+
+              <!-- Pillar 4: Quarterly Growth Momentum -->
+              <div
+                class="pillar-card is-interactive"
+                [class.active-tab]="activeChartTab() === 'growth'"
+                [class.winner-a]="getPillarWinner('growth') === 'A'"
+                [class.winner-b]="getPillarWinner('growth') === 'B'"
+                (click)="setActiveChartTab('growth')"
+                title="Click to view Quarterly Growth chart"
+              >
+                <div class="pillar-meta">
+                  <span class="pillar-name">
+                    4. Quarterly Growth Momentum
+                    <span class="jump-icon">↗</span>
+                  </span>
+                  <span class="pillar-edge">
+                    @if (getPillarWinner('growth') === 'A') {
+                      <span class="winner-tag cyan">🏆 {{ data.stockA.symbol }} (Faster Growth)</span>
+                    } @else if (getPillarWinner('growth') === 'B') {
+                      <span class="winner-tag rose">🏆 {{ data.stockB.symbol }} (Faster Growth)</span>
+                    } @else {
+                      <span class="winner-tag tie">Similar Momentum</span>
+                    }
+                  </span>
+                </div>
+                <div class="pillar-meter-track">
+                  <div class="meter-bar cyan" [style.width.%]="getPillarScore('growth', true)"></div>
+                  <div class="meter-bar rose" [style.width.%]="getPillarScore('growth', false)"></div>
+                </div>
+                <div class="pillar-foot-vals">
+                  <span class="val-cyan">{{ data.stockA.symbol }} Factor Score: {{ getPillarScore('growth', true) }}/100</span>
+                  <span class="val-rose">{{ data.stockB.symbol }} Factor Score: {{ getPillarScore('growth', false) }}/100</span>
+                </div>
+              </div>
+
+              <!-- Pillar 5: Institutional Trust -->
+              <div
+                class="pillar-card is-interactive"
+                [class.active-tab]="activeChartTab() === 'shareholding'"
+                [class.winner-a]="getPillarWinner('ownership') === 'A'"
+                [class.winner-b]="getPillarWinner('ownership') === 'B'"
+                (click)="setActiveChartTab('shareholding')"
+                title="Click to view Shareholding Distribution chart"
+              >
+                <div class="pillar-meta">
+                  <span class="pillar-name">
+                    5. Institutional Trust
+                    <span class="jump-icon">↗</span>
+                  </span>
+                  <span class="pillar-edge">
+                    @if (getPillarWinner('ownership') === 'A') {
+                      <span class="winner-tag cyan">🏆 {{ data.stockA.symbol }} (Higher Confidence)</span>
+                    } @else if (getPillarWinner('ownership') === 'B') {
+                      <span class="winner-tag rose">🏆 {{ data.stockB.symbol }} (Higher Confidence)</span>
+                    } @else {
+                      <span class="winner-tag tie">Equal Backing</span>
+                    }
+                  </span>
+                </div>
+                <div class="pillar-meter-track">
+                  <div class="meter-bar cyan" [style.width.%]="getPillarScore('ownership', true)"></div>
+                  <div class="meter-bar rose" [style.width.%]="getPillarScore('ownership', false)"></div>
+                </div>
+                <div class="pillar-foot-vals">
+                  <span class="val-cyan">{{ data.stockA.symbol }} Factor Score: {{ getPillarScore('ownership', true) }}/100</span>
+                  <span class="val-rose">{{ data.stockB.symbol }} Factor Score: {{ getPillarScore('ownership', false) }}/100</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3.2 Interactive Tabbed Fundamental Hub (Option B) -->
+        <section class="section-card tabbed-fundamental-hub">
+          <div class="hub-header-bar">
+            <div class="hub-title-group">
+              <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <div>
+                <h3 class="card-section-title">Fundamental Dimension Hub</h3>
+                <span class="chart-tagline">Single compact workspace: select any dimension to inspect its exact visual chart</span>
+              </div>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="hub-nav-tabs">
+              <button
+                type="button"
+                class="btn-hub-tab"
+                [class.active]="activeChartTab() === 'valuation'"
+                (click)="setActiveChartTab('valuation')"
+              >
+                <span class="tab-icon">💰</span>
+                <span class="tab-name">Valuation</span>
+                @let peAdvTab = getAdvantage(data.stockA.peRatio, data.stockB.peRatio, false, 'ratio', data.stockA.symbol, data.stockB.symbol);
+                @if (peAdvTab.winner === 'A' || peAdvTab.winner === 'B') {
+                  <span class="tab-mini-badge" [ngClass]="peAdvTab.badgeClass">{{ peAdvTab.winner === 'A' ? data.stockA.symbol : data.stockB.symbol }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="btn-hub-tab"
+                [class.active]="activeChartTab() === 'profitability'"
+                (click)="setActiveChartTab('profitability')"
+              >
+                <span class="tab-icon">📈</span>
+                <span class="tab-name">Profitability</span>
+                @let roeAdvTab = getAdvantage(data.stockA.roe, data.stockB.roe, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                @if (roeAdvTab.winner === 'A' || roeAdvTab.winner === 'B') {
+                  <span class="tab-mini-badge" [ngClass]="roeAdvTab.badgeClass">{{ roeAdvTab.winner === 'A' ? data.stockA.symbol : data.stockB.symbol }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="btn-hub-tab"
+                [class.active]="activeChartTab() === 'growth'"
+                (click)="setActiveChartTab('growth')"
+              >
+                <span class="tab-icon">🚀</span>
+                <span class="tab-name">Growth</span>
+                @let sYoYAdvTab = getAdvantage(data.stockA.salesQuarterlyGrowthYoY, data.stockB.salesQuarterlyGrowthYoY, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                @if (sYoYAdvTab.winner === 'A' || sYoYAdvTab.winner === 'B') {
+                  <span class="tab-mini-badge" [ngClass]="sYoYAdvTab.badgeClass">{{ sYoYAdvTab.winner === 'A' ? data.stockA.symbol : data.stockB.symbol }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="btn-hub-tab"
+                [class.active]="activeChartTab() === 'shareholding'"
+                (click)="setActiveChartTab('shareholding')"
+              >
+                <span class="tab-icon">🏛️</span>
+                <span class="tab-name">Shareholding</span>
+                @let fiiAdvTab = getAdvantage(data.stockA.fiiHolding, data.stockB.fiiHolding, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                @if (fiiAdvTab.winner === 'A' || fiiAdvTab.winner === 'B') {
+                  <span class="tab-mini-badge" [ngClass]="fiiAdvTab.badgeClass">{{ fiiAdvTab.winner === 'A' ? data.stockA.symbol : data.stockB.symbol }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="btn-hub-tab"
+                [class.active]="activeChartTab() === 'pros-cons'"
+                (click)="setActiveChartTab('pros-cons')"
+              >
+                <span class="tab-icon">⚖️</span>
+                <span class="tab-name">Strengths & Risks</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Tab Content Area (Only 1 shown at a time) -->
+          <div class="hub-tab-panel">
+            <!-- 1. Valuation Tab -->
+            @if (activeChartTab() === 'valuation') {
+              <div class="panel-content-wrap">
+                <div class="panel-meta-bar">
+                  <div class="meta-left">
+                    <span class="panel-badge-pill">VALUATION & MULTIPLES</span>
+                    <span class="panel-sub">Price to Earnings (P/E), Price to Book (P/B), and Dividend Yield (%) — lower multiple indicates value discount</span>
+                  </div>
+                  @let peAdv = getAdvantage(data.stockA.peRatio, data.stockB.peRatio, false, 'ratio', data.stockA.symbol, data.stockB.symbol);
+                  @if (peAdv.winner === 'A' || peAdv.winner === 'B') {
+                    <span class="pill-winner" [ngClass]="peAdv.badgeClass">🏆 Valuation Advantage: {{ peAdv.label }}</span>
+                  }
+                </div>
+
+                <highcharts-chart
+                  [options]="valuationChartOptions"
+                  [(update)]="chartsUpdateFlag"
+                  [oneToOne]="true"
+                  style="width: 100%; height: 320px; display: block;"
+                ></highcharts-chart>
+
+                <!-- Market Capitalization Relative Scale Bar -->
+                <div class="mcap-compare-box">
+                  <div class="mcap-label-row">
+                    <span class="mcap-tag-title">Market Capitalization Scale</span>
+                    @let mcAdv = getAdvantage(data.stockA.marketCap, data.stockB.marketCap, true, 'multiple', data.stockA.symbol, data.stockB.symbol);
+                    @if (mcAdv.winner === 'A' || mcAdv.winner === 'B') {
+                      <span class="mcap-win-tag" [ngClass]="mcAdv.badgeClass">🏆 {{ mcAdv.label }}</span>
+                    }
+                  </div>
+                  <div class="mcap-dual-track">
+                    <div class="mcap-fill cyan" [style.width.%]="getMcapBarWidth(data.stockA.marketCap, data.stockB.marketCap, true)">
+                      <span class="mcap-fill-text">{{ data.stockA.symbol }}: {{ formatCr(data.stockA.marketCap) }}</span>
+                    </div>
+                  </div>
+                  <div class="mcap-dual-track">
+                    <div class="mcap-fill rose" [style.width.%]="getMcapBarWidth(data.stockA.marketCap, data.stockB.marketCap, false)">
+                      <span class="mcap-fill-text">{{ data.stockB.symbol }}: {{ formatCr(data.stockB.marketCap) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- 2. Profitability Tab -->
+            @if (activeChartTab() === 'profitability') {
+              <div class="panel-content-wrap">
+                <div class="panel-meta-bar">
+                  <div class="meta-left">
+                    <span class="panel-badge-pill">PROFITABILITY & CAPITAL EFFICIENCY</span>
+                    <span class="panel-sub">Comparing Return on Equity (ROE), Capital Employed (ROCE), and Operating Profit Margin (OPM)</span>
+                  </div>
+                  @let roeAdv = getAdvantage(data.stockA.roe, data.stockB.roe, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                  @if (roeAdv.winner === 'A' || roeAdv.winner === 'B') {
+                    <span class="pill-winner" [ngClass]="roeAdv.badgeClass">🏆 Profitability Advantage: {{ roeAdv.label }}</span>
+                  }
+                </div>
+
+                <highcharts-chart
+                  [options]="profitabilityChartOptions"
+                  [(update)]="chartsUpdateFlag"
+                  [oneToOne]="true"
+                  style="width: 100%; height: 320px; display: block;"
+                ></highcharts-chart>
+              </div>
+            }
+
+            <!-- 3. Growth Tab -->
+            @if (activeChartTab() === 'growth') {
+              <div class="panel-content-wrap">
+                <div class="panel-meta-bar">
+                  <div class="meta-left">
+                    <span class="panel-badge-pill">QUARTERLY GROWTH MOMENTUM</span>
+                    <span class="panel-sub">Annual YoY and sequential QoQ revenue and net profit expansion momentum</span>
+                  </div>
+                  @let salesYoYAdv = getAdvantage(data.stockA.salesQuarterlyGrowthYoY, data.stockB.salesQuarterlyGrowthYoY, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                  @if (salesYoYAdv.winner === 'A' || salesYoYAdv.winner === 'B') {
+                    <span class="pill-winner" [ngClass]="salesYoYAdv.badgeClass">🏆 Growth Advantage: {{ salesYoYAdv.label }}</span>
+                  }
+                </div>
+
+                <highcharts-chart
+                  [options]="growthChartOptions"
+                  [(update)]="chartsUpdateFlag"
+                  [oneToOne]="true"
+                  style="width: 100%; height: 320px; display: block;"
+                ></highcharts-chart>
+              </div>
+            }
+
+            <!-- 4. Shareholding Tab -->
+            @if (activeChartTab() === 'shareholding') {
+              <div class="panel-content-wrap">
+                <div class="panel-meta-bar">
+                  <div class="meta-left">
+                    <span class="panel-badge-pill">SHAREHOLDING PATTERN</span>
+                    <span class="panel-sub">Institutional (Foreign FII & Domestic DII), Promoter, and Public ownership composition</span>
+                  </div>
+                  @let fiiAdv = getAdvantage(data.stockA.fiiHolding, data.stockB.fiiHolding, true, 'percent', data.stockA.symbol, data.stockB.symbol);
+                  @if (fiiAdv.winner === 'A' || fiiAdv.winner === 'B') {
+                    <span class="pill-winner" [ngClass]="fiiAdv.badgeClass">🏆 Institutional Advantage: {{ fiiAdv.label }}</span>
+                  }
+                </div>
+
+                <highcharts-chart
+                  [options]="shareholdingChartOptions"
+                  [(update)]="chartsUpdateFlag"
+                  [oneToOne]="true"
+                  style="width: 100%; height: 320px; display: block;"
+                ></highcharts-chart>
+              </div>
+            }
+
+            <!-- 5. Strengths & Risks Tab -->
+            @if (activeChartTab() === 'pros-cons') {
+              <div class="panel-content-wrap">
+                <div class="panel-meta-bar">
+                  <div class="meta-left">
+                    <span class="panel-badge-pill">STRENGTHS & RISKS PROFILE</span>
+                    <span class="panel-sub">Comparing qualitative strengths against identified financial & operational cautions</span>
+                  </div>
+                  <div class="balance-ratio-pill">
+                    <span class="cyan-pill">{{ data.stockA.symbol }}: {{ data.stockA.pros.length }} Pros / {{ data.stockA.cons.length }} Cons</span>
+                    <span class="rose-pill">{{ data.stockB.symbol }}: {{ data.stockB.pros.length }} Pros / {{ data.stockB.cons.length }} Cons</span>
+                  </div>
+                </div>
+
+                <div class="pros-cons-chart-split">
+                  <div class="pros-cons-graph-pane">
+                    <highcharts-chart
+                      [options]="prosConsChartOptions"
+                      [(update)]="chartsUpdateFlag"
+                      [oneToOne]="true"
+                      style="width: 100%; height: 280px; display: block;"
+                    ></highcharts-chart>
+                  </div>
+
+                  <!-- Complete Pros & Cons Lists -->
+                  <div class="pros-cons-quick-summary">
+                    <!-- Stock A Strengths & Cautions -->
+                    <div class="stock-highlights-col cyan-border">
+                      <div class="col-head">
+                        <span class="col-badge cyan">{{ data.stockA.symbol }} Profile</span>
+                      </div>
+                      <div class="pc-sub-group">
+                        <strong class="text-success mini-head">Key Strengths ({{ data.stockA.pros.length }})</strong>
+                        <ul class="mini-points-list">
+                          @for (pro of data.stockA.pros; track pro) {
+                            <li class="point-item pro">✓ {{ pro }}</li>
+                          }
+                          @if (data.stockA.pros.length === 0) {
+                            <li class="point-item empty">No key strengths flagged.</li>
+                          }
+                        </ul>
+                      </div>
+                      @if (data.stockA.cons.length > 0) {
+                        <div class="pc-sub-group" style="margin-top: 0.5rem;">
+                          <strong class="text-warning mini-head">Cautions ({{ data.stockA.cons.length }})</strong>
+                          <ul class="mini-points-list">
+                            @for (con of data.stockA.cons; track con) {
+                              <li class="point-item con">⚠️ {{ con }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Stock B Strengths & Cautions -->
+                    <div class="stock-highlights-col rose-border">
+                      <div class="col-head">
+                        <span class="col-badge rose">{{ data.stockB.symbol }} Profile</span>
+                      </div>
+                      <div class="pc-sub-group">
+                        <strong class="text-success mini-head">Key Strengths ({{ data.stockB.pros.length }})</strong>
+                        <ul class="mini-points-list">
+                          @for (pro of data.stockB.pros; track pro) {
+                            <li class="point-item pro">✓ {{ pro }}</li>
+                          }
+                          @if (data.stockB.pros.length === 0) {
+                            <li class="point-item empty">No key strengths flagged.</li>
+                          }
+                        </ul>
+                      </div>
+                      @if (data.stockB.cons.length > 0) {
+                        <div class="pc-sub-group" style="margin-top: 0.5rem;">
+                          <strong class="text-warning mini-head">Cautions ({{ data.stockB.cons.length }})</strong>
+                          <ul class="mini-points-list">
+                            @for (con of data.stockB.cons; track con) {
+                              <li class="point-item con">⚠️ {{ con }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+    }
+  </main>
+</div>

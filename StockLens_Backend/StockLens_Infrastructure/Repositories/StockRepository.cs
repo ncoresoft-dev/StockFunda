@@ -27,14 +27,19 @@ namespace StockLens_Infrastructure.Repositories
 
         public async Task<Stock?> GetBySymbolAsync(string symbol, string? exchange = null)
         {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+
+            var cleanSymbol = symbol.Trim().ToUpperInvariant();
+            var cleanExchange = exchange?.Trim().ToUpperInvariant();
+
             var query = _context.Stocks.Include(s => s.Company).AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(exchange))
+            if (!string.IsNullOrWhiteSpace(cleanExchange))
             {
-                return await query.FirstOrDefaultAsync(s => s.Symbol.ToLower() == symbol.ToLower() && s.Exchange.ToLower() == exchange.ToLower());
+                return await query.FirstOrDefaultAsync(s => s.Symbol == cleanSymbol && s.Exchange == cleanExchange);
             }
 
-            return await query.FirstOrDefaultAsync(s => s.Symbol.ToLower() == symbol.ToLower());
+            return await query.FirstOrDefaultAsync(s => s.Symbol == cleanSymbol);
         }
 
         public async Task<IEnumerable<Stock>> GetAllStocksAsync()
@@ -90,7 +95,8 @@ namespace StockLens_Infrastructure.Repositories
 
                 // Check if company exists in CompanyMaster
                 var existingCompany = await _context.CompanyMaster
-                    .FirstOrDefaultAsync(c => c.Symbol.ToLower() == cleanSymbol.ToLower(), cancellationToken);
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Symbol == cleanSymbol, cancellationToken);
 
                 var stock = new Stock
                 {

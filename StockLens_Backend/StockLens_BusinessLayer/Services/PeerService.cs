@@ -158,12 +158,7 @@ namespace StockLens_BusinessLayer.Services
                         fetchedFromBharatStock = true;
                         _logger.LogInformation("Successfully fetched {Count} peers from BharatStock for {Symbol} using sector '{Sector}'", resultList.Count, cleanSymbol, sec);
 
-                        // Save verified working sector back to CompanyMaster
-                        if (company != null && company.Sector != sec)
-                        {
-                            company.Sector = sec;
-                            await _companyRepository.SaveOrUpdateCompanyAsync(company);
-                        }
+                        // Sector is managed exclusively by companies.json (Single Source of Truth) - do not overwrite
 
                         break;
                     }

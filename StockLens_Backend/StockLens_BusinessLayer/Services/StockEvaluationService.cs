@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using StockLens_BusinessLayer.DTOs;
 using StockLens_BusinessLayer.Enums;
 using StockLens_BusinessLayer.Interfaces;
@@ -21,6 +22,7 @@ namespace StockLens_BusinessLayer.Services
         private readonly IStockPriceHistoryService _priceHistoryService;
         private readonly IFinancialProvider _financialProvider;
         private readonly ICompanyRepository _companyRepository;
+        private readonly IMemoryCache _cache;
 
         public StockEvaluationService(
             IStockCashflowService cashflowService,
@@ -29,7 +31,8 @@ namespace StockLens_BusinessLayer.Services
             IStockBalanceSheetService balanceSheetService,
             IStockPriceHistoryService priceHistoryService,
             IFinancialProvider financialProvider,
-            ICompanyRepository companyRepository)
+            ICompanyRepository companyRepository,
+            IMemoryCache cache)
         {
             _cashflowService = cashflowService;
             _quartersService = quartersService;
@@ -38,6 +41,7 @@ namespace StockLens_BusinessLayer.Services
             _priceHistoryService = priceHistoryService;
             _financialProvider = financialProvider;
             _companyRepository = companyRepository;
+            _cache = cache;
         }
 
         private static class MetricNames
@@ -165,6 +169,12 @@ namespace StockLens_BusinessLayer.Services
                     SummaryText = "Invalid or empty symbol provided.",
                     DataConfidence = "Inconclusive"
                 };
+            }
+
+            var cacheKey = $"StockEval_{cleanSymbol}_{cleanExchange}";
+            if (!refresh && _cache != null && _cache.TryGetValue(cacheKey, out StockHealthScoreDto? cachedEval) && cachedEval != null)
+            {
+                return cachedEval;
             }
 
             var companyData = await FetchSafeAsync(() => _companyRepository.GetCompanyBySymbolAsync(cleanSymbol));
@@ -411,6 +421,11 @@ namespace StockLens_BusinessLayer.Services
                     result.SignalClass = "badge-danger";
                     result.SummaryText = "Elevated risk profile due to weak cash flow, excessive leverage, or negative earnings momentum.";
                 }
+            }
+
+            if (_cache != null && result.DataConfidence != "Inconclusive")
+            {
+                _cache.Set(cacheKey, result, TimeSpan.FromMinutes(15));
             }
 
             return result;

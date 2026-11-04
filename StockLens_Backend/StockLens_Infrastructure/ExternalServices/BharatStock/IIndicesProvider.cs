@@ -8,5 +8,7 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
     public interface IIndicesProvider
     {
         Task<System.Text.Json.JsonElement> GetTop50CompaniesAsync(CancellationToken cancellationToken = default);
+        Task<System.Text.Json.JsonElement> GetIndexCompaniesAsync(string indexName, CancellationToken cancellationToken = default);
+        Task<List<BharatStockIndexModel>> GetIndicesAsync(string? category = null, CancellationToken cancellationToken = default);
     }
 }

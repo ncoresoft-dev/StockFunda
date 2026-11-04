@@ -3410,9 +3410,15 @@ app-header {
 }
 
 :host-context(.light-theme) .mini-delta,
-:host-context([data-theme="light"]) .mini-delta {
-  font-weight: 800 !important;
+:host-context([data-theme="light"]) .mini-delta,
+:host-context(.light-theme) .qr-mini-delta,
+:host-context([data-theme="light"]) .qr-mini-delta {
+  font-weight: 700 !important;
+  font-size: 0.68rem !important;
 }
+
+
+
 
 :host-context(.light-theme) .delta-tag,
 :host-context([data-theme="light"]) .delta-tag {
@@ -4125,9 +4131,90 @@ app-header {
 }
 
 .ratio-val-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.qr-mini-delta,
+.mini-delta {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.cockpit-container.dark-theme .qr-mini-delta,
+.cockpit-container.dark-theme .mini-delta,
+:host-context(.dark-theme) .qr-mini-delta,
+:host-context(.dark-theme) .mini-delta {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.qr-mini-delta.positive,
+.mini-delta.positive {
+  color: #16a34a;
+  background: #dcfce7;
+}
+
+.qr-mini-delta.negative,
+.mini-delta.negative {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.cockpit-container.dark-theme .qr-mini-delta.positive,
+.cockpit-container.dark-theme .mini-delta.positive,
+:host-context(.dark-theme) .qr-mini-delta.positive,
+:host-context(.dark-theme) .mini-delta.positive {
+  color: #34d399 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.cockpit-container.dark-theme .qr-mini-delta.negative,
+.cockpit-container.dark-theme .mini-delta.negative,
+:host-context(.dark-theme) .qr-mini-delta.negative,
+:host-context(.dark-theme) .mini-delta.negative {
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+
+.cockpit-container.light-theme .qr-mini-delta.positive,
+.cockpit-container.light-theme .mini-delta.positive,
+:host-context(.light-theme) .qr-mini-delta.positive,
+:host-context([data-theme="light"]) .qr-mini-delta.positive,
+:host-context(.light-theme) .mini-delta.positive,
+:host-context([data-theme="light"]) .mini-delta.positive {
+  color: #16a34a !important;
+  background: #dcfce7 !important;
+}
+
+.cockpit-container.light-theme .qr-mini-delta.negative,
+.cockpit-container.light-theme .mini-delta.negative,
+:host-context(.light-theme) .qr-mini-delta.negative,
+:host-context([data-theme="light"]) .qr-mini-delta.negative,
+:host-context(.light-theme) .mini-delta.negative,
+:host-context([data-theme="light"]) .mini-delta.negative {
+  color: #dc2626 !important;
+  background: #fee2e2 !important;
+}
+
+.cockpit-container.light-theme .qr-mini-delta.neutral,
+.cockpit-container.light-theme .mini-delta.neutral,
+:host-context(.light-theme) .qr-mini-delta.neutral,
+:host-context([data-theme="light"]) .qr-mini-delta.neutral,
+:host-context(.light-theme) .mini-delta.neutral,
+:host-context([data-theme="light"]) .mini-delta.neutral {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
 }
 
 /* Screener About Side Box */

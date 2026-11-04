@@ -30,7 +30,10 @@ builder.Services.AddSwaggerGen();
 // Configure Database Context
 builder.Services.AddDbContext<StockLensDataContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("StockLensConnString"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("StockLensConnString"), sqlOptions =>
+    {
+        sqlOptions.CommandTimeout(60);
+    });
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
@@ -137,6 +140,8 @@ builder.Services.AddScoped<IMarketIndicesService, MarketIndicesService>();
 builder.Services.AddScoped<IStockAnnualReportService, StockAnnualReportService>();
 builder.Services.AddScoped<IMarketTickerService, MarketTickerService>();
 builder.Services.AddScoped<IExploreLensService, ExploreLensService>();
+builder.Services.AddScoped<IStockComparisonService, StockComparisonService>();
+builder.Services.AddScoped<ISectorAnalysisService, SectorAnalysisService>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());

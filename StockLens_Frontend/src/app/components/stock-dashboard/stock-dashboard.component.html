@@ -361,7 +361,7 @@
                 <div class="ratio-val-row">
                   @if (getRoceYoY(); as roceY) {
                   <span class="qr-mini-delta" [ngClass]="getChangeClass(roceY)" [title]="getRoceTooltip()">
-                    {{ getArrow(roceY) }}{{ formatPercent(roceY) }}
+                    {{ getArrow(roceY) }} {{ formatPercent(roceY) }}
                   </span>
                   }
                   <span class="ratio-val">{{ getRoceFormatted() }}</span>
@@ -376,7 +376,7 @@
                 <div class="ratio-val-row">
                   @if (getRoeYoY(); as roeY) {
                   <span class="qr-mini-delta" [ngClass]="getChangeClass(roeY)" [title]="getRoeTooltip()">
-                    {{ getArrow(roeY) }}{{ formatPercent(roeY) }}
+                    {{ getArrow(roeY) }} {{ formatPercent(roeY) }}
                   </span>
                   }
                   <span class="ratio-val">{{ getRoeFormatted() }}</span>

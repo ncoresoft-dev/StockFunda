@@ -25,6 +25,16 @@ export const routes: Routes = [
     title: 'Stock Details — StockLens'
   },
   {
+    path: 'compare',
+    loadComponent: () => import('./components/stock-comparison/stock-comparison.component').then(m => m.StockComparisonComponent),
+    title: 'Stock Comparison Matrix — StockLens'
+  },
+  {
+    path: 'sectors',
+    loadComponent: () => import('./components/sector-analysis/sector-analysis.component').then(m => m.SectorAnalysisComponent),
+    title: 'Sector Analysis & Heatmap — StockLens'
+  },
+  {
     path: 'annual-reports',
     loadComponent: () => import('./components/annual-reports-list/annual-reports-list.component').then(m => m.AnnualReportsListComponent),
     title: 'Companies with Annual Reports — StockLens'

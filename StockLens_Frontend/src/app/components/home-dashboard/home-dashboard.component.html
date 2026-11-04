@@ -334,69 +334,294 @@
   </section>
 
   <!-- ========================================================================= -->
-  <!-- NIFTY 50 Market Cap Map (Matching User Reference Screenshot)              -->
+  <!-- NIFTY 50 Market Cap Heatmap                                               -->
   <!-- ========================================================================= -->
   <section class="nifty-map-section">
     <!-- White Container Card -->
     <div class="nifty-map-card">
-      <!-- Header inside white box: Green Square Badge + Title on Left, "Full view ->" on Right -->
+      <!-- Header inside white box: Green Square Badge + Title on Left, Full view on Right -->
       <div class="nifty-map-header-row">
         <div class="nifty-map-title-group">
           <span class="nifty-map-square-badge" aria-hidden="true"></span>
-          <h2 class="nifty-map-section-title">Nifty 50 market cap map</h2>
+          <h2 class="nifty-map-section-title">Nifty 50 Heatmap</h2>
         </div>
-        <button type="button" class="nifty-map-full-view-btn" (click)="navigateToNifty50()" title="Open full NIFTY 50 directory">
-          Full view <span class="arrow">→</span>
-        </button>
-      </div>
 
-      <!-- Loading Skeleton Placeholder -->
-      <div class="nifty-map-loading" *ngIf="isLoadingNiftyMap() && niftyMapItems().length === 0">
-        <div class="map-row skeleton">
-          <div class="map-tile-skeleton" *ngFor="let i of [1, 2, 3, 4, 5, 6]"></div>
-        </div>
-        <div class="map-row skeleton">
-          <div class="map-tile-skeleton wide" *ngFor="let i of [1, 2]"></div>
+        <!-- Heatmap Controls Toolbar -->
+        <div class="heatmap-toolbar">
+          <!-- Full View Link Button -->
+          <button type="button" class="nifty-map-full-view-btn" (click)="navigateToNifty50()" title="Open full NIFTY 50 directory">
+            Full view <span class="arrow">→</span>
+          </button>
         </div>
       </div>
 
-      <!-- Live Dynamic Market Cap Tiles Map -->
-      <div class="nifty-map-tiles-container" *ngIf="niftyMapItems().length > 0">
-        <!-- Row 1: Top 6 by Market Cap -->
-        <div class="nifty-map-row row-1" *ngIf="niftyMapRow1().length > 0">
+      <!-- Quick Metrics Overview Strip -->
+      <div class="heatmap-stats-strip">
+        <div class="stat-pill">
+          <span class="stat-label">Combined Market Cap</span>
+          <span class="stat-val font-bold">{{ heatmapStats().totalMarketCapFormatted }}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Index Movers</span>
+          <span class="stat-val">{{ heatmapStats().stockCount }} Companies</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Market Breadth</span>
+          <span class="stat-val breadth">
+            <span class="pos-text">▲ {{ heatmapStats().advances }} Advances</span>
+            <span class="neg-text">▼ {{ heatmapStats().declines }} Declines</span>
+          </span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Top Weight</span>
+          <span class="stat-val">{{ heatmapStats().topStockSymbol }} ({{ heatmapStats().topStockWeight }})</span>
+        </div>
+      </div>
+
+      <!-- Pure Nifty 50 Companies Heatmap Canvas Stage -->
+      <div class="heatmap-canvas-wrapper" (mouseleave)="onHeatmapTileLeave()">
+        <!-- Loading Skeleton -->
+        <div class="heatmap-skeleton-grid" *ngIf="isLoadingNiftyMap() && enrichedHeatmapStocks().length === 0">
+          <div class="skeleton-tile-box s1"></div>
+          <div class="skeleton-tile-box s2"></div>
+          <div class="skeleton-tile-box s3"></div>
+          <div class="skeleton-tile-box s4"></div>
+          <div class="skeleton-tile-box s5"></div>
+        </div>
+
+        <!-- All 50 Nifty Companies Direct Heatmap Grid (Area = Market Cap) -->
+        <div class="heatmap-grid direct-nifty50-grid" *ngIf="enrichedHeatmapStocks().length > 0">
           <div 
-            *ngFor="let item of niftyMapRow1()" 
-            class="nifty-map-tile"
-            [style.background-color]="item.bg"
-            [style.color]="item.textColor"
-            [style.flex-grow]="item.flexWeight"
-            (click)="goToStock(item.symbol)"
-            [title]="'View ' + item.name + ' (' + item.symbol + ' - ' + item.sector + ')'"
+            *ngFor="let tile of heatmapUnifiedTiles(); trackBy: trackBySymbol" 
+            class="heatmap-stock-tile"
+            [class.hero]="tile.sizeTier === 'hero'"
+            [class.large]="tile.sizeTier === 'large'"
+            [class.medium]="tile.sizeTier === 'medium'"
+            [class.small]="tile.sizeTier === 'small'"
+            [class.micro]="tile.sizeTier === 'micro'"
+            [class.is-narrow]="tile.isNarrow"
+            [class.is-short]="tile.isShort"
+            [class.is-hovered]="hoveredTile()?.symbol === tile.symbol"
+            [style.left.%]="tile.leftPct"
+            [style.top.%]="tile.topPct"
+            [style.width.%]="tile.widthPct"
+            [style.height.%]="tile.heightPct"
+            [style.background-color]="tile.bgColor"
+            [style.color]="tile.textColor"
+            [style.border-color]="tile.borderColor"
+            (mouseenter)="onHeatmapTileEnter(tile, $event)"
+            (click)="onHeatmapTileClick(tile)"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="tile.symbol + ', ' + tile.formattedMarketCap + ', ' + tile.formattedChange"
           >
-            <span class="map-tile-symbol">{{ item.symbol }}</span>
-            <span class="map-tile-val">{{ item.formattedLakhCr }}</span>
+            <div class="tile-inner-wrap" [ngSwitch]="tile.sizeTier">
+              <!-- Hero Tile Content (Top Index Giants) -->
+              <ng-container *ngSwitchCase="'hero'">
+                <!-- Wide / Standard Header Row -->
+                <div class="tile-top-row" *ngIf="!tile.isNarrow">
+                  <div class="tile-brand">
+                    <div class="tile-mini-logo-box" [class.mini]="tile.isShort" *ngIf="tile.logoUrl && !failedLogos()[tile.symbol]">
+                      <img [src]="tile.logoUrl" [alt]="tile.symbol" class="tile-mini-logo" (error)="onLogoError(tile.symbol)" />
+                    </div>
+                    <div class="tile-name-stack">
+                      <span class="tile-symbol-text">{{ tile.symbol }}</span>
+                      <span class="tile-company-name">{{ tile.name }}</span>
+                    </div>
+                  </div>
+                  <div class="tile-top-badges">
+                    <span class="tile-sector-badge">{{ tile.sector }}</span>
+                    <span class="tile-change-pill" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                      {{ tile.formattedChange }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Narrow / Vertical Tile Header Stack (LICI, INFY) -->
+                <div class="tile-narrow-header" *ngIf="tile.isNarrow">
+                  <div class="tile-top-row narrow">
+                    <div class="tile-brand">
+                      <div class="tile-mini-logo-box" *ngIf="tile.logoUrl && !failedLogos()[tile.symbol]">
+                        <img [src]="tile.logoUrl" [alt]="tile.symbol" class="tile-mini-logo" (error)="onLogoError(tile.symbol)" />
+                      </div>
+                      <span class="tile-symbol-text narrow">{{ tile.symbol }}</span>
+                    </div>
+                    <span class="tile-change-pill" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                      {{ tile.formattedChange }}
+                    </span>
+                  </div>
+                  <span class="tile-company-name narrow">{{ tile.name }}</span>
+                  <div class="tile-narrow-sector-row">
+                    <span class="tile-sector-badge narrow">{{ tile.sector }}</span>
+                  </div>
+                </div>
+
+                <!-- Bottom Row: 3 Metrics (M-Cap, CMP, Weight) -->
+                <div class="tile-bottom-row" [class.narrow]="tile.isNarrow" [class.short]="tile.isShort">
+                  <div class="tile-metric-box">
+                    <span class="tile-metric-label">M-Cap</span>
+                    <span class="tile-mcap-val">{{ tile.formattedMarketCap }}</span>
+                  </div>
+                  <div class="tile-metric-box" *ngIf="tile.price > 0">
+                    <span class="tile-metric-label">CMP</span>
+                    <span class="tile-price-val">{{ tile.formattedPrice }}</span>
+                  </div>
+                  <div class="tile-metric-box weight-box">
+                    <span class="tile-metric-label">Weight</span>
+                    <span class="tile-weight-val">{{ tile.weightPercent.toFixed(1) }}%</span>
+                  </div>
+                </div>
+              </ng-container>
+
+              <!-- Large Tile Content (Index Heavyweights) -->
+              <ng-container *ngSwitchCase="'large'">
+                <!-- Wide Header -->
+                <div class="tile-top-row" *ngIf="!tile.isNarrow">
+                  <div class="tile-brand">
+                    <div class="tile-mini-logo-box mini" *ngIf="tile.logoUrl && !failedLogos()[tile.symbol]">
+                      <img [src]="tile.logoUrl" [alt]="tile.symbol" class="tile-mini-logo" (error)="onLogoError(tile.symbol)" />
+                    </div>
+                    <div class="tile-name-stack">
+                      <span class="tile-symbol-text">{{ tile.symbol }}</span>
+                      <span class="tile-company-name">{{ tile.name }}</span>
+                    </div>
+                  </div>
+                  <div class="tile-top-badges">
+                    <span class="tile-sector-badge">{{ tile.sector }}</span>
+                    <span class="tile-change-pill" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                      {{ tile.formattedChange }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Narrow Header -->
+                <div class="tile-narrow-header" *ngIf="tile.isNarrow">
+                  <div class="tile-top-row narrow">
+                    <div class="tile-brand">
+                      <div class="tile-mini-logo-box mini" *ngIf="tile.logoUrl && !failedLogos()[tile.symbol]">
+                        <img [src]="tile.logoUrl" [alt]="tile.symbol" class="tile-mini-logo" (error)="onLogoError(tile.symbol)" />
+                      </div>
+                      <span class="tile-symbol-text narrow">{{ tile.symbol }}</span>
+                    </div>
+                    <span class="tile-change-pill mini" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                      {{ tile.formattedChange }}
+                    </span>
+                  </div>
+                  <span class="tile-company-name narrow">{{ tile.name }}</span>
+                  <div class="tile-narrow-sector-row">
+                    <span class="tile-sector-badge narrow">{{ tile.sector }}</span>
+                  </div>
+                </div>
+
+                <!-- Bottom Row -->
+                <div class="tile-bottom-row short" [class.narrow]="tile.isNarrow">
+                  <div class="tile-metric-box">
+                    <span class="tile-metric-label">M-Cap</span>
+                    <span class="tile-mcap-val">{{ tile.formattedMarketCap }}</span>
+                  </div>
+                  <div class="tile-metric-box" *ngIf="tile.price > 0">
+                    <span class="tile-metric-label">CMP</span>
+                    <span class="tile-price-val">{{ tile.formattedPrice }}</span>
+                  </div>
+                  <div class="tile-metric-box weight-box">
+                    <span class="tile-metric-label">Weight</span>
+                    <span class="tile-weight-val">{{ tile.weightPercent.toFixed(1) }}%</span>
+                  </div>
+                </div>
+              </ng-container>
+
+              <!-- Medium Tile Content (Mid-Cap Constituents) -->
+              <ng-container *ngSwitchCase="'medium'">
+                <div class="tile-compact-col">
+                  <div class="tile-symbol-change-row">
+                    <span class="tile-symbol-text bold">{{ tile.symbol }}</span>
+                    <span class="tile-change-pill mini" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                      {{ tile.formattedChange }}
+                    </span>
+                  </div>
+                  <div class="tile-compact-bottom">
+                    <span class="tile-mcap-val compact">{{ tile.formattedMarketCap }}</span>
+                    <span class="tile-price-val compact" *ngIf="tile.price > 0">{{ tile.formattedPrice }}</span>
+                  </div>
+                </div>
+              </ng-container>
+
+              <!-- Small Tile Content (Smaller Constituents) -->
+              <ng-container *ngSwitchCase="'small'">
+                <div class="tile-small-col">
+                  <span class="tile-symbol-text small">{{ tile.symbol }}</span>
+                  <span class="tile-change-pill micro" [style.background]="tile.badgeBg" [style.color]="tile.badgeColor">
+                    {{ tile.formattedChange }}
+                  </span>
+                </div>
+              </ng-container>
+
+              <!-- Micro Tile Content (Narrowest Constituents) -->
+              <ng-container *ngSwitchDefault>
+                <div class="tile-micro-box">
+                  <span class="tile-symbol-text micro">{{ tile.symbol }}</span>
+                </div>
+              </ng-container>
+            </div>
           </div>
         </div>
 
-        <!-- Row 2: Next 2 by Market Cap (e.g. BAJFINANCE, LT) -->
-        <div class="nifty-map-row row-2" *ngIf="niftyMapRow2().length > 0">
-          <div 
-            *ngFor="let item of niftyMapRow2()" 
-            class="nifty-map-tile"
-            [style.background-color]="item.bg"
-            [style.color]="item.textColor"
-            [style.flex-grow]="item.flexWeight"
-            (click)="goToStock(item.symbol)"
-            [title]="'View ' + item.name + ' (' + item.symbol + ' - ' + item.sector + ')'"
-          >
-            <span class="map-tile-symbol">{{ item.symbol }}</span>
-            <span class="map-tile-val">{{ item.formattedLakhCr }}</span>
+        <!-- Dynamic Interactive Floating Tooltip -->
+        <div 
+          *ngIf="hoveredTile() as tile" 
+          class="heatmap-floating-tooltip"
+          [style.left.px]="hoverTooltipPos()?.x"
+          [style.top.px]="hoverTooltipPos()?.y"
+        >
+          <div class="tooltip-header">
+            <div class="tooltip-logo-box" *ngIf="tile.logoUrl && !failedLogos()[tile.symbol]">
+              <img [src]="tile.logoUrl" [alt]="tile.symbol" class="tooltip-logo-img" (error)="onLogoError(tile.symbol)" />
+            </div>
+            <div class="tooltip-title-group">
+              <span class="tooltip-sym">{{ tile.symbol }}</span>
+              <span class="tooltip-name">{{ tile.name }}</span>
+            </div>
+            <span class="tooltip-sector-badge">{{ tile.sector }}</span>
+          </div>
+          <div class="tooltip-body">
+            <div class="tooltip-row">
+              <span class="label">CMP (Price):</span>
+              <span class="val font-semibold">{{ tile.formattedPrice }}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="label">Day Change:</span>
+              <span class="val change" [class.pos]="tile.isPositive" [class.neg]="!tile.isPositive">
+                {{ tile.formattedChange }}
+              </span>
+            </div>
+            <div class="tooltip-row">
+              <span class="label">Market Cap:</span>
+              <span class="val font-semibold">{{ tile.formattedMarketCap }} <span class="sub-val">({{ tile.formattedMarketCapCr }})</span></span>
+            </div>
+            <div class="tooltip-row">
+              <span class="label">Index Weight:</span>
+              <span class="val font-semibold">{{ tile.weightPercent.toFixed(2) }}%</span>
+            </div>
+          </div>
+          <div class="tooltip-footer">
+            <span>Click to inspect fundamentals →</span>
           </div>
         </div>
       </div>
 
-      <!-- Caption Note at Bottom of Card -->
-      <div class="map-caption-note">Box size = market cap · color = sector</div>
+      <!-- Heatmap Footer: Market Cap Density Legend & Caption -->
+      <div class="heatmap-footer-bar">
+        <!-- Market Cap Color Legend -->
+        <div class="heatmap-legend">
+          <span class="legend-title">Market Cap:</span>
+          <div class="mcap-legend-scale">
+            <span class="mcap-step s1">&lt; ₹3 L Cr</span>
+            <span class="mcap-step s2">₹5 L Cr</span>
+            <span class="mcap-step s3">₹8 L Cr</span>
+            <span class="mcap-step s4">&gt; ₹14 L Cr</span>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -481,7 +706,6 @@
           <button 
             type="button" 
             class="stock-star-btn" 
-            [class.starred]="isStarred(item.symbol)"
             (click)="toggleStar(item, $event)"
             [attr.aria-label]="isStarred(item.symbol) ? 'Remove from watchlist' : 'Add to watchlist'"
             [title]="isStarred(item.symbol) ? 'Remove ' + item.symbol + ' from watchlist' : 'Add ' + item.symbol + ' to watchlist'"

@@ -58,6 +58,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   // Right Section Nav Action Toggles
   @Input() showAnnualReports: boolean = true;
+  @Input() showSectors: boolean = true;
+  @Input() showCompare: boolean = true;
   @Input() showWatchlist: boolean = true;
   @Input() showAdminBell: boolean = true;
 
@@ -260,6 +262,22 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   navigateToAnnualReports(): void {
     this.router.navigate(['/annual-reports']);
+  }
+
+  navigateToSectors(): void {
+    this.router.navigate(['/sectors']);
+  }
+
+  isSectorsActive(): boolean {
+    return this.router.url.startsWith('/sectors');
+  }
+
+  navigateToCompare(): void {
+    this.router.navigate(['/compare']);
+  }
+
+  isCompareActive(): boolean {
+    return this.router.url.startsWith('/compare');
   }
 
   navigateToWatchlist(): void {

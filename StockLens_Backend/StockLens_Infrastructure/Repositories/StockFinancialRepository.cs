@@ -22,7 +22,8 @@ namespace StockLens_Infrastructure.Repositories
             var cleanType = string.IsNullOrWhiteSpace(periodType) ? "annual" : periodType.Trim().ToLowerInvariant();
 
             return await _context.StockFinancials
-                .Where(f => f.StockId == stockId && f.PeriodType.ToLower() == cleanType)
+                .AsNoTracking()
+                .Where(f => f.StockId == stockId && f.PeriodType == cleanType)
                 .OrderByDescending(f => f.PeriodEndDate)
                 .ThenByDescending(f => f.FiscalYear)
                 .Take(limit)
@@ -35,7 +36,8 @@ namespace StockLens_Infrastructure.Repositories
 
             var cleanKey = periodKey.Trim().ToLowerInvariant();
             return await _context.StockFinancials
-                .FirstOrDefaultAsync(f => f.StockId == stockId && f.PeriodKey.ToLower() == cleanKey);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.StockId == stockId && f.PeriodKey == cleanKey);
         }
 
         public async Task<StockFinancial> AddAsync(StockFinancial financial)

@@ -535,3 +535,31 @@
 :host-context([data-theme="light"]) .error-icon-bg {
   background: rgba(239, 68, 68, 0.12) !important;
 }
+
+
+/* Action VS Button */
+.col-action {
+  width: 48px;
+  text-align: center;
+}
+
+.btn-peer-vs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-peer-vs:hover {
+  background: #38bdf8;
+  color: #030712;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}

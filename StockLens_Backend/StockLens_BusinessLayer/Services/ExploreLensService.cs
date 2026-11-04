@@ -6,11 +6,6 @@ using StockLens_BusinessLayer.Helpers;
 using StockLens_BusinessLayer.Interfaces;
 using StockLens_Infrastructure.DataContext;
 using StockLens_Infrastructure.ExternalServices.YahooFinanceApi;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace StockLens_BusinessLayer.Services
 {

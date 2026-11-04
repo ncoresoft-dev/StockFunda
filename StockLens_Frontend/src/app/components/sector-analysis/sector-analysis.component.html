@@ -1,0 +1,473 @@
+<div class="sector-analysis-container">
+  <!-- StockLens Cockpit Header -->
+  <app-header 
+    [tagline]="'Sector Intelligence & Treemap'" 
+    [showBackButton]="true" 
+    [backButtonText]="'Back to Home'" 
+    [backButtonUrl]="'/'">
+  </app-header>
+
+  <main class="page-content">
+    <!-- 1. SECTOR HERO & CONTROLS -->
+    <section class="sector-hero-card">
+      <div class="hero-top-row">
+        <div class="hero-title-group">
+          <div class="badge-row">
+            <span class="sector-category-tag">EQUITY SECTOR RADAR</span>
+            @if (summary()?.sectorRank) {
+              <span class="rank-tag">Rank {{ summary()?.sectorRank }} of {{ summary()?.totalSectors || 30 }}</span>
+            }
+          </div>
+          <h1 class="sector-main-title">{{ summary()?.sectorName || selectedSector() }} Stocks — Sector Analysis</h1>
+          <p class="sector-desc">{{ summary()?.description || 'Explore market capitalization distribution, valuation ratios, daily price movement, and top peer leaders in this sector.' }}</p>
+        </div>
+
+        <!-- Sector Dropdown Picker -->
+        <div class="sector-picker-box">
+          <label for="sectorSelect" class="picker-label">Switch Sector</label>
+          <div class="custom-select-wrapper">
+            <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <select 
+              id="sectorSelect" 
+              class="sector-select" 
+              [ngModel]="selectedSector()" 
+              (ngModelChange)="onSelectSector($event)">
+              @for (sec of availableSectors(); track sec) {
+                <option [value]="sec">{{ sec }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Dynamic Sector Pills (Derived directly from API/DB) -->
+      @if (topSectors().length > 0) {
+        <div class="popular-pills-bar">
+          <span class="pills-label">Sectors:</span>
+          <div class="pills-scroll-container">
+            @for (sec of topSectors(); track sec) {
+              <button 
+                type="button" 
+                class="sec-chip" 
+                [class.active]="selectedSector() === sec"
+                (click)="onSelectSector(sec)">
+                {{ sec }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- LOADING SPINNER -->
+    @if (isLoading()) {
+      <div class="loading-state">
+        <div class="cyber-spinner"></div>
+        <p class="loading-text">Analyzing {{ selectedSector() }} constituents & computing treemap...</p>
+      </div>
+    }
+
+    <!-- ERROR STATE -->
+    @if (!isLoading() && errorMessage()) {
+      <div class="error-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+        <button class="btn-retry" (click)="loadSectorData(selectedSector())">Retry</button>
+      </div>
+    }
+
+    @if (!isLoading() && !errorMessage()) {
+      <!-- 2. TREEMAP HEATMAP SECTION (Trendlyne Style) -->
+      <section class="heatmap-section">
+        <div class="heatmap-header">
+          <div class="heatmap-title-box">
+            <h2 class="section-title">
+              <span class="icon-pulse"></span>
+              Sector Heatmap (Treemap)
+            </h2>
+            <span class="section-subtitle">Tile size weighted by Market Cap • Color intensity indicates 1-Day % Change</span>
+          </div>
+
+          <!-- Heatmap Filters & Controls -->
+          <div class="heatmap-controls">
+            <div class="filter-btn-group">
+              <button 
+                type="button" 
+                class="filter-pill" 
+                [class.active]="filterMode() === 'all'"
+                (click)="onFilterChange('all')">
+                All ({{ stocks().length }})
+              </button>
+              <button 
+                type="button" 
+                class="filter-pill gainer-pill" 
+                [class.active]="filterMode() === 'gainers'"
+                (click)="onFilterChange('gainers')">
+                Gainers ({{ summary()?.advanceCount || 0 }})
+              </button>
+              <button 
+                type="button" 
+                class="filter-pill loser-pill" 
+                [class.active]="filterMode() === 'losers'"
+                (click)="onFilterChange('losers')">
+                Losers ({{ summary()?.declineCount || 0 }})
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Treemap Graphic Canvas -->
+        <div class="treemap-container">
+          @if (treemapTiles().length > 0) {
+            @for (tile of treemapTiles(); track tile.symbol) {
+              <div 
+                class="treemap-tile"
+                [style.left.%]="tile.leftPct"
+                [style.top.%]="tile.topPct"
+                [style.width.%]="tile.widthPct"
+                [style.height.%]="tile.heightPct"
+                [style.background-color]="tile.bgColor"
+                [style.border-color]="tile.borderColor"
+                [style.color]="tile.textColor"
+                [title]="tile.name + ' (' + tile.symbol + ')\nMarket Cap: ' + tile.formattedMarketCap + '\nChange: ' + tile.formattedChange"
+                (click)="navigateToStock(tile.symbol)">
+                
+                <div class="tile-inner" [attr.data-size]="tile.fontSizeTier">
+                  <div class="tile-symbol">{{ tile.symbol }}</div>
+                  <div class="tile-change" [class.pos]="tile.isPositive" [class.neg]="!tile.isPositive && !tile.isNeutral">
+                    {{ tile.formattedChange }}
+                  </div>
+                  @if (tile.showDetails) {
+                    <div class="tile-mcap">{{ tile.formattedMarketCap }}</div>
+                  }
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="empty-treemap-state">
+              <p>No constituents match the current filter in {{ selectedSector() }}.</p>
+            </div>
+          }
+        </div>
+
+        <!-- Color Scale Legend -->
+        <div class="heatmap-legend">
+          <span class="legend-label">Negative</span>
+          <div class="legend-bar">
+            <span class="legend-step" style="background: rgba(153, 27, 27, 0.95);">&lt; -10%</span>
+            <span class="legend-step" style="background: rgba(185, 28, 28, 0.88);">-5%</span>
+            <span class="legend-step" style="background: rgba(220, 38, 38, 0.78);">-2%</span>
+            <span class="legend-step" style="background: rgba(248, 113, 113, 0.65);">&gt; -2%</span>
+            <span class="legend-step" style="background: rgba(71, 85, 105, 0.70);">0%</span>
+            <span class="legend-step" style="background: rgba(74, 222, 128, 0.65);">&lt; +2%</span>
+            <span class="legend-step" style="background: rgba(34, 197, 94, 0.78);">+2%</span>
+            <span class="legend-step" style="background: rgba(22, 163, 74, 0.88);">+5%</span>
+            <span class="legend-step" style="background: rgba(21, 128, 61, 0.95);">&gt; +10%</span>
+          </div>
+          <span class="legend-label">Positive</span>
+        </div>
+      </section>
+
+      <!-- 3. TRENDLYNE-STYLE 3 BANNER CARDS -->
+      <section class="summary-cards-row">
+        <div class="stat-banner-card">
+          <div class="banner-icon-circle blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+          <div class="banner-text">
+            The <strong>{{ summary()?.sectorName }}</strong> sector contains <strong>{{ summary()?.totalCompanies }}</strong> stocks with an average market capitalization of <strong>{{ formatCr(summary()?.averageMarketCapCr) }}</strong>.
+          </div>
+        </div>
+
+        <div class="stat-banner-card">
+          <div class="banner-icon-circle green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+          <div class="banner-text">
+            The sector has an advance/decline ratio of <strong>{{ summary()?.advanceCount }} : {{ summary()?.declineCount }}</strong> and a Sector Quality Score of <strong>{{ summary()?.sectorScore?.toFixed(1) }}/100</strong>.
+          </div>
+        </div>
+
+        <div class="stat-banner-card">
+          <div class="banner-icon-circle purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M16 12l-4-4-4 4M12 16V9"></path>
+            </svg>
+          </div>
+          <div class="banner-text">
+            Sector 1-day weighted change is 
+            <strong [class.text-up]="(summary()?.sectorChangePercent || 0) >= 0" [class.text-down]="(summary()?.sectorChangePercent || 0) < 0">
+              {{ (summary()?.sectorChangePercent || 0) >= 0 ? '+' : '' }}{{ summary()?.sectorChangePercent?.toFixed(2) }}%
+            </strong>, holding Rank <strong>#{{ summary()?.sectorRank }}</strong> across all platform sectors.
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SECTOR FINANCIALS & MARKET BREADTH DUAL PANELS -->
+      <section class="dual-analytics-row">
+        <!-- Left: Sector Financials & Performance Ratios -->
+        <div class="analytic-panel">
+          <div class="panel-header">
+            <h3>{{ summary()?.sectorName }} Financials & Valuation Ratios</h3>
+          </div>
+          
+          <div class="metrics-grid">
+            <div class="metric-card score-card">
+              <span class="m-label">Sector Score</span>
+              <div class="m-val-group">
+                <span class="score-number">{{ summary()?.sectorScore?.toFixed(1) }}</span>
+                <span class="score-max">/100</span>
+              </div>
+              <span class="m-sub">Rank #{{ summary()?.sectorRank }} out of {{ summary()?.totalSectors }}</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-label">Avg Price-to-Earnings (P/E)</span>
+              <span class="m-val">{{ formatRatio(summary()?.averagePe) }}</span>
+              <span class="m-sub">Sector Average</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-label">Avg Price-to-Book (P/B)</span>
+              <span class="m-val">{{ formatRatio(summary()?.averagePb) }}</span>
+              <span class="m-sub">Book Value Multiple</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-label">Avg Return on Equity (ROE)</span>
+              <span class="m-val highlight-green">{{ formatPercent(summary()?.averageRoe) }}</span>
+              <span class="m-sub">Shareholder Return</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-label">Avg ROCE</span>
+              <span class="m-val highlight-cyan">{{ formatPercent(summary()?.averageRoce) }}</span>
+              <span class="m-sub">Capital Efficiency</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="m-label">Total Companies Tracked</span>
+              <span class="m-val">{{ summary()?.totalCompanies }}</span>
+              <span class="m-sub">Active listed equities</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Market Breadth Gauge & Top Movers -->
+        <div class="analytic-panel">
+          <div class="panel-header">
+            <h3>Market Breadth & Sentiment</h3>
+            <span class="badge-ratio">{{ summary()?.advanceCount }} Adv / {{ summary()?.declineCount }} Dec</span>
+          </div>
+
+          <div class="breadth-box">
+            <div class="breadth-labels">
+              <span class="adv-label">Advances: {{ summary()?.advanceCount }} ({{ getAdvanceBreadthPercent() }}%)</span>
+              <span class="dec-label">Declines: {{ summary()?.declineCount }} ({{ getDeclineBreadthPercent() }}%)</span>
+            </div>
+            <div class="breadth-track">
+              <div class="breadth-fill-adv" [style.width.%]="getAdvanceBreadthPercent()"></div>
+              <div class="breadth-fill-dec" [style.width.%]="getDeclineBreadthPercent()"></div>
+            </div>
+          </div>
+
+          <!-- Top Gainers & Losers Mini Lists -->
+          <div class="movers-dual-box">
+            <div class="movers-column">
+              <div class="movers-title green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+                Top Gainers
+              </div>
+              <div class="movers-list">
+                @for (s of topGainers().slice(0, 4); track s.symbol) {
+                  <div class="mover-item" (click)="navigateToStock(s.symbol)">
+                    <span class="m-sym">{{ s.symbol }}</span>
+                    <span class="m-chg pos">+{{ s.changePercent?.toFixed(2) }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="movers-column">
+              <div class="movers-title red">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline></svg>
+                Top Losers
+              </div>
+              <div class="movers-list">
+                @for (s of topLosers().slice(0, 4); track s.symbol) {
+                  <div class="mover-item" (click)="navigateToStock(s.symbol)">
+                    <span class="m-sym">{{ s.symbol }}</span>
+                    <span class="m-chg neg">{{ s.changePercent?.toFixed(2) }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. "WHO IS THE BEST?" SECTOR COMPARISON MATRIX -->
+      <section class="peer-matrix-section">
+        <div class="matrix-header">
+          <div class="matrix-title-wrap">
+            <h2 class="section-title">
+              <span class="crown-icon">👑</span>
+              Who is the Best? — Top Sector Constituents
+            </h2>
+            <p class="section-subtitle">
+              Compare valuations, profitability, and leadership ranks. Select up to 4 companies to analyze head-to-head in the Comparison Matrix.
+            </p>
+          </div>
+
+          <div class="matrix-actions">
+            <!-- Search within Sector -->
+            <div class="table-search-box">
+              <input 
+                type="text" 
+                class="table-search-input" 
+                placeholder="Search symbol in sector..." 
+                [ngModel]="searchQuery()" 
+                (ngModelChange)="searchQuery.set($event)">
+            </div>
+
+            <!-- Launch Comparison Matrix Button -->
+            @if (selectedForCompare().size > 0) {
+              <button class="btn-compare-selected" (click)="launchComparison()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+                </svg>
+                Compare Selected ({{ selectedForCompare().size }})
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Matrix Table -->
+        <div class="table-responsive-wrapper">
+          <table class="peer-table">
+            <thead>
+              <tr>
+                <th class="col-select">Select</th>
+                <th class="col-rank">#</th>
+                <th class="col-company" (click)="sortBy('symbol')">Company</th>
+                <th class="col-price" (click)="sortBy('price')">Price</th>
+                <th class="col-chg" (click)="sortBy('changePercent')">1D Change</th>
+                <th class="col-mcap" (click)="sortBy('marketCapCr')">Market Cap</th>
+                <th class="col-pe" (click)="sortBy('peRatio')">P/E</th>
+                <th class="col-pb" (click)="sortBy('pbRatio')">P/B</th>
+                <th class="col-roe" (click)="sortBy('roe')">ROE %</th>
+                <th class="col-roce" (click)="sortBy('roce')">ROCE %</th>
+                <th class="col-score" (click)="sortBy('score')">Score</th>
+                <th class="col-action">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (st of sortedStocks(); track st.symbol; let idx = $index) {
+                <tr [class.row-highlight]="isStockSelected(st.symbol)">
+                  <!-- Checkbox -->
+                  <td class="col-select">
+                    <input 
+                      type="checkbox" 
+                      class="custom-chk"
+                      [checked]="isStockSelected(st.symbol)"
+                      (change)="toggleCompare(st.symbol)">
+                  </td>
+
+                  <!-- Rank -->
+                  <td class="col-rank">{{ idx + 1 }}</td>
+
+                  <!-- Company & Badges -->
+                  <td class="col-company" (click)="navigateToStock(st.symbol)">
+                    <div class="comp-cell">
+                      @if (st.logoUrl) {
+                        <img [src]="st.logoUrl" [alt]="st.symbol" class="comp-mini-logo" (error)="$any($event.target).style.display='none'">
+                      }
+                      <div class="comp-text">
+                        <div class="sym-row">
+                          <span class="st-sym">{{ st.symbol }}</span>
+                          @if (st.primaryBadge) {
+                            <span class="badge-pill" [class.leader]="st.primaryBadge.includes('Leader')" [class.profit]="st.primaryBadge.includes('Profit')" [class.value]="st.primaryBadge.includes('Value')">
+                              {{ st.primaryBadge }}
+                            </span>
+                          }
+                        </div>
+                        <span class="st-name">{{ st.companyName }}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Price -->
+                  <td class="col-price">₹{{ st.price ? st.price.toFixed(2) : '—' }}</td>
+
+                  <!-- 1D Change -->
+                  <td class="col-chg">
+                    <span class="tag-chg" [class.pos]="st.changePercent > 0" [class.neg]="st.changePercent < 0">
+                      {{ st.changePercent > 0 ? '+' : '' }}{{ st.changePercent?.toFixed(2) }}%
+                    </span>
+                  </td>
+
+                  <!-- Market Cap -->
+                  <td class="col-mcap font-mono">{{ formatCr(st.marketCapCr) }}</td>
+
+                  <!-- P/E -->
+                  <td class="col-pe font-mono">{{ formatRatio(st.peRatio) }}</td>
+
+                  <!-- P/B -->
+                  <td class="col-pb font-mono">{{ formatRatio(st.pbRatio) }}</td>
+
+                  <!-- ROE -->
+                  <td class="col-roe font-mono" [class.text-up]="(st.roe || 0) > 15">
+                    {{ formatPercent(st.roe) }}
+                  </td>
+
+                  <!-- ROCE -->
+                  <td class="col-roce font-mono" [class.text-up]="(st.roce || 0) > 15">
+                    {{ formatPercent(st.roce) }}
+                  </td>
+
+                  <!-- Score -->
+                  <td class="col-score">
+                    <div class="score-progress-wrap" [title]="'Quality Score: ' + st.score.toFixed(1)">
+                      <div class="score-bar">
+                        <div class="score-fill" [style.width.%]="st.score"></div>
+                      </div>
+                      <span class="score-txt">{{ st.score.toFixed(0) }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Action -->
+                  <td class="col-action">
+                    <div class="action-btn-row">
+                      <button 
+                        type="button" 
+                        class="btn-quick-cmp" 
+                        title="Compare with Sector Leader"
+                        (click)="compareWithLeader(st.symbol)">
+                        vs Leader
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </main>
+</div>
+

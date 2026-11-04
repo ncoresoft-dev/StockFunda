@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, shareReplay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Nifty50StockItem } from '../models/stock-index.model';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -13,6 +14,8 @@ export class StockIndexService {
   
   // Cache to avoid hitting API constantly on tab switches
   private cachedNifty50List: Nifty50StockItem[] | null = null;
+  private inFlightNifty50$: Observable<Nifty50StockItem[]> | null = null;
+  private inFlightSymbolsMap = new Map<string, Observable<Nifty50StockItem[]>>();
 
   /**
    * Returns NIFTY 50 constituent companies for the UI
@@ -22,7 +25,11 @@ export class StockIndexService {
       return of(this.cachedNifty50List);
     }
 
-    return this.http.get<any[]>(`${this.apiUrl}/nifty-50`).pipe(
+    if (!forceRefresh && this.inFlightNifty50$) {
+      return this.inFlightNifty50$;
+    }
+
+    this.inFlightNifty50$ = this.http.get<any[]>(`${this.apiUrl}/nifty-50`).pipe(
       map(data => data.map(item => ({
         symbol: item.symbol,
         companyName: item.companyName || item.company_name,
@@ -30,15 +37,23 @@ export class StockIndexService {
         logoUrl: item.logoUrl || item.logo_url,
         websiteUrl: item.websiteUrl || item.website_url,
         price: item.price,
-        marketCap: item.marketCap,
+        marketCap: item.marketCap ?? item.market_cap,
+        profitGrowthYoy: item.profitGrowthYoy ?? item.profit_growth_yoy,
         exchange: 'NSE'
       } as Nifty50StockItem))),
-      tap(mappedData => this.cachedNifty50List = mappedData),
+      tap(mappedData => {
+        this.cachedNifty50List = mappedData;
+        this.inFlightNifty50$ = null;
+      }),
       catchError(error => {
         console.error('Error fetching Nifty 50 companies:', error);
-        return of(this.cachedNifty50List || []); // Return cached list on failure or empty list
-      })
+        this.inFlightNifty50$ = null;
+        return of(this.cachedNifty50List || []);
+      }),
+      shareReplay(1)
     );
+
+    return this.inFlightNifty50$;
   }
 
   /**
@@ -63,6 +78,8 @@ export class StockIndexService {
    */
   clearCache(): void {
     this.cachedNifty50List = null;
+    this.inFlightNifty50$ = null;
+    this.inFlightSymbolsMap.clear();
   }
 
   /**
@@ -74,10 +91,14 @@ export class StockIndexService {
       return of([]);
     }
 
-    const cleanSymbols = symbols.map(s => s.trim().toUpperCase()).filter(Boolean);
+    const cleanSymbols = Array.from(new Set(symbols.map(s => s.trim().toUpperCase()))).filter(Boolean).sort();
     const joined = cleanSymbols.join(',');
 
-    return this.http.get<any[]>(`${this.apiUrl}/stocks-by-symbols?symbols=${encodeURIComponent(joined)}`).pipe(
+    if (this.inFlightSymbolsMap.has(joined)) {
+      return this.inFlightSymbolsMap.get(joined)!;
+    }
+
+    const obs$ = this.http.get<any[]>(`${this.apiUrl}/stocks-by-symbols?symbols=${encodeURIComponent(joined)}`).pipe(
       map(data => data.map(item => ({
         symbol: item.symbol,
         companyName: item.companyName || item.company_name,
@@ -88,14 +109,22 @@ export class StockIndexService {
         marketCap: item.marketCap || item.market_cap,
         exchange: 'NSE'
       } as Nifty50StockItem))),
+      tap(() => {
+        this.inFlightSymbolsMap.delete(joined);
+      }),
       catchError(error => {
         console.warn('Error fetching stocks by symbols from API, falling back to cache:', error);
+        this.inFlightSymbolsMap.delete(joined);
         if (this.cachedNifty50List) {
           return of(this.cachedNifty50List.filter(s => cleanSymbols.includes(s.symbol?.toUpperCase())));
         }
         return of([]);
-      })
+      }),
+      shareReplay(1)
     );
+
+    this.inFlightSymbolsMap.set(joined, obs$);
+    return obs$;
   }
 }
 

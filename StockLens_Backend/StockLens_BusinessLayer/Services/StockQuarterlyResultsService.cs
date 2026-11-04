@@ -75,15 +75,18 @@ namespace StockLens_BusinessLayer.Services
 
             try
             {
-                var existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12);
+                var existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12) ?? new List<StockFinancial>();
 
-                var isStale = existingQuarters.Count == 0 || existingQuarters.Max(q => q.LastSyncedAt) < DateTime.UtcNow.AddDays(-7);
-
-
-                if (forceRefresh || isStale)
+                var needsSync = IsSyncNeeded(existingQuarters, forceRefresh, out var syncReason);
+                if (needsSync)
                 {
-                    await SyncQuarterlyResultsAsync(stock, cancellationToken);
-                    existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12);
+                    _logger.LogInformation("Quarterly sync triggered for {Symbol}. Reason: {Reason}", stock.Symbol, syncReason);
+                    await SyncQuarterlyResultsAsync(stock, existingQuarters, cancellationToken);
+                    existingQuarters = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", limit: 12) ?? new List<StockFinancial>();
+                }
+                else
+                {
+                    _logger.LogDebug("Quarterly sync skipped for {Symbol}. Reason: {Reason}", stock.Symbol, syncReason);
                 }
 
                 // If any existing records in DB still have Tax == null, calculate and persist it to DB
@@ -123,7 +126,106 @@ namespace StockLens_BusinessLayer.Services
             }
         }
 
-        private async Task SyncQuarterlyResultsAsync(Stock stock, CancellationToken cancellationToken)
+        public static bool IsSyncNeeded(List<StockFinancial> existingQuarters, bool forceRefresh, out string reason)
+        {
+            if (forceRefresh)
+            {
+                reason = "Manual force refresh requested";
+                return true;
+            }
+
+            if (existingQuarters == null || existingQuarters.Count == 0)
+            {
+                reason = "No quarterly records present in database";
+                return true;
+            }
+
+            var latestDbQuarter = existingQuarters
+                .OrderByDescending(q => q.PeriodEndDate ?? DateTime.MinValue)
+                .ThenByDescending(q => q.FiscalYear)
+                .First();
+
+            // Self-healing check: If the latest record came from YahooFinance fallback OR has zero tax bug OR is missing core metrics
+            // Note: Banking/NBFC stocks (e.g. HDFCBANK) do not have Operating Profit by accounting standard, so only check core fields
+            var isYahooFallback = string.Equals(latestDbQuarter.Source, "YahooFinance", StringComparison.OrdinalIgnoreCase);
+            var isMissingCoreFields = !latestDbQuarter.Revenue.HasValue || !latestDbQuarter.NetProfit.HasValue || !latestDbQuarter.Eps.HasValue;
+            var hasZeroTaxBug = latestDbQuarter.Tax == 0 && latestDbQuarter.ProfitBeforeTax.HasValue && latestDbQuarter.ProfitBeforeTax > 0;
+            var hasIncompleteData = isYahooFallback || isMissingCoreFields || hasZeroTaxBug;
+
+            if (hasIncompleteData)
+            {
+                // To prevent tight retry loops if upstream is persistently down, throttle self-healing attempts to once per hour
+                if (latestDbQuarter.LastSyncedAt < DateTime.UtcNow.AddHours(-1))
+                {
+                    reason = "Latest quarterly record has incomplete fallback data, syncing authoritative data from IndianAPI";
+                    return true;
+                }
+            }
+
+            var now = DateTime.UtcNow;
+            var latestCompletedQuarterEnd = GetLatestCompletedQuarterEndDate(now);
+
+            // Gate 1: If DB already has the latest completed quarter with complete data, LOCK IT!
+            if (latestDbQuarter.PeriodEndDate.HasValue &&
+                latestDbQuarter.PeriodEndDate.Value.Date >= latestCompletedQuarterEnd.Date &&
+                !hasIncompleteData)
+            {
+                reason = $"Locked: Database already holds latest completed quarter ({latestDbQuarter.PeriodEndDate.Value:MMM yyyy})";
+                return false;
+            }
+
+            // Gate 2: If the latest completed quarter is not yet in DB, check if we are in the 55-day declaration window
+            var daysSinceQuarterEnd = (now - latestCompletedQuarterEnd).TotalDays;
+            if (daysSinceQuarterEnd >= 0 && daysSinceQuarterEnd <= 55)
+            {
+                var lastSynced = existingQuarters.Max(q => q.LastSyncedAt);
+                // Within declaration window: check once every 3 days
+                if (lastSynced < now.AddDays(-3))
+                {
+                    reason = $"Quarter declaration window active ({daysSinceQuarterEnd:F0} days since {latestCompletedQuarterEnd:MMM yyyy}), checking for new results (3-day cycle)";
+                    return true;
+                }
+
+                reason = $"Quarter declaration window active, but checked recently on {lastSynced:yyyy-MM-dd} (< 3 days ago). Waiting.";
+                return false;
+            }
+
+            // Gate 3: Outside standard window (unusually late filing or historical gap)
+            var lastSyncGeneral = existingQuarters.Max(q => q.LastSyncedAt);
+            if (lastSyncGeneral < now.AddDays(-7))
+            {
+                reason = "Quarter is overdue and outside standard declaration window, running weekly check";
+                return true;
+            }
+
+            reason = "Data is fresh and locked";
+            return false;
+        }
+
+        public static DateTime GetLatestCompletedQuarterEndDate(DateTime date)
+        {
+            var year = date.Year;
+            // Calendar financial quarter ends: March 31, June 30, September 30, December 31
+            if (date.Date < new DateTime(year, 3, 31))
+            {
+                return new DateTime(year - 1, 12, 31);
+            }
+            if (date.Date < new DateTime(year, 6, 30))
+            {
+                return new DateTime(year, 3, 31);
+            }
+            if (date.Date < new DateTime(year, 9, 30))
+            {
+                return new DateTime(year, 6, 30);
+            }
+            if (date.Date < new DateTime(year, 12, 31))
+            {
+                return new DateTime(year, 9, 30);
+            }
+            return new DateTime(year, 12, 31);
+        }
+
+        private async Task SyncQuarterlyResultsAsync(Stock stock, List<StockFinancial> existingQuarters, CancellationToken cancellationToken)
         {
             var syncedFromIndianApi = false;
 
@@ -145,27 +247,51 @@ namespace StockLens_BusinessLayer.Services
                         {
                             foreach (var q in quarterlyPeriods)
                             {
-                                await UpsertQuarterlyRecordAsync(stock.Id, q, "IndianAPI");
+                                await UpsertQuarterlyRecordAsync(stock.Id, q, "IndianAPI", existingQuarters);
                             }
                             await _financialRepository.SaveChangesAsync();
                             syncedFromIndianApi = true;
                             _logger.LogInformation("Successfully synced {Count} quarterly records from IndianAPI for {Symbol}", quarterlyPeriods.Count, stock.Symbol);
                         }
                     }
+                    else if (existingQuarters.Count > 0)
+                    {
+                        // Even if no new quarter returned yet, touch LastSyncedAt on latest record so 3-day window is respected
+                        existingQuarters[0].LastSyncedAt = DateTime.UtcNow;
+                        existingQuarters[0].UpdatedAt = DateTime.UtcNow;
+                        await _financialRepository.UpdateAsync(existingQuarters[0]);
+                        await _financialRepository.SaveChangesAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Tier 1 IndianAPI quarterly fetch failed for {Symbol}, proceeding to Tier 2 Yahoo Finance fallback.", stock.Symbol);
+                    _logger.LogWarning(ex, "Tier 1 IndianAPI quarterly fetch failed for {Symbol}, evaluating fallback.", stock.Symbol);
                 }
             }
 
             if (syncedFromIndianApi) return;
 
-            // Tier 2: Try Yahoo Finance
+            // Tier 2: Try Yahoo Finance (Strictly Guarded)
             if (_yahooFinanceClient != null)
             {
                 try
                 {
+                    // Check if DB already has authoritative IndianAPI data
+                    var hasAuthoritativeData = existingQuarters.Any(q => string.Equals(q.Source, "IndianAPI", StringComparison.OrdinalIgnoreCase) && q.OperatingProfit.HasValue);
+
+                    // If DB already has complete IndianAPI data, DO NOT pollute it with Yahoo Finance fallback!
+                    if (hasAuthoritativeData)
+                    {
+                        _logger.LogInformation("Skipping Yahoo Finance fallback for {Symbol}: Database already holds authoritative IndianAPI records.", stock.Symbol);
+                        if (existingQuarters.Count > 0)
+                        {
+                            existingQuarters[0].LastSyncedAt = DateTime.UtcNow;
+                            await _financialRepository.UpdateAsync(existingQuarters[0]);
+                            await _financialRepository.SaveChangesAsync();
+                        }
+                        return;
+                    }
+
                     _logger.LogInformation("Tier 2: Fetching quarterly income statements from Yahoo Finance for {Symbol}", stock.Symbol);
                     var yfQuarters = await _yahooFinanceClient.GetQuarterlyIncomeStatementsAsync(stock.Symbol, stock.Exchange, cancellationToken);
 
@@ -173,7 +299,7 @@ namespace StockLens_BusinessLayer.Services
                     {
                         foreach (var q in yfQuarters)
                         {
-                            await UpsertQuarterlyRecordAsync(stock.Id, q, "YahooFinance");
+                            await UpsertQuarterlyRecordAsync(stock.Id, q, "YahooFinance", existingQuarters);
                         }
                         await _financialRepository.SaveChangesAsync();
                         _logger.LogInformation("Successfully synced {Count} quarterly records from Yahoo Finance for {Symbol}", yfQuarters.Count, stock.Symbol);
@@ -187,7 +313,7 @@ namespace StockLens_BusinessLayer.Services
             }
         }
 
-        private async Task UpsertQuarterlyRecordAsync(int stockId, IndianApiFinancialPeriodDto dto, string source)
+        private async Task UpsertQuarterlyRecordAsync(int stockId, IndianApiFinancialPeriodDto dto, string source, List<StockFinancial>? existingQuarters = null)
         {
             // Ensure Tax and TaxPercentage are computed on dto if missing
             if (!dto.Tax.HasValue && dto.ProfitBeforeTax.HasValue && dto.NetProfit.HasValue)
@@ -216,6 +342,12 @@ namespace StockLens_BusinessLayer.Services
                 {
                     existing = await _financialRepository.GetByStockIdAndPeriodKeyAsync(stockId, altKey);
                 }
+            }
+
+            // Secondary lookup by PeriodEndDate to prevent duplicate keys for the same calendar quarter
+            if (existing == null && dto.PeriodEndDate.HasValue && existingQuarters != null && existingQuarters.Count > 0)
+            {
+                existing = existingQuarters.FirstOrDefault(q => q.PeriodEndDate.HasValue && q.PeriodEndDate.Value.Date == dto.PeriodEndDate.Value.Date);
             }
 
             if (existing == null)
@@ -249,38 +381,55 @@ namespace StockLens_BusinessLayer.Services
             }
             else
             {
-                existing.PeriodKey = periodKey;
-                existing.FiscalYear = normalizedPeriod;
-                existing.PeriodEndDate = dto.PeriodEndDate ?? existing.PeriodEndDate;
-                existing.Revenue = dto.Revenue ?? existing.Revenue;
-                existing.Expenses = dto.Expenses ?? existing.Expenses;
-                existing.OperatingProfit = dto.OperatingProfit ?? existing.OperatingProfit;
-                existing.OperatingProfitMargin = dto.OperatingProfitMargin ?? existing.OperatingProfitMargin;
-                existing.OtherIncome = dto.OtherIncome ?? existing.OtherIncome;
-                existing.Interest = dto.Interest ?? existing.Interest;
-                existing.Depreciation = dto.Depreciation ?? existing.Depreciation;
-                existing.ProfitBeforeTax = dto.ProfitBeforeTax ?? existing.ProfitBeforeTax;
-                existing.Tax = dto.Tax ?? existing.Tax;
-                existing.TaxPercentage = dto.TaxPercentage ?? existing.TaxPercentage;
-                if (!existing.Tax.HasValue && existing.ProfitBeforeTax.HasValue && existing.NetProfit.HasValue)
+                // Quality guard: IndianAPI is authoritative. Only update fields if source is IndianAPI OR existing is not IndianAPI
+                var isAuthoritative = string.Equals(source, "IndianAPI", StringComparison.OrdinalIgnoreCase);
+                var existingIsAuthoritative = string.Equals(existing.Source, "IndianAPI", StringComparison.OrdinalIgnoreCase);
+
+                if (isAuthoritative || !existingIsAuthoritative)
                 {
-                    var comp = existing.ProfitBeforeTax.Value - existing.NetProfit.Value;
-                    if (comp >= 0)
+                    existing.PeriodKey = periodKey;
+                    existing.FiscalYear = normalizedPeriod;
+                    existing.PeriodEndDate = dto.PeriodEndDate ?? existing.PeriodEndDate;
+                    existing.Revenue = dto.Revenue ?? existing.Revenue;
+                    existing.Expenses = dto.Expenses ?? existing.Expenses;
+                    existing.OperatingProfit = dto.OperatingProfit ?? existing.OperatingProfit;
+                    existing.OperatingProfitMargin = dto.OperatingProfitMargin ?? existing.OperatingProfitMargin;
+                    existing.OtherIncome = dto.OtherIncome ?? existing.OtherIncome;
+                    existing.Interest = dto.Interest ?? existing.Interest;
+                    existing.Depreciation = dto.Depreciation ?? existing.Depreciation;
+                    existing.ProfitBeforeTax = dto.ProfitBeforeTax ?? existing.ProfitBeforeTax;
+
+                    // Only update tax if incoming has a valid non-zero tax, or existing has no tax
+                    if (dto.Tax.HasValue && (dto.Tax.Value > 0 || !existing.Tax.HasValue))
                     {
-                        existing.Tax = Math.Round(comp, 2);
+                        existing.Tax = dto.Tax.Value;
                     }
+                    if (dto.TaxPercentage.HasValue && (dto.TaxPercentage.Value > 0 || !existing.TaxPercentage.HasValue))
+                    {
+                        existing.TaxPercentage = dto.TaxPercentage.Value;
+                    }
+
+                    if (!existing.Tax.HasValue && existing.ProfitBeforeTax.HasValue && existing.NetProfit.HasValue)
+                    {
+                        var comp = existing.ProfitBeforeTax.Value - existing.NetProfit.Value;
+                        if (comp >= 0)
+                        {
+                            existing.Tax = Math.Round(comp, 2);
+                        }
+                    }
+                    if (!existing.TaxPercentage.HasValue && existing.Tax.HasValue && existing.ProfitBeforeTax.HasValue && existing.ProfitBeforeTax.Value > 0)
+                    {
+                        existing.TaxPercentage = Math.Round((existing.Tax.Value / existing.ProfitBeforeTax.Value) * 100m, 2);
+                    }
+
+                    existing.NetProfit = dto.NetProfit ?? existing.NetProfit;
+                    existing.Eps = dto.Eps ?? existing.Eps;
+                    existing.ConsolidationType = dto.ConsolidationType ?? existing.ConsolidationType;
+                    existing.Source = source;
+                    existing.LastSyncedAt = DateTime.UtcNow;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    await _financialRepository.UpdateAsync(existing);
                 }
-                if (!existing.TaxPercentage.HasValue && existing.Tax.HasValue && existing.ProfitBeforeTax.HasValue && existing.ProfitBeforeTax.Value > 0)
-                {
-                    existing.TaxPercentage = Math.Round((existing.Tax.Value / existing.ProfitBeforeTax.Value) * 100m, 2);
-                }
-                existing.NetProfit = dto.NetProfit ?? existing.NetProfit;
-                existing.Eps = dto.Eps ?? existing.Eps;
-                existing.ConsolidationType = dto.ConsolidationType ?? existing.ConsolidationType;
-                existing.Source = source;
-                existing.LastSyncedAt = DateTime.UtcNow;
-                existing.UpdatedAt = DateTime.UtcNow;
-                await _financialRepository.UpdateAsync(existing);
             }
         }
 
@@ -330,7 +479,10 @@ namespace StockLens_BusinessLayer.Services
                     : (!string.IsNullOrWhiteSpace(e.FiscalYear) ? e.FiscalYear.Trim().ToUpperInvariant() : e.PeriodKey))
                 .Select(g =>
                 {
-                    var primary = g.OrderByDescending(x => x.LastSyncedAt).First();
+                    // Prioritize IndianAPI over YahooFinance as primary record
+                    var primary = g.OrderByDescending(x => string.Equals(x.Source, "IndianAPI", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
+                                   .ThenByDescending(x => x.LastSyncedAt)
+                                   .First();
                     var mergedDto = _mapper.Map<QuarterlyRecordDto>(primary);
 
                     foreach (var other in g)
@@ -343,8 +495,14 @@ namespace StockLens_BusinessLayer.Services
                         mergedDto.Interest ??= other.Interest;
                         mergedDto.Depreciation ??= other.Depreciation;
                         mergedDto.ProfitBeforeTax ??= other.ProfitBeforeTax;
-                        mergedDto.Tax ??= other.Tax;
-                        mergedDto.TaxPercentage ??= other.TaxPercentage;
+                        if (!mergedDto.Tax.HasValue || mergedDto.Tax == 0)
+                        {
+                            if (other.Tax.HasValue && other.Tax.Value > 0)
+                            {
+                                mergedDto.Tax = other.Tax;
+                                mergedDto.TaxPercentage = other.TaxPercentage;
+                            }
+                        }
                         mergedDto.NetProfit ??= other.NetProfit;
                         mergedDto.Eps ??= other.Eps;
                     }

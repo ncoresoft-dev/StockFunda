@@ -604,5 +604,90 @@ namespace StockLens_UnitTests
             financialRepo.Verify(r => r.UpdateAsync(It.Is<StockFinancial>(f => f.Tax == 900m)), Times.AtLeastOnce);
             financialRepo.Verify(r => r.SaveChangesAsync(), Times.AtLeastOnce);
         }
+
+        [Fact]
+        public void GetLatestCompletedQuarterEndDate_ShouldReturnCorrectDatesAcrossYear()
+        {
+            // January -> Dec 31 of prev year
+            StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(new DateTime(2026, 1, 15)).Should().Be(new DateTime(2025, 12, 31));
+            // March 30 -> Dec 31 of prev year
+            StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(new DateTime(2026, 3, 30)).Should().Be(new DateTime(2025, 12, 31));
+            // April 10 -> March 31
+            StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(new DateTime(2026, 4, 10)).Should().Be(new DateTime(2026, 3, 31));
+            // July 20 -> June 30
+            StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(new DateTime(2026, 7, 20)).Should().Be(new DateTime(2026, 6, 30));
+            // October 30 -> September 30
+            StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(new DateTime(2026, 10, 30)).Should().Be(new DateTime(2026, 9, 30));
+        }
+
+        [Fact]
+        public void IsSyncNeeded_WhenDbAlreadyHasLatestCompletedQuarter_ShouldLockAndReturnFalse()
+        {
+            var quarters = new List<StockFinancial>
+            {
+                new StockFinancial
+                {
+                    PeriodEndDate = StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(DateTime.UtcNow),
+                    FiscalYear = "Current",
+                    OperatingProfit = 15000m,
+                    Eps = 25m,
+                    Tax = 3000m,
+                    ProfitBeforeTax = 12000m,
+                    Source = "IndianAPI",
+                    LastSyncedAt = DateTime.UtcNow.AddDays(-10) // Even if synced 10 days ago, it's locked!
+                }
+            };
+
+            var syncNeeded = StockQuarterlyResultsService.IsSyncNeeded(quarters, forceRefresh: false, out var reason);
+
+            syncNeeded.Should().BeFalse();
+            reason.Should().Contain("Locked: Database already holds latest completed quarter");
+        }
+
+        [Fact]
+        public void IsSyncNeeded_WhenLatestQuarterIsIncompleteYahooFinance_ShouldTriggerSelfHealing()
+        {
+            var quarters = new List<StockFinancial>
+            {
+                new StockFinancial
+                {
+                    PeriodEndDate = StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(DateTime.UtcNow),
+                    FiscalYear = "Current",
+                    Revenue = 50000m,
+                    OperatingProfit = null, // Incomplete!
+                    Eps = null,             // Incomplete!
+                    Source = "YahooFinance",
+                    LastSyncedAt = DateTime.UtcNow.AddHours(-2) // Checked 2 hours ago
+                }
+            };
+
+            var syncNeeded = StockQuarterlyResultsService.IsSyncNeeded(quarters, forceRefresh: false, out var reason);
+
+            syncNeeded.Should().BeTrue();
+            reason.Should().Contain("incomplete fallback data");
+        }
+
+        [Fact]
+        public void IsSyncNeeded_WhenInDeclarationWindowAndCheckedRecently_ShouldWaitAndReturnFalse()
+        {
+            var completedQtr = StockQuarterlyResultsService.GetLatestCompletedQuarterEndDate(DateTime.UtcNow);
+            var quarters = new List<StockFinancial>
+            {
+                new StockFinancial
+                {
+                    PeriodEndDate = completedQtr.AddMonths(-3), // Still on previous quarter
+                    FiscalYear = "Previous",
+                    OperatingProfit = 12000m,
+                    Eps = 20m,
+                    Source = "IndianAPI",
+                    LastSyncedAt = DateTime.UtcNow.AddDays(-1) // Checked only 1 day ago
+                }
+            };
+
+            var syncNeeded = StockQuarterlyResultsService.IsSyncNeeded(quarters, forceRefresh: false, out var reason);
+
+            syncNeeded.Should().BeFalse();
+            reason.Should().Contain("Waiting");
+        }
     }
 }

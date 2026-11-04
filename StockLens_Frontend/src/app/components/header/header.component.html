@@ -107,6 +107,33 @@
     </button>
     }
 
+    <!-- 📊 Sector Analysis & Heatmap Button -->
+    @if (showSectors) {
+    <button type="button" class="nav-watchlist-btn nav-sectors-btn" [class.active]="isSectorsActive()"
+      (click)="navigateToSectors()" title="Sector Analysis & Heatmap">
+      <svg class="star-nav-icon sectors-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <rect x="3" y="3" width="7" height="9"></rect>
+        <rect x="14" y="3" width="7" height="5"></rect>
+        <rect x="14" y="12" width="7" height="9"></rect>
+        <rect x="3" y="16" width="7" height="5"></rect>
+      </svg>
+      <span>Sectors</span>
+    </button>
+    }
+
+    <!-- ⚖️ Stock Comparison Button -->
+    @if (showCompare) {
+    <button type="button" class="nav-watchlist-btn nav-compare-btn" [class.active]="isCompareActive()"
+      (click)="navigateToCompare()" title="Side-by-side Stock Comparison">
+      <svg class="star-nav-icon compare-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+      </svg>
+      <span>Compare</span>
+    </button>
+    }
+
     <!-- Admin Bell Component (Only visible to) -->
     @if (showAdminBell) {
     <app-admin-notification-bell></app-admin-notification-bell>
