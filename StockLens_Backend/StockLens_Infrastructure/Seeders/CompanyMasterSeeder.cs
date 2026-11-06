@@ -58,6 +58,14 @@ namespace StockLens_Infrastructure.Seeders
 
             try
             {
+                // Fast-path: If CompanyMaster is already populated with 2500+ records, skip expensive full sync on startup
+                var existingCount = await _dbContext.CompanyMaster.CountAsync(cancellationToken);
+                if (existingCount >= 2500)
+                {
+                    _logger.LogInformation("CompanyMaster is already fully populated with {Count} companies. Skipping startup sync.", existingCount);
+                    return;
+                }
+
                 // Increase command timeout for seeding large tables
                 _dbContext.Database.SetCommandTimeout(120);
 

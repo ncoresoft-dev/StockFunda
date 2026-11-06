@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using StockLens_API.BackgroundServices;
+using StockLens_API.Middleware;
 using StockLens_BusinessLayer.Interfaces;
+using StockLens_BusinessLayer.MapperProfile;
 using StockLens_BusinessLayer.Services;
 using StockLens_DataLayer.Interfaces;
 using StockLens_Infrastructure.DataContext;
 using StockLens_Infrastructure.ExternalServices.BharatStock;
-using StockLens_Infrastructure.ExternalServices.IndianApi;
-using StockLens_BusinessLayer.MapperProfile;
 using StockLens_Infrastructure.ExternalServices.GoogleNews;
+using StockLens_Infrastructure.ExternalServices.IndianApi;
 using StockLens_Infrastructure.Repositories;
 using StockLens_Infrastructure.Seeders;
-using StockLens_API.Middleware;
-using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>(optional: true);
@@ -105,8 +105,17 @@ builder.Services.AddScoped<IStockPeerRepository, StockPeerRepository>();
 builder.Services.AddScoped<IStockAnnualReportRepository, StockAnnualReportRepository>();
 builder.Services.AddScoped<IMarketTickerRepository, MarketTickerRepository>();
 
-// Register Seeders
+// Register Seeders & Daily Valuation
 builder.Services.AddTransient<CompanyMasterSeeder>();
+builder.Services.AddTransient<StockFundamentalsSeeder>();
+builder.Services.AddScoped<IDailyValuationService, DailyValuationService>();
+
+// Register Screener-style Background Services
+builder.Services.AddSingleton<StockSeedingBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<StockSeedingBackgroundService>());
+
+builder.Services.AddSingleton<DailyValuationBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyValuationBackgroundService>());
 
 // Register Screener HTTP Client
 builder.Services.Configure<StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings>(builder.Configuration.GetSection(StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings.SectionName));
@@ -171,8 +180,89 @@ if (app.Environment.IsDevelopment())
 // Execute Seeders on Startup
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<CompanyMasterSeeder>();
-    await seeder.SeedAsync();
+    var companySeeder = scope.ServiceProvider.GetRequiredService<CompanyMasterSeeder>();
+    await companySeeder.SeedAsync();
+
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var seedOnStartup = args.Contains("--seed-sector-leaders") || 
+                        configuration.GetValue<bool>("SeederSettings:SeedSectorLeadersOnStartup", false);
+
+    if (seedOnStartup)
+    {
+        var limitPerSector = configuration.GetValue<int>("SeederSettings:LimitPerSector", 3);
+        var fundamentalsSeeder = scope.ServiceProvider.GetRequiredService<StockFundamentalsSeeder>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        logger.LogInformation("===============================================================");
+        logger.LogInformation("🚀 [Application Flow] Seeding Top Sector Leaders (limit: {Limit} per sector)...", limitPerSector);
+        logger.LogInformation("===============================================================");
+        
+        var progress = await fundamentalsSeeder.SeedSectorLeadersAsync(limitPerSector);
+        
+        logger.LogInformation("✅ [Application Flow] Seeding Complete! {Succeeded}/{Total} stocks succeeded across {Sectors} sectors in {Elapsed:g}.",
+            progress.TotalStocksSucceeded, progress.TotalStocksProcessed, progress.TotalSectorsDiscovered, progress.ElapsedTime);
+    }
+
+    var runDailyUpdate = args.Contains("--run-daily-update") || 
+                         configuration.GetValue<bool>("SeederSettings:RunDailyUpdateOnStartup", false);
+
+    if (runDailyUpdate)
+    {
+        var dailyValuation = scope.ServiceProvider.GetRequiredService<IDailyValuationService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("🔄 [Application Flow] Running Daily Valuation Update...");
+        var valResult = await dailyValuation.UpdateDailyValuationsAsync();
+        logger.LogInformation("✅ [Application Flow] Daily Valuation Complete! {Updated}/{Total} updated in {Elapsed:g}.",
+            valResult.TotalUpdated, valResult.TotalStocksFound, valResult.ElapsedTime);
+    }
+
+    if (args.Contains("--report-status"))
+    {
+        var db = scope.ServiceProvider.GetRequiredService<StockLensDataContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var totalCompanies = await db.CompanyMaster.CountAsync();
+        var totalFinancials = await db.StockFinancials.CountAsync();
+        var seededStocks = await db.StockFinancials.Select(f => f.StockId).Distinct().CountAsync();
+        var totalQuotes = await db.MarketTickerQuotes.CountAsync();
+        logger.LogInformation("📊 [Database Summary] Companies: {Companies}, Seeded Stocks: {SeededStocks}, Financial Records: {Financials}, Live Ticker Quotes: {Quotes}",
+            totalCompanies, seededStocks, totalFinancials, totalQuotes);
+    }
+
+    if (args.Contains("--test-sector-analysis"))
+    {
+        var sectorService = scope.ServiceProvider.GetRequiredService<ISectorAnalysisService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var sectorsToTest = new[] { "Information Technology", "Financial Services", "Oil, Gas & Consumable Fuels" };
+        foreach (var sec in sectorsToTest)
+        {
+            sw.Restart();
+            var res = await sectorService.GetSectorAnalysisAsync(sec);
+            sw.Stop();
+            logger.LogInformation("===============================================================");
+            logger.LogInformation("🎯 [Sector Analysis Live] {Sector} (Query Time: {Elapsed}ms)", sec, sw.ElapsedMilliseconds);
+            logger.LogInformation("   Metrics -> Companies: {Total} | Breadth: +{Adv} / -{Dec} | Avg PE: {Pe} | Avg MCap: ₹{MCap} Cr | Sector Change: {Chg}%",
+                res.Summary.TotalCompanies, res.Summary.AdvanceCount, res.Summary.DeclineCount,
+                res.Summary.AveragePe, res.Summary.AverageMarketCapCr, res.Summary.SectorChangePercent);
+            
+            logger.LogInformation("   Top Seeded Constituents & Dynamic Badges:");
+            foreach (var st in res.Stocks.Take(5))
+            {
+                var badges = st.Badges != null && st.Badges.Count > 0 ? string.Join(" | ", st.Badges) : (st.PrimaryBadge ?? "None");
+
+                logger.LogInformation("   -> {Symbol,-12} | Price: ₹{Price,8:F2} | MCap: ₹{MCap,10:F2} Cr | PE: {Pe,6:F1} | ROE: {Roe,5:F1}% | Badges: [{Badges}]",
+                    st.Symbol, st.Price, st.MarketCapCr, st.PeRatio ?? 0, st.Roe ?? 0, badges);
+            }
+        }
+    }
+
+    if (args.Contains("--seed-and-exit"))
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Exit flag detected. Terminating process cleanly.");
+        return;
+    }
 }
 
 app.UseSwagger();

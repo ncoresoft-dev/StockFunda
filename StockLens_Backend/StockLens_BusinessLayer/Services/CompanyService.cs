@@ -79,84 +79,59 @@ namespace StockLens_BusinessLayer.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            var resolvedSource = "IndianAPI";
+            var resolvedSource = "YahooFinance";
             var executives = new List<string>();
             var keyPoints = new List<string>();
             IndianApiStockOverviewDto? indianOverview = null;
             YahooCompanyProfileDto? yahooProfile = null;
 
-            // 2. Primary Provider: IndianAPI (/stock?name={symbol})
+            // 2. Primary Provider: Yahoo Finance (0 quota cost, unlimited free profile & about)
             try
             {
-                _logger.LogInformation("[Hybrid] Querying IndianAPI for {Symbol}", cleanSymbol);
-                indianOverview = await _indianApiClient.GetStockFinancialsAndOverviewAsync(cleanSymbol, cleanExchange, cancellationToken);
-                if (indianOverview != null)
+                _logger.LogInformation("[Shielded] Querying Yahoo Finance profile for {Symbol}", cleanSymbol);
+                yahooProfile = await _yahooFinanceClient.GetCompanyProfileAsync(cleanSymbol, cleanExchange, cancellationToken);
+                if (yahooProfile != null)
                 {
-                    if (!string.IsNullOrWhiteSpace(indianOverview.CompanyName)) company.CompanyName = indianOverview.CompanyName;
-                    // Sector and Industry are managed exclusively by companies.json (Single Source of Truth)
-                    
-                    if (!string.IsNullOrWhiteSpace(indianOverview.WebsiteUrl)) company.WebsiteUrl = indianOverview.WebsiteUrl;
-                    if (!string.IsNullOrWhiteSpace(indianOverview.About)) company.About = indianOverview.About;
-
-                    if (indianOverview.KeyPoints != null && indianOverview.KeyPoints.Count > 0)
+                    if (!string.IsNullOrWhiteSpace(yahooProfile.CompanyName)) company.CompanyName = yahooProfile.CompanyName;
+                    if (!string.IsNullOrWhiteSpace(yahooProfile.LongBusinessSummary)) company.About = yahooProfile.LongBusinessSummary;
+                    if (!string.IsNullOrWhiteSpace(yahooProfile.Website)) company.WebsiteUrl = yahooProfile.Website;
+                    if (yahooProfile.FullTimeEmployees.HasValue) company.EmployeesCount = yahooProfile.FullTimeEmployees;
+                    if (yahooProfile.KeyExecutives != null && yahooProfile.KeyExecutives.Count > 0)
                     {
-                        keyPoints.AddRange(indianOverview.KeyPoints);
+                        executives.AddRange(yahooProfile.KeyExecutives);
                     }
+                    resolvedSource = "YahooFinance";
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[Hybrid] IndianAPI query failed for {Symbol}, falling back to Yahoo Finance", cleanSymbol);
+                _logger.LogWarning(ex, "[Shielded] Yahoo Finance profile query failed for {Symbol}", cleanSymbol);
             }
 
-            // 3. Fallback / Enrichment: Yahoo Finance (assetProfile & summaryProfile)
-            var needsEnrichment = string.IsNullOrWhiteSpace(company.About) ||
-                                  company.About.Length < 60 ||
-                                  string.IsNullOrWhiteSpace(company.WebsiteUrl) ||
-                                  string.IsNullOrWhiteSpace(company.Industry);
-
-            if (needsEnrichment || forceRefresh)
+            // 3. Emergency Tier 2 Fallback: IndianAPI (Used ONLY if Yahoo returned nothing, preserving 500 lifetime limit)
+            var isMissingCoreOverview = string.IsNullOrWhiteSpace(company.About) || (company.CompanyName == cleanSymbol && string.IsNullOrWhiteSpace(company.WebsiteUrl));
+            if (isMissingCoreOverview)
             {
                 try
                 {
-                    _logger.LogInformation("[Hybrid] Querying Yahoo Finance profile for {Symbol}", cleanSymbol);
-                    yahooProfile = await _yahooFinanceClient.GetCompanyProfileAsync(cleanSymbol, cleanExchange, cancellationToken);
-                    if (yahooProfile != null)
+                    _logger.LogInformation("[Shielded] Triggering Emergency Fallback to IndianAPI for {Symbol}", cleanSymbol);
+                    indianOverview = await _indianApiClient.GetStockFinancialsAndOverviewAsync(cleanSymbol, cleanExchange, cancellationToken);
+                    if (indianOverview != null)
                     {
-                        if (string.IsNullOrWhiteSpace(company.CompanyName) || company.CompanyName == cleanSymbol)
+                        if (!string.IsNullOrWhiteSpace(indianOverview.CompanyName)) company.CompanyName = indianOverview.CompanyName;
+                        if (!string.IsNullOrWhiteSpace(indianOverview.WebsiteUrl)) company.WebsiteUrl = indianOverview.WebsiteUrl;
+                        if (!string.IsNullOrWhiteSpace(indianOverview.About)) company.About = indianOverview.About;
+
+                        if (indianOverview.KeyPoints != null && indianOverview.KeyPoints.Count > 0)
                         {
-                            if (!string.IsNullOrWhiteSpace(yahooProfile.CompanyName)) company.CompanyName = yahooProfile.CompanyName;
+                            keyPoints.AddRange(indianOverview.KeyPoints);
                         }
-
-                        if (string.IsNullOrWhiteSpace(company.About) || (company.About.Length < 60 && !string.IsNullOrWhiteSpace(yahooProfile.LongBusinessSummary)))
-                        {
-                            company.About = yahooProfile.LongBusinessSummary;
-                            resolvedSource = resolvedSource == "IndianAPI" && !string.IsNullOrWhiteSpace(indianOverview?.CompanyName) ? "Hybrid" : "YahooFinance";
-                        }
-
-                        if (string.IsNullOrWhiteSpace(company.WebsiteUrl) && !string.IsNullOrWhiteSpace(yahooProfile.Website))
-                        {
-                            company.WebsiteUrl = yahooProfile.Website;
-                        }
-
-                        // Sector and Industry managed exclusively by companies.json
-
-                        
-
-                        if (!company.EmployeesCount.HasValue && yahooProfile.FullTimeEmployees.HasValue)
-                        {
-                            company.EmployeesCount = yahooProfile.FullTimeEmployees;
-                        }
-
-                        if (yahooProfile.KeyExecutives != null && yahooProfile.KeyExecutives.Count > 0)
-                        {
-                            executives.AddRange(yahooProfile.KeyExecutives);
-                        }
+                        resolvedSource = "IndianAPI";
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[Hybrid] Yahoo Finance profile query failed for {Symbol}", cleanSymbol);
+                    _logger.LogWarning(ex, "[Shielded] Emergency IndianAPI query failed for {Symbol}", cleanSymbol);
                 }
             }
 

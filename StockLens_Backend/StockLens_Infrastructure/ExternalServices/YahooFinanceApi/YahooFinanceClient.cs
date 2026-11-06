@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using StockLens_Infrastructure.ExternalServices.IndianApi;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -735,28 +736,32 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             }
         }
 
-        public async Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>> GetQuarterlyIncomeStatementsAsync(
+        public async Task<YahooStockFundamentalsDto?> GetComprehensiveFundamentalsAsync(
             string symbol,
             string? exchange = "NSE",
             CancellationToken cancellationToken = default)
         {
-            var results = new System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>();
-            if (string.IsNullOrWhiteSpace(symbol)) return results;
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
 
             try
             {
                 var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
                 var cleanSymbol = symbol.Trim().ToUpperInvariant();
-                var searchSymbol = cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO") ? cleanSymbol : $"{cleanSymbol}{suffix}";
+                var searchSymbol = cleanSymbol switch
+                {
+                    "TATAMOTORS" => "TMCV.NS",
+                    _ => cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                        ? cleanSymbol
+                        : $"{cleanSymbol}{suffix}"
+                };
 
                 await EnsureCrumbAsync(cancellationToken);
 
                 var endpoint = !string.IsNullOrWhiteSpace(_cachedCrumb)
-                    ? $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=incomeStatementHistoryQuarterly&crumb={Uri.EscapeDataString(_cachedCrumb)}"
-                    : $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=incomeStatementHistoryQuarterly";
+                    ? $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=incomeStatementHistoryQuarterly,financialData,defaultKeyStatistics,summaryDetail,price&crumb={Uri.EscapeDataString(_cachedCrumb)}"
+                    : $"/v10/finance/quoteSummary/{Uri.EscapeDataString(searchSymbol)}?modules=incomeStatementHistoryQuarterly,financialData,defaultKeyStatistics,summaryDetail,price";
 
-                _logger.LogInformation("Fetching quarterly income statements from Yahoo Finance API for {Symbol}", searchSymbol);
-                Console.WriteLine($"[YahooFinance] Fetching quarterly income statements for {searchSymbol} via {endpoint}");
+                _logger.LogInformation("Fetching comprehensive fundamentals from Yahoo Finance API for {Symbol}", searchSymbol);
 
                 using var req = new HttpRequestMessage(HttpMethod.Get, endpoint);
                 if (!string.IsNullOrWhiteSpace(_cachedCookie))
@@ -765,141 +770,238 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                 }
 
                 var response = await _httpClient.SendAsync(req, cancellationToken);
-                Console.WriteLine($"[YahooFinance] Response status: {response.StatusCode} for {searchSymbol}");
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errStr = await response.Content.ReadAsStringAsync(cancellationToken);
-                    Console.WriteLine($"[YahooFinance ERROR]: {errStr}");
                     _logger.LogWarning("Yahoo Finance quoteSummary API returned status {StatusCode} for {Symbol}", response.StatusCode, searchSymbol);
-                    return results;
+                    return null;
                 }
 
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                Console.WriteLine($"[YahooFinance] Received {json.Length} chars payload for {searchSymbol}");
                 using var doc = JsonDocument.Parse(json);
 
-                if (doc.RootElement.TryGetProperty("quoteSummary", out var qs) &&
-                    qs.TryGetProperty("result", out var resArray) &&
-                    resArray.ValueKind == JsonValueKind.Array &&
-                    resArray.GetArrayLength() > 0)
+                if (!doc.RootElement.TryGetProperty("quoteSummary", out var qs) ||
+                    !qs.TryGetProperty("result", out var resArray) ||
+                    resArray.ValueKind != JsonValueKind.Array ||
+                    resArray.GetArrayLength() == 0)
                 {
-                    var firstRes = resArray[0];
-                    if (firstRes.TryGetProperty("incomeStatementHistoryQuarterly", out var ishq) &&
-                        ishq.TryGetProperty("incomeStatementHistory", out var histArr) &&
-                        histArr.ValueKind == JsonValueKind.Array)
+                    return null;
+                }
+
+                var r0 = resArray[0];
+                var dto = new YahooStockFundamentalsDto { Symbol = cleanSymbol };
+                const decimal croreDivisor = 10000000m; // 1 Crore = 10,000,000
+
+                // 1. Parse Price & SummaryDetail Module
+                if (r0.TryGetProperty("price", out var pObj))
+                {
+                    if (ExtractRawDecimal(pObj, "regularMarketPrice", out var price)) dto.CurrentPrice = price;
+                    if (ExtractRawDecimal(pObj, "regularMarketChange", out var chg)) dto.Change = chg;
+                    if (ExtractRawDecimal(pObj, "regularMarketChangePercent", out var chgPct)) dto.ChangePercent = Math.Round(chgPct * 100m, 2);
+                    if (ExtractRawDecimal(pObj, "regularMarketDayHigh", out var dh)) dto.DayHigh = dh;
+                    if (ExtractRawDecimal(pObj, "regularMarketDayLow", out var dl)) dto.DayLow = dl;
+                    if (pObj.TryGetProperty("shortName", out var sn) && sn.ValueKind == JsonValueKind.String) dto.CompanyName = sn.GetString();
+                    else if (pObj.TryGetProperty("longName", out var ln) && ln.ValueKind == JsonValueKind.String) dto.CompanyName = ln.GetString();
+                }
+
+                if (r0.TryGetProperty("summaryDetail", out var sumObj))
+                {
+                    if (!dto.CurrentPrice.HasValue && ExtractRawDecimal(sumObj, "previousClose", out var prevClose)) dto.CurrentPrice = prevClose;
+                    if (ExtractRawDecimal(sumObj, "marketCap", out var mc)) dto.MarketCapCr = Math.Round(mc / croreDivisor, 2);
+                    if (ExtractRawDecimal(sumObj, "trailingPE", out var pe)) dto.PeRatio = Math.Round(pe, 2);
+                    if (ExtractRawDecimal(sumObj, "forwardPE", out var fpe)) dto.ForwardPe = Math.Round(fpe, 2);
+                    if (ExtractRawDecimal(sumObj, "priceToBook", out var pb)) dto.PbRatio = Math.Round(pb, 2);
+                    if (ExtractRawDecimal(sumObj, "fiftyTwoWeekHigh", out var h52)) dto.Week52High = h52;
+                    if (ExtractRawDecimal(sumObj, "fiftyTwoWeekLow", out var l52)) dto.Week52Low = l52;
+                    if (ExtractRawDecimal(sumObj, "dividendYield", out var dy)) dto.DividendYield = Math.Round(dy * 100m, 2);
+                }
+
+                // 2. Parse DefaultKeyStatistics
+                if (r0.TryGetProperty("defaultKeyStatistics", out var ksObj))
+                {
+                    if (ExtractRawDecimal(ksObj, "sharesOutstanding", out var so) && so > 0)
                     {
-                        const decimal croreDivisor = 10000000m; // Convert INR rupees to INR Crores
+                        dto.TotalSharesCr = Math.Round(so / croreDivisor, 2);
+                    }
+                    if (ExtractRawDecimal(ksObj, "bookValue", out var bv)) dto.BookValue = Math.Round(bv, 2);
+                    if (ExtractRawDecimal(ksObj, "trailingEps", out var ttmEps)) dto.TtmEps = Math.Round(ttmEps, 2);
+                    if (!dto.ForwardPe.HasValue && ExtractRawDecimal(ksObj, "forwardPE", out var ksFpe)) dto.ForwardPe = Math.Round(ksFpe, 2);
+                    if (!dto.PbRatio.HasValue && ExtractRawDecimal(ksObj, "priceToBook", out var ksPb)) dto.PbRatio = Math.Round(ksPb, 2);
+                    if (ExtractRawDecimal(ksObj, "heldPercentInsiders", out var hpi)) dto.PromoterHolding = Math.Round(hpi * 100m, 2);
+                    if (ExtractRawDecimal(ksObj, "heldPercentInstitutions", out var hpt)) dto.InstitutionalHolding = Math.Round(hpt * 100m, 2);
+                }
 
-                        foreach (var stmt in histArr.EnumerateArray())
+                // 3. Parse FinancialData
+                decimal? opMarginVal = null;
+                if (r0.TryGetProperty("financialData", out var fdObj))
+                {
+                    if (ExtractRawDecimal(fdObj, "operatingMargins", out var om))
+                    {
+                        opMarginVal = om;
+                        dto.OperatingMargin = Math.Round(om * 100m, 2);
+                    }
+                    if (ExtractRawDecimal(fdObj, "profitMargins", out var pm)) dto.ProfitMargin = Math.Round(pm * 100m, 2);
+                    if (ExtractRawDecimal(fdObj, "returnOnEquity", out var roe)) dto.Roe = Math.Round(roe * 100m, 2);
+                    if (ExtractRawDecimal(fdObj, "returnOnAssets", out var roa)) dto.Roce = Math.Round(roa * 100m, 2);
+                    if (ExtractRawDecimal(fdObj, "debtToEquity", out var de)) dto.DebtToEquity = Math.Round(de / 100m, 2);
+                    if (ExtractRawDecimal(fdObj, "totalDebt", out var td)) dto.TotalDebtCr = Math.Round(td / croreDivisor, 2);
+                    if (!dto.CurrentPrice.HasValue && ExtractRawDecimal(fdObj, "currentPrice", out var cp)) dto.CurrentPrice = cp;
+                }
+
+                // If MarketCapCr wasn't directly in summaryDetail, compute dynamically: Price * TotalSharesCr
+                if (!dto.MarketCapCr.HasValue && dto.CurrentPrice.HasValue && dto.TotalSharesCr.HasValue && dto.TotalSharesCr.Value > 0)
+                {
+                    dto.MarketCapCr = Math.Round(dto.CurrentPrice.Value * dto.TotalSharesCr.Value, 2);
+                }
+
+                // If PeRatio wasn't directly in summaryDetail, compute dynamically: Price / TtmEps
+                if (!dto.PeRatio.HasValue && dto.CurrentPrice.HasValue && dto.TtmEps.HasValue && dto.TtmEps.Value > 0)
+                {
+                    dto.PeRatio = Math.Round(dto.CurrentPrice.Value / dto.TtmEps.Value, 2);
+                }
+
+                // 4. Parse Quarterly Income Statements
+                if (r0.TryGetProperty("incomeStatementHistoryQuarterly", out var ishq) &&
+                    ishq.TryGetProperty("incomeStatementHistory", out var histArr) &&
+                    histArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var stmt in histArr.EnumerateArray())
+                    {
+                        var period = new IndianApiFinancialPeriodDto
                         {
-                            var period = new StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto
-                            {
-                                PeriodType = "quarterly"
-                            };
+                            PeriodType = "quarterly"
+                        };
 
-                            if (stmt.TryGetProperty("endDate", out var edObj))
+                        if (stmt.TryGetProperty("endDate", out var edObj))
+                        {
+                            if (edObj.TryGetProperty("fmt", out var edFmt) && edFmt.ValueKind == JsonValueKind.String &&
+                                DateTime.TryParse(edFmt.GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed))
                             {
-                                if (edObj.TryGetProperty("fmt", out var edFmt) && edFmt.ValueKind == JsonValueKind.String &&
-                                    DateTime.TryParse(edFmt.GetString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed))
-                                {
-                                    period.PeriodEndDate = ed;
-                                    period.FiscalYear = ed.ToString("MMM yyyy");
-                                }
-                                else if (edObj.TryGetProperty("raw", out var edRaw) && edRaw.TryGetInt64(out var ts))
-                                {
-                                    var edDate = DateTimeOffset.FromUnixTimeSeconds(ts).UtcDateTime;
-                                    period.PeriodEndDate = edDate;
-                                    period.FiscalYear = edDate.ToString("MMM yyyy");
-                                }
+                                period.PeriodEndDate = ed;
+                                period.FiscalYear = ed.ToString("MMM yyyy");
                             }
-
-                            // Revenue
-                            if (ExtractRawDecimal(stmt, "totalRevenue", out var rev))
-                                period.Revenue = Math.Round(rev / croreDivisor, 2);
-
-                            // Operating Profit / Operating Income
-                            if (ExtractRawDecimal(stmt, "operatingIncome", out var op))
-                                period.OperatingProfit = Math.Round(op / croreDivisor, 2);
-
-                            // Depreciation & Amortization
-                            if (ExtractRawDecimal(stmt, "depreciationAndAmortization", out var dep) ||
-                                ExtractRawDecimal(stmt, "depreciation", out dep))
-                                period.Depreciation = Math.Round(Math.Abs(dep) / croreDivisor, 2);
-
-                            // Profit Before Tax
-                            if (ExtractRawDecimal(stmt, "incomeBeforeTax", out var pbt) ||
-                                ExtractRawDecimal(stmt, "pretaxIncome", out pbt) ||
-                                ExtractRawDecimal(stmt, "profitBeforeTax", out pbt))
-                                period.ProfitBeforeTax = Math.Round(pbt / croreDivisor, 2);
-
-                            // Tax Expense
-                            if (ExtractRawDecimal(stmt, "incomeTaxExpense", out var tax) ||
-                                ExtractRawDecimal(stmt, "taxProvision", out tax) ||
-                                ExtractRawDecimal(stmt, "taxExpense", out tax) ||
-                                ExtractRawDecimal(stmt, "incomeTax", out tax) ||
-                                ExtractRawDecimal(stmt, "taxEffectOfUnusualItems", out tax))
-                                period.Tax = Math.Round(Math.Abs(tax) / croreDivisor, 2);
-
-                            // Net Profit / Net Income
-                            if (ExtractRawDecimal(stmt, "netIncome", out var np))
-                                period.NetProfit = Math.Round(np / croreDivisor, 2);
-                            else if (ExtractRawDecimal(stmt, "netIncomeFromContinuingOperations", out var npCont))
-                                period.NetProfit = Math.Round(npCont / croreDivisor, 2);
-                            else if (ExtractRawDecimal(stmt, "netIncomeCommonStockholders", out var npStock))
-                                period.NetProfit = Math.Round(npStock / croreDivisor, 2);
-
-                            // EPS
-                            if (ExtractRawDecimal(stmt, "dilutedEPS", out var eps) ||
-                                ExtractRawDecimal(stmt, "basicEPS", out eps))
-                                period.Eps = Math.Round(eps, 2);
-
-                            // Interest Expense
-                            if (ExtractRawDecimal(stmt, "interestExpense", out var interest))
-                                period.Interest = Math.Round(Math.Abs(interest) / croreDivisor, 2);
-
-                            // Other Income
-                            if (ExtractRawDecimal(stmt, "totalOtherIncomeExpenseNet", out var oi))
-                                period.OtherIncome = Math.Round(oi / croreDivisor, 2);
-
-                            // Derived fields
-                            if (period.Revenue.HasValue && period.OperatingProfit.HasValue)
+                            else if (edObj.TryGetProperty("raw", out var edRaw) && edRaw.TryGetInt64(out var ts))
                             {
-                                period.Expenses = period.Revenue.Value - period.OperatingProfit.Value;
-                                if (period.Revenue.Value > 0)
-                                {
-                                    period.OperatingProfitMargin = Math.Round((period.OperatingProfit.Value / period.Revenue.Value) * 100m, 2);
-                                }
+                                var edDate = DateTimeOffset.FromUnixTimeSeconds(ts).UtcDateTime;
+                                period.PeriodEndDate = edDate;
+                                period.FiscalYear = edDate.ToString("MMM yyyy");
                             }
+                        }
 
-                            // Fallback Tax calculations
-                            if (!period.Tax.HasValue && period.ProfitBeforeTax.HasValue && period.NetProfit.HasValue)
-                            {
-                                var computedTax = period.ProfitBeforeTax.Value - period.NetProfit.Value;
-                                if (computedTax >= 0)
-                                {
-                                    period.Tax = Math.Round(computedTax, 2);
-                                }
-                            }
+                        // Revenue
+                        if (ExtractRawDecimal(stmt, "totalRevenue", out var rev))
+                            period.Revenue = Math.Round(rev / croreDivisor, 2);
 
-                            if (period.Tax.HasValue && period.ProfitBeforeTax.HasValue && period.ProfitBeforeTax.Value > 0)
-                            {
-                                period.TaxPercentage = Math.Round((period.Tax.Value / period.ProfitBeforeTax.Value) * 100m, 2);
-                            }
+                        // Net Profit / Net Income
+                        if (ExtractRawDecimal(stmt, "netIncome", out var np))
+                            period.NetProfit = Math.Round(np / croreDivisor, 2);
+                        else if (ExtractRawDecimal(stmt, "netIncomeFromContinuingOperations", out var npCont))
+                            period.NetProfit = Math.Round(npCont / croreDivisor, 2);
+                        else if (ExtractRawDecimal(stmt, "netIncomeCommonStockholders", out var npStock))
+                            period.NetProfit = Math.Round(npStock / croreDivisor, 2);
 
-                            if (period.PeriodEndDate.HasValue)
+                        // Operating Profit / Operating Income
+                        if (ExtractRawDecimal(stmt, "operatingIncome", out var op) && op > 0)
+                        {
+                            period.OperatingProfit = Math.Round(op / croreDivisor, 2);
+                        }
+                        else if (opMarginVal.HasValue && period.Revenue.HasValue && period.Revenue.Value > 0)
+                        {
+                            period.OperatingProfit = Math.Round(period.Revenue.Value * opMarginVal.Value, 2);
+                        }
+
+                        // Operating Profit Margin & Expenses
+                        if (period.Revenue.HasValue && period.OperatingProfit.HasValue)
+                        {
+                            period.Expenses = Math.Round(period.Revenue.Value - period.OperatingProfit.Value, 2);
+                            if (period.Revenue.Value > 0)
                             {
-                                results.Add(period);
+                                period.OperatingProfitMargin = Math.Round((period.OperatingProfit.Value / period.Revenue.Value) * 100m, 2);
                             }
+                        }
+
+                        // Depreciation & Amortization
+                        if (ExtractRawDecimal(stmt, "depreciationAndAmortization", out var dep) ||
+                            ExtractRawDecimal(stmt, "depreciation", out dep))
+                        {
+                            period.Depreciation = Math.Round(Math.Abs(dep) / croreDivisor, 2);
+                        }
+
+                        // Interest Expense
+                        if (ExtractRawDecimal(stmt, "interestExpense", out var interest))
+                            period.Interest = Math.Round(Math.Abs(interest) / croreDivisor, 2);
+
+                        // Other Income
+                        if (ExtractRawDecimal(stmt, "totalOtherIncomeExpenseNet", out var oi))
+                            period.OtherIncome = Math.Round(oi / croreDivisor, 2);
+
+                        // Profit Before Tax
+                        if (ExtractRawDecimal(stmt, "incomeBeforeTax", out var pbt) ||
+                            ExtractRawDecimal(stmt, "pretaxIncome", out pbt) ||
+                            ExtractRawDecimal(stmt, "profitBeforeTax", out pbt))
+                        {
+                            period.ProfitBeforeTax = Math.Round(pbt / croreDivisor, 2);
+                        }
+                        else if (period.NetProfit.HasValue)
+                        {
+                            period.ProfitBeforeTax = Math.Round(period.NetProfit.Value / 0.7483m, 2);
+                        }
+
+                        // Tax Expense
+                        if (ExtractRawDecimal(stmt, "incomeTaxExpense", out var tax) ||
+                            ExtractRawDecimal(stmt, "taxProvision", out tax) ||
+                            ExtractRawDecimal(stmt, "taxExpense", out tax) ||
+                            ExtractRawDecimal(stmt, "incomeTax", out tax))
+                        {
+                            period.Tax = Math.Round(Math.Abs(tax) / croreDivisor, 2);
+                        }
+                        else if (period.ProfitBeforeTax.HasValue && period.NetProfit.HasValue)
+                        {
+                            period.Tax = Math.Round(period.ProfitBeforeTax.Value - period.NetProfit.Value, 2);
+                        }
+
+                        if (period.Tax.HasValue && period.ProfitBeforeTax.HasValue && period.ProfitBeforeTax.Value > 0)
+                        {
+                            period.TaxPercentage = Math.Round((period.Tax.Value / period.ProfitBeforeTax.Value) * 100m, 2);
+                        }
+
+                        // EPS
+                        if (ExtractRawDecimal(stmt, "dilutedEPS", out var eps) ||
+                            ExtractRawDecimal(stmt, "basicEPS", out eps))
+                        {
+                            period.Eps = Math.Round(eps, 2);
+                        }
+                        else if (dto.TotalSharesCr.HasValue && dto.TotalSharesCr.Value > 0 && period.NetProfit.HasValue)
+                        {
+                            period.Eps = Math.Round(period.NetProfit.Value / dto.TotalSharesCr.Value, 2);
+                        }
+                        else if (dto.TtmEps.HasValue)
+                        {
+                            period.Eps = Math.Round(dto.TtmEps.Value / 4m, 2);
+                        }
+
+                        if (period.PeriodEndDate.HasValue)
+                        {
+                            dto.Quarters.Add(period);
                         }
                     }
                 }
+
+                return dto;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching quarterly income statements from Yahoo Finance API for {Symbol}", symbol);
+                _logger.LogError(ex, "Error fetching comprehensive fundamentals from Yahoo Finance API for {Symbol}", symbol);
+                return null;
             }
+        }
 
-            return results;
+        public async Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>> GetQuarterlyIncomeStatementsAsync(
+            string symbol,
+            string? exchange = "NSE",
+            CancellationToken cancellationToken = default)
+        {
+            var fundamentals = await GetComprehensiveFundamentalsAsync(symbol, exchange, cancellationToken);
+            return fundamentals?.Quarters ?? new System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>();
         }
 
         private static bool ExtractRawDecimal(JsonElement parent, string propName, out decimal value)

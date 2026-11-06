@@ -196,31 +196,9 @@ namespace StockLens_BusinessLayer.Services
                         {
                             source = "YahooFinance";
                             
-                            // Merge delivery data from Indian API
-                            try
-                            {
-                                var indianPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: "1yr", exchange: stock.Exchange, filter: "price", cancellationToken: cancellationToken);
-                                if (indianPrices != null && indianPrices.Count > 0)
-                                {
-                                    var indianDict = indianPrices.Where(d => d.ResolvedDate.HasValue).ToDictionary(d => d.ResolvedDate!.Value.Date);
-                                    foreach (var r in rawPrices)
-                                    {
-                                        if (r.ResolvedDate.HasValue && indianDict.TryGetValue(r.ResolvedDate.Value.Date, out var ind))
-                                        {
-                                            r.DeliveryPercentage = ind.DeliveryPercentage;
-                                            r.DeliveryVolume = ind.DeliveryVolume;
-                                            if (ind.Volume.HasValue && ind.Volume.Value > 0)
-                                            {
-                                                r.TotalTradedVolume = ind.Volume; // Store Indian API volume separately for Delivery Metrics
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            catch (Exception indEx)
-                            {
-                                _logger.LogWarning(indEx, "Failed to merge delivery data from IndianAPI for {Symbol}", stock.Symbol);
-                            }
+                            // Delivery data merge from IndianAPI bypassed to protect 500 lifetime limit
+                            // Yahoo Finance supplies full High, Low, Open, Close, Volume
+                            _logger.LogInformation("Successfully retrieved {Count} historical price records from Yahoo Finance for {Symbol}", rawPrices.Count, stock.Symbol);
                         }
                     }
                     catch (Exception yfEx)

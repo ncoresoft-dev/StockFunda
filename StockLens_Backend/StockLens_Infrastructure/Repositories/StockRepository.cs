@@ -96,7 +96,7 @@ namespace StockLens_Infrastructure.Repositories
                 // Check if company exists in CompanyMaster
                 var existingCompany = await _context.CompanyMaster
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Symbol == cleanSymbol, cancellationToken);
+                    .FirstOrDefaultAsync(c => c.Symbol.ToUpper() == cleanSymbol, cancellationToken);
 
                 var stock = new Stock
                 {
@@ -108,8 +108,8 @@ namespace StockLens_Infrastructure.Repositories
 
                 if (existingCompany != null)
                 {
+                    // Only assign the foreign key ID to prevent EF Core from trying to insert the detached CompanyMaster entity
                     stock.CompanyId = existingCompany.Id;
-                    stock.Company = existingCompany;
                 }
                 else
                 {
@@ -127,6 +127,13 @@ namespace StockLens_Infrastructure.Repositories
                 {
                     await _context.Stocks.AddAsync(stock, cancellationToken);
                     await _context.SaveChangesAsync(cancellationToken);
+
+                    // Assign company in memory after save so callers have the navigation property
+                    if (existingCompany != null)
+                    {
+                        stock.Company = existingCompany;
+                    }
+
                     return stock;
                 }
                 catch (DbUpdateException)

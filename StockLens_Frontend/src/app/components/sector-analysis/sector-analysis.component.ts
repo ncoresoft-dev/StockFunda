@@ -75,6 +75,19 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   // Subscriptions
   private routeSub?: Subscription;
 
+  // Counts of active stocks with real market capitalization and prices
+  activeStocksCount = computed(() => {
+    return this.stocks().filter(s => (s.marketCapCr || 0) > 0 && (s.price || 0) > 0).length;
+  });
+
+  gainersCount = computed(() => {
+    return this.stocks().filter(s => (s.marketCapCr || 0) > 0 && (s.price || 0) > 0 && s.changePercent > 0).length;
+  });
+
+  losersCount = computed(() => {
+    return this.stocks().filter(s => (s.marketCapCr || 0) > 0 && (s.price || 0) > 0 && s.changePercent < 0).length;
+  });
+
   // Dynamic top sectors derived purely from backend available sectors (no static list)
   topSectors = computed(() => {
     return this.availableSectors().slice(0, 10);
@@ -162,7 +175,9 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Calculate squarified treemap bounding boxes based on current filter & weights
+   * Calculate squarified treemap bounding boxes based on current filter & weights.
+   * Guarantees 100% of the active/filtered constituents are displayed (matching the tab counts),
+   * while giving every company (from giant leaders to microcaps) a clean, readable box with details.
    */
   generateTreemapLayout(): void {
     const rawStocks = this.stocks();
@@ -171,7 +186,9 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
       return;
     }
 
-    let filtered = [...rawStocks];
+    // In treemap, strictly include active stocks that have real positive market cap and price
+    let filtered = rawStocks.filter(s => (s.marketCapCr || 0) > 0 && (s.price || 0) > 0);
+
     const mode = this.filterMode();
     if (mode === 'gainers') {
       filtered = filtered.filter(s => s.changePercent > 0);
@@ -184,16 +201,23 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Limit to top 80 stocks for clean performance and readability
-    filtered = filtered.slice(0, 80);
+    // Sort by market cap descending so leaders get prime real estate
+    filtered.sort((a, b) => (b.marketCapCr || 0) - (a.marketCapCr || 0));
 
-    // Compute relative weight for squarification (MarketCap based, minimum 100 Cr floor)
-    const items = filtered.map(s => ({
+    // Dynamic rank & market-cap conscious weighting with a baseline floor:
+    // 1. Exact market cap order is strictly preserved (TCS > INFY > ...).
+    // 2. High market cap stocks are visibly much larger.
+    // 3. Every single company (all N items) gets a clear, comfortable rectangle with full details.
+    const rawValues = filtered.map(s => Math.pow(Math.max(Number(s.marketCapCr) || 1, 1), 0.40));
+    const maxVal = Math.max(...rawValues, 1);
+    const minFloor = maxVal * 0.12;
+
+    const items = filtered.map((s, i) => ({
       ...s,
-      value: Math.max(Number(s.marketCapCr) || 0, 100)
+      value: rawValues[i] + minFloor
     }));
 
-    const bounds: TreemapBounds = { x: 0, y: 0, width: 1000, height: 520 };
+    const bounds: TreemapBounds = { x: 0, y: 0, width: 1000, height: 560 };
     const layout = computeSquarifiedTreemap(items, bounds);
 
     const tiles: TreemapTile[] = layout.map(node => {
@@ -203,14 +227,13 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
       const isNeut = Math.abs(chg) < 0.01;
       
       const colors = this.getTileColor(chg);
-      const isSmall = node.widthPct < 7 || node.heightPct < 7;
-      const isMedium = node.widthPct >= 7 && node.widthPct < 15;
-      const isLarge = node.widthPct >= 15 && node.widthPct < 25;
+      const minDimension = Math.min(node.widthPct, node.heightPct);
       
       let fontSizeTier: 'sm' | 'md' | 'lg' | 'xl' = 'sm';
-      if (node.widthPct >= 25) fontSizeTier = 'xl';
-      else if (isLarge) fontSizeTier = 'lg';
-      else if (isMedium) fontSizeTier = 'md';
+      if (minDimension >= 22) fontSizeTier = 'xl';
+      else if (minDimension >= 14) fontSizeTier = 'lg';
+      else if (minDimension >= 8.5) fontSizeTier = 'md';
+      else fontSizeTier = 'sm';
 
       return {
         stock,
@@ -232,7 +255,7 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
         textColor: colors.text,
         borderColor: colors.border,
         fontSizeTier,
-        showDetails: !isSmall
+        showDetails: true
       };
     });
 
@@ -277,10 +300,15 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Filtered & Sorted stock list for the table
+   * Filtered & Sorted stock list for the table:
+   * Displays strictly the top 6 sector constituents with fully populated metrics.
    */
   sortedStocks = computed(() => {
-    let list = [...this.stocks()];
+    // Strictly select the top 6 active market leaders in this sector
+    let list = this.stocks()
+      .filter(s => (s.marketCapCr || 0) > 0 || (s.price || 0) > 0)
+      .slice(0, 6);
+
     const query = this.searchQuery().trim().toLowerCase();
     if (query) {
       list = list.filter(s =>

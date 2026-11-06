@@ -145,19 +145,13 @@ namespace StockLens_BusinessLayer.Services
                 .ThenByDescending(q => q.FiscalYear)
                 .First();
 
-            // Self-healing check: If the latest record came from YahooFinance fallback OR has zero tax bug OR is missing core metrics
-            // Note: Banking/NBFC stocks (e.g. HDFCBANK) do not have Operating Profit by accounting standard, so only check core fields
-            var isYahooFallback = string.Equals(latestDbQuarter.Source, "YahooFinance", StringComparison.OrdinalIgnoreCase);
-            var isMissingCoreFields = !latestDbQuarter.Revenue.HasValue || !latestDbQuarter.NetProfit.HasValue || !latestDbQuarter.Eps.HasValue;
-            var hasZeroTaxBug = latestDbQuarter.Tax == 0 && latestDbQuarter.ProfitBeforeTax.HasValue && latestDbQuarter.ProfitBeforeTax > 0;
-            var hasIncompleteData = isYahooFallback || isMissingCoreFields || hasZeroTaxBug;
-
+            // Self-healing check: Only trigger if essential core metrics are missing
+            var hasIncompleteData = !latestDbQuarter.Revenue.HasValue || !latestDbQuarter.NetProfit.HasValue;
             if (hasIncompleteData)
             {
-                // To prevent tight retry loops if upstream is persistently down, throttle self-healing attempts to once per hour
                 if (latestDbQuarter.LastSyncedAt < DateTime.UtcNow.AddHours(-1))
                 {
-                    reason = "Latest quarterly record has incomplete fallback data, syncing authoritative data from IndianAPI";
+                    reason = "Latest quarterly record is missing core revenue/net profit metrics, syncing fresh data";
                     return true;
                 }
             }
@@ -227,14 +221,41 @@ namespace StockLens_BusinessLayer.Services
 
         private async Task SyncQuarterlyResultsAsync(Stock stock, List<StockFinancial> existingQuarters, CancellationToken cancellationToken)
         {
-            var syncedFromIndianApi = false;
+            var syncedFromYahoo = false;
 
-            // Tier 1: Try IndianAPI
+            // Tier 1: Try Yahoo Finance (Free, unlimited, enriched live metrics)
+            if (_yahooFinanceClient != null)
+            {
+                try
+                {
+                    _logger.LogInformation("Tier 1: Fetching quarterly income statements from Yahoo Finance for {Symbol}", stock.Symbol);
+                    var yfQuarters = await _yahooFinanceClient.GetQuarterlyIncomeStatementsAsync(stock.Symbol, stock.Exchange, cancellationToken);
+
+                    if (yfQuarters != null && yfQuarters.Count > 0)
+                    {
+                        foreach (var q in yfQuarters)
+                        {
+                            await UpsertQuarterlyRecordAsync(stock.Id, q, "YahooFinance", existingQuarters);
+                        }
+                        await _financialRepository.SaveChangesAsync();
+                        syncedFromYahoo = true;
+                        _logger.LogInformation("Successfully synced {Count} quarterly records from Yahoo Finance for {Symbol}", yfQuarters.Count, stock.Symbol);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Tier 1 Yahoo Finance quarterly fetch failed for {Symbol}, evaluating emergency IndianAPI fallback.", stock.Symbol);
+                }
+            }
+
+            if (syncedFromYahoo) return;
+
+            // Tier 2: Emergency Fallback ONLY to IndianAPI (Protects 500 lifetime limit)
             if (_indianApiClient != null)
             {
                 try
                 {
-                    _logger.LogInformation("Tier 1: Fetching quarterly financials from IndianAPI for {Symbol}", stock.Symbol);
+                    _logger.LogInformation("Tier 2 (Emergency Fallback): Fetching quarterly financials from IndianAPI for {Symbol}", stock.Symbol);
                     var overview = await _indianApiClient.GetStockFinancialsAndOverviewAsync(stock.Symbol, stock.Exchange, cancellationToken);
 
                     if (overview != null && overview.Financials != null && overview.Financials.Count > 0)
@@ -250,8 +271,7 @@ namespace StockLens_BusinessLayer.Services
                                 await UpsertQuarterlyRecordAsync(stock.Id, q, "IndianAPI", existingQuarters);
                             }
                             await _financialRepository.SaveChangesAsync();
-                            syncedFromIndianApi = true;
-                            _logger.LogInformation("Successfully synced {Count} quarterly records from IndianAPI for {Symbol}", quarterlyPeriods.Count, stock.Symbol);
+                            _logger.LogInformation("Successfully synced {Count} quarterly records from IndianAPI emergency fallback for {Symbol}", quarterlyPeriods.Count, stock.Symbol);
                         }
                     }
                     else if (existingQuarters.Count > 0)
@@ -265,50 +285,7 @@ namespace StockLens_BusinessLayer.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Tier 1 IndianAPI quarterly fetch failed for {Symbol}, evaluating fallback.", stock.Symbol);
-                }
-            }
-
-            if (syncedFromIndianApi) return;
-
-            // Tier 2: Try Yahoo Finance (Strictly Guarded)
-            if (_yahooFinanceClient != null)
-            {
-                try
-                {
-                    // Check if DB already has authoritative IndianAPI data
-                    var hasAuthoritativeData = existingQuarters.Any(q => string.Equals(q.Source, "IndianAPI", StringComparison.OrdinalIgnoreCase) && q.OperatingProfit.HasValue);
-
-                    // If DB already has complete IndianAPI data, DO NOT pollute it with Yahoo Finance fallback!
-                    if (hasAuthoritativeData)
-                    {
-                        _logger.LogInformation("Skipping Yahoo Finance fallback for {Symbol}: Database already holds authoritative IndianAPI records.", stock.Symbol);
-                        if (existingQuarters.Count > 0)
-                        {
-                            existingQuarters[0].LastSyncedAt = DateTime.UtcNow;
-                            await _financialRepository.UpdateAsync(existingQuarters[0]);
-                            await _financialRepository.SaveChangesAsync();
-                        }
-                        return;
-                    }
-
-                    _logger.LogInformation("Tier 2: Fetching quarterly income statements from Yahoo Finance for {Symbol}", stock.Symbol);
-                    var yfQuarters = await _yahooFinanceClient.GetQuarterlyIncomeStatementsAsync(stock.Symbol, stock.Exchange, cancellationToken);
-
-                    if (yfQuarters != null && yfQuarters.Count > 0)
-                    {
-                        foreach (var q in yfQuarters)
-                        {
-                            await UpsertQuarterlyRecordAsync(stock.Id, q, "YahooFinance", existingQuarters);
-                        }
-                        await _financialRepository.SaveChangesAsync();
-                        _logger.LogInformation("Successfully synced {Count} quarterly records from Yahoo Finance for {Symbol}", yfQuarters.Count, stock.Symbol);
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Tier 2 Yahoo Finance quarterly fetch failed for {Symbol}.", stock.Symbol);
+                    _logger.LogError(ex, "Emergency IndianAPI quarterly fetch failed for {Symbol}.", stock.Symbol);
                 }
             }
         }

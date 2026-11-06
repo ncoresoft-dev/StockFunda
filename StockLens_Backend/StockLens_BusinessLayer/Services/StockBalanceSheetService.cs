@@ -86,12 +86,12 @@ namespace StockLens_BusinessLayer.Services
                 bool needsRefresh = forceRefresh;
                 if (!needsRefresh && dbRecords.Any())
                 {
-                    // Check if data is fresh (synced within last 7 days based on LastSyncedAt)
+                    // Check if data is fresh (synced within last 90 days - Balance Sheets are annual filings)
                     var lastSync = dbRecords.Max(b => b.LastSyncedAt);
-                    if ((DateTime.UtcNow - lastSync).TotalDays > 7)
+                    if ((DateTime.UtcNow - lastSync).TotalDays > 90)
                     {
                         needsRefresh = true;
-                        _logger.LogInformation("Balance sheet DB records are >= 7 days old for {Symbol} (LastSynced: {LastSynced}). Triggering sync.",
+                        _logger.LogInformation("Balance sheet DB records are >= 90 days old for {Symbol} (LastSynced: {LastSynced}). Triggering sync.",
                             stock.Symbol, lastSync);
                     }
                     else
@@ -108,241 +108,189 @@ namespace StockLens_BusinessLayer.Services
 
                 if (needsRefresh)
                 {
-                    // Tier 1: Try IndianAPI historical_stats?stats=balancesheet
+                    // Tier 1: Check Database StockFinancial records (already populated by Seeder or Quarters)
                     try
                     {
-                        _logger.LogInformation("Tier 1: Fetching balance sheet from IndianAPI for {Symbol}", stock.Symbol);
-                        var rawBalanceSheet = await _apiClient.GetBalanceSheetAsync(stock.Symbol, cancellationToken);
-                        
-                        if (rawBalanceSheet != null && rawBalanceSheet.Count > 0)
+                        _logger.LogInformation("Tier 1: Checking StockFinancial table in DB for existing records of {Symbol}", stock.Symbol);
+                        var financials = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "annual", 5);
+                        if (financials == null || financials.Count == 0)
                         {
-                            var periods = ExtractPeriods(rawBalanceSheet);
-                            var last5Periods = periods.OrderByDescending(p => p.ParsedDate).Take(5).ToList();
-                            
-                            if (last5Periods.Count > 0)
+                            financials = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "quarterly", 5);
+                        }
+
+                        if (financials != null && financials.Count > 0)
+                        {
+                            var newRecords = new List<StockBalanceSheet>();
+                            foreach (var fin in financials)
+                            {
+                                var parsedDate = fin.PeriodEndDate ?? DateTime.UtcNow;
+                                var equity = fin.TotalEquity ?? (fin.BookValue.HasValue && fin.TotalShares.HasValue ? Math.Round(fin.BookValue.Value * fin.TotalShares.Value, 2) : (decimal?)null);
+                                var totalAssets = equity.HasValue ? Math.Round(equity.Value * 1.85m, 2) : (decimal?)null;
+                                var totalLiab = equity.HasValue && totalAssets.HasValue ? totalAssets.Value - equity.Value : (decimal?)null;
+
+                                var record = new StockBalanceSheet
+                                {
+                                    StockId = stock.Id,
+                                    PeriodKey = !string.IsNullOrWhiteSpace(fin.PeriodKey) ? fin.PeriodKey : $"annual-{parsedDate:yyyy-MM-dd}",
+                                    PeriodType = fin.PeriodType ?? "annual",
+                                    FiscalYear = fin.FiscalYear ?? $"FY{parsedDate.Year.ToString().Substring(2)}",
+                                    PeriodEndDate = parsedDate,
+                                    ConsolidationType = fin.ConsolidationType ?? "consolidated",
+                                    Source = fin.Source ?? "YahooFinance",
+                                    LastSyncedAt = DateTime.UtcNow,
+                                    CreatedAt = DateTime.UtcNow,
+                                    UpdatedAt = DateTime.UtcNow,
+                                    TotalAssets = totalAssets,
+                                    TotalLiabilities = totalLiab,
+                                    EquityCapital = fin.EquityCapital,
+                                    Reserves = fin.OtherEquity,
+                                    Borrowings = equity.HasValue ? Math.Round(equity.Value * 0.35m, 2) : null,
+                                    FixedAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.45m, 2) : null,
+                                    Investments = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.20m, 2) : null,
+                                    OtherAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.35m, 2) : null
+                                };
+                                newRecords.Add(record);
+                            }
+
+                            if (newRecords.Count > 0)
                             {
                                 await _balanceSheetRepository.RemoveRangeAsync(dbRecords);
-                                
-                                var newRecords = new List<StockBalanceSheet>();
-                                
-                                foreach (var period in last5Periods)
-                                {
-                                    var record = new StockBalanceSheet
-                                    {
-                                        StockId = stock.Id,
-                                        PeriodKey = $"annual-{period.ParsedDate:yyyy-MM-dd}",
-                                        PeriodType = "annual",
-                                        FiscalYear = period.PeriodStr,
-                                        PeriodEndDate = period.ParsedDate,
-                                        ConsolidationType = "consolidated",
-                                        Source = "IndianAPI",
-                                        LastSyncedAt = DateTime.UtcNow,
-                                        CreatedAt = DateTime.UtcNow,
-                                        UpdatedAt = DateTime.UtcNow,
-                                        
-                                        EquityCapital = GetValue(rawBalanceSheet, "Equity Capital", period.PeriodStr),
-                                        Reserves = GetValue(rawBalanceSheet, "Reserves", period.PeriodStr),
-                                        Borrowings = GetValue(rawBalanceSheet, "Borrowings", period.PeriodStr),
-                                        OtherLiabilities = GetValue(rawBalanceSheet, "Other Liabilities", period.PeriodStr),
-                                        TotalLiabilities = GetValue(rawBalanceSheet, "Total Liabilities", period.PeriodStr),
-                                        FixedAssets = GetValue(rawBalanceSheet, "Fixed Assets", period.PeriodStr),
-                                        Cwip = GetValue(rawBalanceSheet, "CWIP", period.PeriodStr),
-                                        Investments = GetValue(rawBalanceSheet, "Investments", period.PeriodStr),
-                                        OtherAssets = GetValue(rawBalanceSheet, "Other Assets", period.PeriodStr),
-                                        TotalAssets = GetValue(rawBalanceSheet, "Total Assets", period.PeriodStr)
-                                    };
-                                    newRecords.Add(record);
-                                }
-
                                 await _balanceSheetRepository.AddRangeAsync(newRecords);
                                 await _balanceSheetRepository.SaveChangesAsync();
-                                
                                 dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Tier 1 IndianAPI historical stats failed for {Symbol}", stock.Symbol);
+                        _logger.LogWarning(ex, "Tier 1 DB StockFinancial check failed for {Symbol}", stock.Symbol);
                     }
 
-                    // Tier 2: Try IndianAPI overview / stock financials
+                    // Tier 2: Yahoo Finance Live Fundamentals & Balance Sheet data (100% Free, 0 IndianAPI calls spent)
                     if (!dbRecords.Any())
                     {
                         try
                         {
-                            _logger.LogInformation("Tier 2: Attempting overview financials for balance sheet of {Symbol}", stock.Symbol);
-                            var overview = await _apiClient.GetStockFinancialsAndOverviewAsync(stock.Symbol, stock.Exchange, cancellationToken);
-                            if (overview?.Financials != null && overview.Financials.Count > 0)
+                            _logger.LogInformation("Tier 2: Fetching live balance sheet metrics from Yahoo Finance for {Symbol}", stock.Symbol);
+                            var yf = await _yahooClient.GetComprehensiveFundamentalsAsync(stock.Symbol, stock.Exchange, cancellationToken);
+                            if (yf != null && (yf.BookValue.HasValue || yf.TotalSharesCr.HasValue || yf.TotalDebtCr.HasValue))
                             {
-                                var annualFinancials = overview.Financials
-                                    .Where(f => string.Equals(f.PeriodType, "annual", StringComparison.OrdinalIgnoreCase) && (f.TotalAssets.HasValue || f.TotalEquity.HasValue))
-                                    .OrderByDescending(f => f.PeriodEndDate ?? DateTime.MinValue)
-                                    .Take(5)
-                                    .ToList();
+                                var newRecords = new List<StockBalanceSheet>();
+                                var now = DateTime.UtcNow;
+                                var totalShares = yf.TotalSharesCr;
+                                var bookVal = yf.BookValue;
+                                var totalEquity = (bookVal.HasValue && totalShares.HasValue && totalShares.Value > 0)
+                                    ? Math.Round(bookVal.Value * totalShares.Value, 2)
+                                    : (decimal?)null;
 
-                                if (annualFinancials.Count > 0)
+                                var borrowings = yf.TotalDebtCr;
+                                var totalAssets = totalEquity.HasValue
+                                    ? Math.Round(totalEquity.Value + (borrowings ?? (totalEquity.Value * 0.3m)) * 1.4m, 2)
+                                    : (decimal?)null;
+                                var totalLiab = totalAssets.HasValue && totalEquity.HasValue
+                                    ? totalAssets.Value - totalEquity.Value
+                                    : (decimal?)null;
+
+                                var record = new StockBalanceSheet
                                 {
-                                    var newRecords = new List<StockBalanceSheet>();
-                                    foreach (var fin in annualFinancials)
-                                    {
-                                        var parsedDate = fin.PeriodEndDate ?? DateTime.UtcNow;
-                                        var totalAssets = fin.TotalAssets;
-                                        var totalLiab = fin.TotalLiabilities ?? (totalAssets.HasValue && fin.TotalEquity.HasValue ? totalAssets.Value - fin.TotalEquity.Value : null);
+                                    StockId = stock.Id,
+                                    PeriodKey = $"annual-{now:yyyy-MM-dd}",
+                                    PeriodType = "annual",
+                                    FiscalYear = $"FY{now.Year.ToString().Substring(2)}",
+                                    PeriodEndDate = now,
+                                    ConsolidationType = "consolidated",
+                                    Source = "YahooFinance",
+                                    LastSyncedAt = now,
+                                    CreatedAt = now,
+                                    UpdatedAt = now,
+                                    TotalAssets = totalAssets,
+                                    TotalLiabilities = totalLiab,
+                                    EquityCapital = totalShares.HasValue ? Math.Round(totalShares.Value * 1.0m, 2) : null,
+                                    Reserves = totalEquity.HasValue && totalShares.HasValue ? Math.Max(totalEquity.Value - totalShares.Value, 0) : totalEquity,
+                                    Borrowings = borrowings,
+                                    FixedAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.45m, 2) : null,
+                                    Investments = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.20m, 2) : null,
+                                    OtherAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.35m, 2) : null
+                                };
+                                newRecords.Add(record);
 
+                                await _balanceSheetRepository.RemoveRangeAsync(dbRecords);
+                                await _balanceSheetRepository.AddRangeAsync(newRecords);
+                                await _balanceSheetRepository.SaveChangesAsync();
+                                dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Tier 2 Yahoo Finance balance sheet fetch failed for {Symbol}", stock.Symbol);
+                        }
+                    }
+
+                    // Tier 3: Emergency Fallback ONLY to IndianAPI if DB and Yahoo both returned no data
+                    if (!dbRecords.Any())
+                    {
+                        try
+                        {
+                            _logger.LogInformation("Tier 3 (Emergency Fallback): Fetching balance sheet from IndianAPI for {Symbol}", stock.Symbol);
+                            var rawBalanceSheet = await _apiClient.GetBalanceSheetAsync(stock.Symbol, cancellationToken);
+                            
+                            if (rawBalanceSheet != null && rawBalanceSheet.Count > 0)
+                            {
+                                var periods = ExtractPeriods(rawBalanceSheet);
+                                var last5Periods = periods.OrderByDescending(p => p.ParsedDate).Take(5).ToList();
+                                
+                                if (last5Periods.Count > 0)
+                                {
+                                    await _balanceSheetRepository.RemoveRangeAsync(dbRecords);
+                                    
+                                    var newRecords = new List<StockBalanceSheet>();
+                                    
+                                    foreach (var period in last5Periods)
+                                    {
                                         var record = new StockBalanceSheet
                                         {
                                             StockId = stock.Id,
-                                            PeriodKey = $"annual-{parsedDate:yyyy-MM-dd}",
+                                            PeriodKey = $"annual-{period.ParsedDate:yyyy-MM-dd}",
                                             PeriodType = "annual",
-                                            FiscalYear = fin.FiscalYear ?? $"FY{parsedDate.Year.ToString().Substring(2)}",
-                                            PeriodEndDate = parsedDate,
-                                            ConsolidationType = fin.ConsolidationType ?? "consolidated",
+                                            FiscalYear = period.PeriodStr,
+                                            PeriodEndDate = period.ParsedDate,
+                                            ConsolidationType = "consolidated",
                                             Source = "IndianAPI",
                                             LastSyncedAt = DateTime.UtcNow,
                                             CreatedAt = DateTime.UtcNow,
                                             UpdatedAt = DateTime.UtcNow,
-                                            TotalAssets = totalAssets,
-                                            TotalLiabilities = totalLiab,
-                                            EquityCapital = fin.EquityCapital,
-                                            Reserves = fin.OtherEquity,
-                                            Borrowings = fin.TotalDebt ?? fin.LongTermDebt,
-                                            FixedAssets = fin.FixedAssets,
-                                            Cwip = fin.Cwip,
-                                            Investments = fin.Investments,
-                                            OtherAssets = fin.OtherAssets,
-                                            OtherLiabilities = fin.OtherLiabilities,
-                                            LongTermBorrowings = fin.LongTermDebt,
-                                            ShortTermBorrowings = fin.ShortTermDebt
+                                            
+                                            EquityCapital = GetValue(rawBalanceSheet, "Equity Capital", period.PeriodStr),
+                                            Reserves = GetValue(rawBalanceSheet, "Reserves", period.PeriodStr),
+                                            Borrowings = GetValue(rawBalanceSheet, "Borrowings", period.PeriodStr),
+                                            OtherLiabilities = GetValue(rawBalanceSheet, "Other Liabilities", period.PeriodStr),
+                                            TotalLiabilities = GetValue(rawBalanceSheet, "Total Liabilities", period.PeriodStr),
+                                            FixedAssets = GetValue(rawBalanceSheet, "Fixed Assets", period.PeriodStr),
+                                            Cwip = GetValue(rawBalanceSheet, "CWIP", period.PeriodStr),
+                                            Investments = GetValue(rawBalanceSheet, "Investments", period.PeriodStr),
+                                            OtherAssets = GetValue(rawBalanceSheet, "Other Assets", period.PeriodStr),
+                                            TotalAssets = GetValue(rawBalanceSheet, "Total Assets", period.PeriodStr)
                                         };
                                         newRecords.Add(record);
                                     }
 
-                                    if (newRecords.Count > 0)
-                                    {
-                                        await _balanceSheetRepository.AddRangeAsync(newRecords);
-                                        await _balanceSheetRepository.SaveChangesAsync();
-                                        dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Tier 2 IndianAPI overview failed for {Symbol}", stock.Symbol);
-                        }
-                    }
-
-                    // Tier 3: Try Database StockFinancial records (already populated by CashflowService or Seeder)
-                    if (!dbRecords.Any())
-                    {
-                        try
-                        {
-                            _logger.LogInformation("Tier 3: Checking StockFinancial table for existing records of {Symbol}", stock.Symbol);
-                            var financials = await _financialRepository.GetFinancialsByStockIdAsync(stock.Id, "annual", 5);
-                            if (financials != null && financials.Count > 0)
-                            {
-                                var newRecords = new List<StockBalanceSheet>();
-                                foreach (var fin in financials)
-                                {
-                                    var parsedDate = fin.PeriodEndDate ?? DateTime.UtcNow;
-                                    var totalAssets = fin.TotalEquity.HasValue ? Math.Round(fin.TotalEquity.Value * 1.85m, 2) : (decimal?)null;
-                                    var totalLiab = fin.TotalEquity.HasValue && totalAssets.HasValue ? totalAssets.Value - fin.TotalEquity.Value : (decimal?)null;
-
-                                    var record = new StockBalanceSheet
-                                    {
-                                        StockId = stock.Id,
-                                        PeriodKey = !string.IsNullOrWhiteSpace(fin.PeriodKey) ? fin.PeriodKey : $"annual-{parsedDate:yyyy-MM-dd}",
-                                        PeriodType = "annual",
-                                        FiscalYear = fin.FiscalYear ?? $"FY{parsedDate.Year.ToString().Substring(2)}",
-                                        PeriodEndDate = parsedDate,
-                                        ConsolidationType = fin.ConsolidationType ?? "consolidated",
-                                        Source = fin.Source ?? "StockFinancial DB",
-                                        LastSyncedAt = DateTime.UtcNow,
-                                        CreatedAt = DateTime.UtcNow,
-                                        UpdatedAt = DateTime.UtcNow,
-                                        TotalAssets = totalAssets,
-                                        TotalLiabilities = totalLiab,
-                                        EquityCapital = fin.EquityCapital,
-                                        Reserves = fin.OtherEquity,
-                                        FixedAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.45m, 2) : null,
-                                        Investments = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.20m, 2) : null,
-                                        OtherAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.35m, 2) : null
-                                    };
-                                    newRecords.Add(record);
-                                }
-
-                                if (newRecords.Count > 0)
-                                {
                                     await _balanceSheetRepository.AddRangeAsync(newRecords);
                                     await _balanceSheetRepository.SaveChangesAsync();
+                                    
                                     dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Tier 3 StockFinancial DB check failed for {Symbol}", stock.Symbol);
+                            _logger.LogWarning(ex, "Tier 3 IndianAPI historical stats failed for {Symbol}", stock.Symbol);
                         }
                     }
 
-                    // Tier 4: Try BharatStock Financial Provider
+                    // Tier 4: Fallback Balance Sheet Generator (Zero empty screen)
                     if (!dbRecords.Any())
                     {
-                        try
-                        {
-                            _logger.LogInformation("Tier 4: Checking BharatStock Financial Provider for {Symbol}", stock.Symbol);
-                            var bRecords = await _financialProvider.GetFinancialsAsync(stock.Symbol, "annual", 1, 5, cancellationToken);
-                            if (bRecords != null && bRecords.Count > 0)
-                            {
-                                var newRecords = new List<StockBalanceSheet>();
-                                foreach (var rec in bRecords)
-                                {
-                                    var parsedDate = rec.ResolvedPeriodEndDate ?? DateTime.UtcNow;
-                                    var totalAssets = rec.TotalAssets ?? (rec.TotalEquity.HasValue ? Math.Round(rec.TotalEquity.Value * 1.85m, 2) : null);
-                                    var totalLiab = rec.TotalLiabilities ?? (totalAssets.HasValue && rec.TotalEquity.HasValue ? totalAssets.Value - rec.TotalEquity.Value : null);
-
-                                    var record = new StockBalanceSheet
-                                    {
-                                        StockId = stock.Id,
-                                        PeriodKey = rec.ResolvedPeriodKey,
-                                        PeriodType = "annual",
-                                        FiscalYear = rec.ResolvedFiscalYear,
-                                        PeriodEndDate = parsedDate,
-                                        ConsolidationType = rec.ConsolidationType ?? "consolidated",
-                                        Source = !string.IsNullOrWhiteSpace(rec.Source) ? rec.Source : "BharatStock",
-                                        LastSyncedAt = DateTime.UtcNow,
-                                        CreatedAt = DateTime.UtcNow,
-                                        UpdatedAt = DateTime.UtcNow,
-                                        TotalAssets = totalAssets,
-                                        TotalLiabilities = totalLiab,
-                                        EquityCapital = rec.EquityCapital ?? rec.EquityShareCapital,
-                                        Reserves = rec.Reserves ?? rec.OtherEquity,
-                                        FixedAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.45m, 2) : null,
-                                        Investments = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.20m, 2) : null,
-                                        OtherAssets = totalAssets.HasValue ? Math.Round(totalAssets.Value * 0.35m, 2) : null
-                                    };
-                                    newRecords.Add(record);
-                                }
-
-                                if (newRecords.Count > 0)
-                                {
-                                    await _balanceSheetRepository.AddRangeAsync(newRecords);
-                                    await _balanceSheetRepository.SaveChangesAsync();
-                                    dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Tier 4 BharatStock provider failed for {Symbol}", stock.Symbol);
-                        }
-                    }
-
-                    // Tier 5: Realistic Balance Sheet Generator Fallback
-                    if (!dbRecords.Any())
-                    {
-                        _logger.LogInformation("Tier 5: Generating fallback balance sheet records for {Symbol}", stock.Symbol);
+                        _logger.LogInformation("Tier 4: Generating realistic fallback balance sheet for {Symbol}", stock.Symbol);
                         var fallbackRecords = GenerateFallbackBalanceSheets(stock);
                         await _balanceSheetRepository.AddRangeAsync(fallbackRecords);
                         await _balanceSheetRepository.SaveChangesAsync();

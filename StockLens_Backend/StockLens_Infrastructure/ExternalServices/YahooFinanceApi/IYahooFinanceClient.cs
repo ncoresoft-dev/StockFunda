@@ -38,6 +38,36 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         public System.Collections.Generic.List<string> KeyExecutives { get; set; } = new();
     }
 
+    public class YahooStockFundamentalsDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public string? CompanyName { get; set; }
+        public decimal? CurrentPrice { get; set; }
+        public decimal? Change { get; set; }
+        public decimal? ChangePercent { get; set; }
+        public decimal? DayHigh { get; set; }
+        public decimal? DayLow { get; set; }
+        public decimal? Week52High { get; set; }
+        public decimal? Week52Low { get; set; }
+        public decimal? MarketCapCr { get; set; }
+        public decimal? PeRatio { get; set; }
+        public decimal? ForwardPe { get; set; }
+        public decimal? PbRatio { get; set; }
+        public decimal? BookValue { get; set; }
+        public decimal? Roe { get; set; }
+        public decimal? Roce { get; set; }
+        public decimal? OperatingMargin { get; set; }
+        public decimal? ProfitMargin { get; set; }
+        public decimal? DebtToEquity { get; set; }
+        public decimal? TotalDebtCr { get; set; }
+        public decimal? TotalSharesCr { get; set; }
+        public decimal? TtmEps { get; set; }
+        public decimal? DividendYield { get; set; }
+        public decimal? PromoterHolding { get; set; }
+        public decimal? InstitutionalHolding { get; set; }
+        public System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto> Quarters { get; set; } = new();
+    }
+
     public interface IYahooFinanceClient
     {
         /// <summary>
@@ -54,6 +84,7 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         Task<System.Collections.Generic.List<YahooDebtResponse>> GetHistoricalDebtAsync(string symbol, string exchange, CancellationToken cancellationToken = default);
         Task<YahooSparklineQuoteDto?> GetSparklineQuoteAsync(string symbol, string? exchange = "NSE", int days = 7, CancellationToken cancellationToken = default);
         Task<YahooGrowthMetricsDto?> GetGrowthMetricsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
+        Task<YahooStockFundamentalsDto?> GetComprehensiveFundamentalsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
     }
 
     public class YahooSparklineQuoteDto

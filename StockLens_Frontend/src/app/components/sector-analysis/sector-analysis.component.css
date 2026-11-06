@@ -289,7 +289,7 @@
 .treemap-container {
   position: relative;
   width: 100%;
-  height: 520px;
+  height: 560px;
   background: var(--bg-secondary);
   border-radius: 12px;
   overflow: hidden;
@@ -302,7 +302,7 @@
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.15s ease, z-index 0.15s ease, box-shadow 0.15s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,7 +317,7 @@
 }
 
 .tile-inner {
-  padding: 4px;
+  padding: 4px 6px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -325,6 +325,8 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
+  gap: 2px;
 }
 
 .tile-symbol {
@@ -334,31 +336,43 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 95%;
+  line-height: 1.15;
 }
 
 .tile-change {
   font-weight: 700;
   font-family: monospace;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .tile-mcap {
-  font-size: 0.72rem;
-  opacity: 0.85;
+  font-size: 0.74rem;
+  font-weight: 500;
+  opacity: 0.9;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 95%;
+  line-height: 1.15;
 }
 
 /* Font Size Tiers for Tiles */
 .tile-inner[data-size="xl"] .tile-symbol { font-size: 1.35rem; }
-.tile-inner[data-size="xl"] .tile-change { font-size: 1rem; }
+.tile-inner[data-size="xl"] .tile-change { font-size: 1.02rem; }
+.tile-inner[data-size="xl"] .tile-mcap { font-size: 0.88rem; }
 
-.tile-inner[data-size="lg"] .tile-symbol { font-size: 1.1rem; }
-.tile-inner[data-size="lg"] .tile-change { font-size: 0.9rem; }
+.tile-inner[data-size="lg"] .tile-symbol { font-size: 1.12rem; }
+.tile-inner[data-size="lg"] .tile-change { font-size: 0.92rem; }
+.tile-inner[data-size="lg"] .tile-mcap { font-size: 0.80rem; }
 
-.tile-inner[data-size="md"] .tile-symbol { font-size: 0.9rem; }
-.tile-inner[data-size="md"] .tile-change { font-size: 0.8rem; }
+.tile-inner[data-size="md"] .tile-symbol { font-size: 0.95rem; }
+.tile-inner[data-size="md"] .tile-change { font-size: 0.84rem; }
+.tile-inner[data-size="md"] .tile-mcap { font-size: 0.74rem; }
 
-.tile-inner[data-size="sm"] .tile-symbol { font-size: 0.75rem; }
-.tile-inner[data-size="sm"] .tile-change { font-size: 0.7rem; }
+.tile-inner[data-size="sm"] .tile-symbol { font-size: 0.80rem; }
+.tile-inner[data-size="sm"] .tile-change { font-size: 0.72rem; }
+.tile-inner[data-size="sm"] .tile-mcap { font-size: 0.68rem; }
 
 .empty-treemap-state {
   display: flex;
@@ -699,6 +713,41 @@
 .m-chg.pos { color: #10b981; }
 .m-chg.neg { color: #ef4444; }
 
+.movers-empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 0.5rem;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.empty-pill-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+}
+
+.empty-pill-tag.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.empty-pill-tag.red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.empty-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 /* 5. "WHO IS THE BEST?" MATRIX TABLE */
 .peer-matrix-section {
   background: var(--bg-card);
@@ -728,6 +777,40 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.table-view-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  padding: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  gap: 0.25rem;
+}
+
+.btn-toggle-view {
+  padding: 0.45rem 0.85rem;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-toggle-view:hover {
+  color: var(--text-primary);
+}
+
+.btn-toggle-view.active {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .table-search-input {
@@ -887,6 +970,12 @@
   background: rgba(56, 189, 248, 0.15);
   color: var(--accent-cyan);
   border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-pill.pending {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  border: 1px dashed rgba(148, 163, 184, 0.35);
 }
 
 .st-name {
