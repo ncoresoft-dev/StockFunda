@@ -457,6 +457,130 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             return null;
         }
 
+        public async Task<YahooIndexPulseQuoteDto?> GetIndexPulseQuoteAsync(string symbol, string timeframe = "1D", CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbol)) return null;
+
+            try
+            {
+                var cleanSymbol = symbol.Trim().ToUpperInvariant();
+                var searchSymbol = cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                    ? cleanSymbol
+                    : $"{cleanSymbol}.NS";
+
+                var range = "1d";
+                var interval = "5m";
+
+                if (string.Equals(timeframe, "1W", StringComparison.OrdinalIgnoreCase))
+                {
+                    range = "5d";
+                    interval = "15m";
+                }
+                else if (string.Equals(timeframe, "1M", StringComparison.OrdinalIgnoreCase))
+                {
+                    range = "1mo";
+                    interval = "1d";
+                }
+
+                var endpoint = $"/v8/finance/chart/{Uri.EscapeDataString(searchSymbol)}?range={range}&interval={interval}";
+                _logger.LogInformation("Fetching Index Pulse quote for {Symbol} (Range: {Range}, Interval: {Interval}) via Yahoo Finance API", searchSymbol, range, interval);
+
+                var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Yahoo Finance API chart returned status {StatusCode} for index pulse {Symbol}", response.StatusCode, searchSymbol);
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("chart", out var chartObj) &&
+                    chartObj.TryGetProperty("result", out var resultArr) &&
+                    resultArr.ValueKind == JsonValueKind.Array &&
+                    resultArr.GetArrayLength() > 0)
+                {
+                    var firstRes = resultArr[0];
+                    var dto = new YahooIndexPulseQuoteDto { Symbol = cleanSymbol };
+
+                    if (firstRes.TryGetProperty("meta", out var meta))
+                    {
+                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
+                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
+                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
+                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
+                        if (meta.TryGetProperty("regularMarketDayHigh", out var dh) && dh.TryGetDecimal(out var dayHigh)) dto.DayHigh = Math.Round(dayHigh, 2);
+                        if (meta.TryGetProperty("regularMarketDayLow", out var dl) && dl.TryGetDecimal(out var dayLow)) dto.DayLow = Math.Round(dayLow, 2);
+                    }
+
+                    if (firstRes.TryGetProperty("indicators", out var indObj) &&
+                        indObj.TryGetProperty("quote", out var qArr) &&
+                        qArr.ValueKind == JsonValueKind.Array &&
+                        qArr.GetArrayLength() > 0)
+                    {
+                        var q0 = qArr[0];
+                        if (q0.TryGetProperty("close", out var closeArr) && closeArr.ValueKind == JsonValueKind.Array)
+                        {
+                            var count = closeArr.GetArrayLength();
+                            for (int i = 0; i < count; i++)
+                            {
+                                if (closeArr[i].TryGetDecimal(out var cVal) && cVal > 0)
+                                {
+                                    dto.ClosingPrices.Add(Math.Round(cVal, 2));
+                                }
+                            }
+                        }
+                    }
+
+                    if (dto.Price == 0 && dto.ClosingPrices.Count > 0)
+                    {
+                        dto.Price = dto.ClosingPrices.Last();
+                    }
+
+                    if (dto.PreviousClose == 0 && dto.ClosingPrices.Count > 1)
+                    {
+                        dto.PreviousClose = dto.ClosingPrices.First();
+                    }
+
+                    if (dto.Change == 0 && dto.PreviousClose > 0)
+                    {
+                        dto.Change = Math.Round(dto.Price - dto.PreviousClose, 2);
+                    }
+
+                    if (dto.ChangePercent == 0 && dto.PreviousClose > 0)
+                    {
+                        dto.ChangePercent = Math.Round((dto.Change / dto.PreviousClose) * 100, 2);
+                    }
+
+                    if (!string.Equals(timeframe, "1D", StringComparison.OrdinalIgnoreCase) && dto.ClosingPrices.Count > 1)
+                    {
+                        var basePrice = dto.ClosingPrices.First();
+                        var currentPrice = dto.Price > 0 ? dto.Price : dto.ClosingPrices.Last();
+                        dto.Price = currentPrice;
+                        dto.PreviousClose = basePrice;
+                        dto.Change = Math.Round(currentPrice - basePrice, 2);
+                        dto.ChangePercent = basePrice > 0 ? Math.Round(((currentPrice - basePrice) / basePrice) * 100m, 2) : 0m;
+                        dto.DayHigh = Math.Max(currentPrice, dto.ClosingPrices.Max());
+                        dto.DayLow = Math.Min(currentPrice, dto.ClosingPrices.Min());
+                    }
+                    else if (dto.ClosingPrices.Count > 0)
+                    {
+                        if (dto.DayHigh == 0) dto.DayHigh = dto.ClosingPrices.Max();
+                        if (dto.DayLow == 0) dto.DayLow = dto.ClosingPrices.Min();
+                    }
+
+                    return dto;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching index pulse quote from Yahoo Finance API for {Symbol}", symbol);
+            }
+
+            return null;
+        }
+
         public async Task<YahooGrowthMetricsDto?> GetGrowthMetricsAsync(
             string symbol, 
             string? exchange = "NSE", 

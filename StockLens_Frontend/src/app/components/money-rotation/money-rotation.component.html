@@ -1,0 +1,144 @@
+<div class="money-rotation-card">
+  <!-- Top Header Bar -->
+  <div class="rotation-header">
+    <div class="header-left-group">
+      <div class="rotation-title-box">
+        <span class="rotation-square-badge" aria-hidden="true"></span>
+        <h2 class="title-text">Money Rotation</h2>
+      </div>
+
+      <!-- Legend Pills -->
+      <div class="rotation-legend">
+        <span class="legend-item"><span class="legend-box leaving"></span> Leaving</span>
+        <span class="legend-item"><span class="legend-box net"></span> Net flow</span>
+        <span class="legend-item"><span class="legend-circle arriving"></span> Arriving</span>
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="header-right-group">
+      <span class="simulated-pill">
+        <span class="flask-icon">⚗</span> Simulated
+      </span>
+      <button type="button" class="view-money-flow-btn" (click)="scrollToMoneyFlow()">
+        Money flow <span class="arrow-right">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Animated Rotation Canvas -->
+  <div class="rotation-stage">
+    
+    <!-- LEFT LABELS: Leaving Sectors (Red) -->
+    <div class="leaving-labels-col">
+      <div 
+        *ngFor="let node of leavingNodes()" 
+        class="sector-node-row left"
+        [style.top.px]="node.y - 12"
+        [class.is-hovered]="hoveredSector() === node.sector"
+        (mouseenter)="hoveredSector.set(node.sector)"
+        (mouseleave)="hoveredSector.set(null)"
+        [title]="node.sector + ' (' + node.formattedFlow + ' cr)'"
+      >
+        <span class="sector-name-txt">{{ node.shortName }}</span>
+        <span class="sector-flow-txt red">{{ node.formattedFlow }}</span>
+        <span class="node-dot-bullet red">●</span>
+      </div>
+    </div>
+
+    <!-- CENTER SVG PIPELINE CANVAS -->
+    <div class="svg-pipeline-wrap">
+      <!-- CENTER NET FLOW BADGE (Crisp Normal HTML typography, perfectly centered) -->
+      <div class="center-net-badge-wrap">
+        <div class="center-net-val" [class.pos]="isNetPositive()" [class.neg]="!isNetPositive()">
+          <span class="net-prefix">Net</span>
+          <span class="net-amount">{{ formattedNetFlowAmount() }}</span>
+        </div>
+      </div>
+
+      <svg 
+        class="rotation-svg" 
+        [attr.viewBox]="'0 0 ' + CANVAS_WIDTH + ' ' + CANVAS_HEIGHT" 
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <!-- Left Red Funnel Gradient -->
+          <linearGradient id="leavingFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22"/>
+            <stop offset="90%" stop-color="#ef4444" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.16"/>
+          </linearGradient>
+
+          <!-- Right Green Funnel Gradient -->
+          <linearGradient id="arrivingFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.16"/>
+            <stop offset="10%" stop-color="#22c55e" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#22c55e" stop-opacity="0.22"/>
+          </linearGradient>
+
+          <!-- Blue Net Divider Glow -->
+          <filter id="blueDividerGlow" x="-50%" y="-20%" width="200%" height="140%">
+            <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#3b82f6" flood-opacity="0.5"/>
+          </filter>
+        </defs>
+
+        <!-- STREAM FUNNELS & ANIMATED PARTICLES -->
+        <g *ngFor="let st of rotationStreams()">
+          <!-- Ambient Translucent Ribbon -->
+          <path 
+            [attr.d]="st.pathD" 
+            fill="none" 
+            [attr.stroke]="st.side === 'left' ? 'url(#leavingFunnelGrad)' : 'url(#arrivingFunnelGrad)'" 
+            [attr.stroke-width]="st.thickness" 
+            [attr.stroke-opacity]="isStreamActive(st.sector) ? 0.75 : 0.15"
+            class="ambient-funnel-ribbon"
+          />
+
+          <!-- Fast Moving Flow Particles (Drifting left to right) -->
+          <path 
+            [attr.d]="st.pathD" 
+            fill="none" 
+            [attr.stroke]="st.side === 'left' ? '#ef4444' : '#16a34a'" 
+            stroke-width="2.5" 
+            vector-effect="non-scaling-stroke"
+            stroke-dasharray="8 20"
+            stroke-linecap="round"
+            class="moving-stream-particles"
+            [class.dimmed]="!isStreamActive(st.sector)"
+          />
+        </g>
+
+        <!-- CENTER VERTICAL DIVIDER BAR (Blue Net Flow Line) -->
+        <rect 
+          [attr.x]="CENTER_X - 1.5" 
+          y="26" 
+          width="3" 
+          height="112" 
+          rx="1.5" 
+          fill="#3b82f6" 
+          filter="url(#blueDividerGlow)"
+          class="center-divider-bar"
+        />
+      </svg>
+    </div>
+
+    <!-- RIGHT LABELS: Arriving Sectors (Green) -->
+    <div class="arriving-labels-col">
+      <div 
+        *ngFor="let node of arrivingNodes()" 
+        class="sector-node-row right"
+        [style.top.px]="node.y - 12"
+        [class.is-hovered]="hoveredSector() === node.sector"
+        (mouseenter)="hoveredSector.set(node.sector)"
+        (mouseleave)="hoveredSector.set(null)"
+        [title]="node.sector + ' (' + node.formattedFlow + ' cr)'"
+      >
+        <span class="node-dot-bullet green">●</span>
+        <span class="sector-name-txt">{{ node.shortName }}</span>
+        <span class="sector-flow-txt green">{{ node.formattedFlow }}</span>
+        <span *ngIf="node.isSurge" class="surge-amber-star">⚡</span>
+      </div>
+    </div>
+
+  </div>
+</div>

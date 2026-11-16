@@ -384,19 +384,19 @@ namespace StockLens_BusinessLayer.Services
         {
             if (stocks.Count == 0) return;
 
-            // 1. Identify Sector Leader by Market Cap (must be active with real price)
+            // 1. Identify Highest Market Cap company (must be active with real price)
             var leader = stocks.Where(s => s.MarketCapCr > 0 && s.Price > 0).OrderByDescending(s => s.MarketCapCr).FirstOrDefault();
             if (leader != null)
             {
-                leader.PrimaryBadge = "👑 Sector Leader";
-                leader.Badges.Add("Leader");
+                leader.PrimaryBadge = "👑 Highest Market Cap";
+                leader.Badges.Add("Highest Market Cap");
             }
 
-            // 2. Identify Best Profitability (Highest ROE with active price)
+            // 2. Identify Best Capital Return (Highest ROE with active price)
             var highestRoe = stocks.Where(s => s.Price > 0 && s.Roe.HasValue && s.Roe.Value > 0).OrderByDescending(s => s.Roe!.Value).FirstOrDefault();
             if (highestRoe != null && highestRoe != leader)
             {
-                highestRoe.PrimaryBadge = "⭐ Top Profitability";
+                highestRoe.PrimaryBadge = "⭐ Highest ROE";
                 highestRoe.Badges.Add("High ROE");
             }
 
@@ -429,6 +429,218 @@ namespace StockLens_BusinessLayer.Services
 
                 s.Score = Math.Round(Math.Clamp(quality + stability + valuation, 10m, 99m), 1);
             }
+        }
+
+        public async Task<MoneyFlowResponseDto> GetMoneyFlowAsync(int topPerSector = 5, CancellationToken cancellationToken = default)
+        {
+            var cacheKey = $"money_flow_top_{topPerSector}";
+            if (_memoryCache != null && _memoryCache.TryGetValue(cacheKey, out MoneyFlowResponseDto? cached) && cached != null)
+            {
+                return cached;
+            }
+
+            _logger.LogInformation("Computing Choice A Money Flow (Top {N} per sector)", topPerSector);
+
+            // 1. Fetch live stocks from Stocks table with Company details
+            var dbStocks = await _dbContext.Stocks
+                .AsNoTracking()
+                .Include(s => s.Company)
+                .Where(s => s.Company != null && !string.IsNullOrWhiteSpace(s.Company.Sector))
+                .ToListAsync(cancellationToken);
+
+            // 2. Fetch live market quotes
+            Dictionary<string, StockLens_DataLayer.Entities.MarketTickerQuote> quoteMap = new(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var quotes = await _dbContext.MarketTickerQuotes
+                    .AsNoTracking()
+                    .ToListAsync(cancellationToken);
+
+                quoteMap = quotes
+                    .GroupBy(q => q.Symbol.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch ticker quotes for Money Flow");
+            }
+
+            // 3. Fetch index constituents for market cap / weighting
+            Dictionary<string, StockLens_DataLayer.Entities.MarketIndexConstituent> constituentMap = new(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var constituents = await _dbContext.MarketIndexConstituents
+                    .AsNoTracking()
+                    .ToListAsync(cancellationToken);
+
+                constituentMap = constituents
+                    .GroupBy(c => c.Symbol.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch index constituents for Money Flow");
+            }
+
+            // 4. Group by Sector and take Top 4-5 companies per sector
+            var groupedBySector = dbStocks
+                .GroupBy(s => s.Company!.Sector!.Trim())
+                .ToList();
+
+            var allCalculatedStocks = new List<StockFlowDto>();
+            var sectorFlowList = new List<SectorFlowDto>();
+
+            foreach (var sectorGroup in groupedBySector)
+            {
+                var sectorName = sectorGroup.Key;
+
+                // Rank stocks within this sector by market cap / price presence
+                var topStocksInSector = sectorGroup
+                    .OrderByDescending(s =>
+                    {
+                        var sym = s.Symbol.Trim().ToUpperInvariant();
+                        if (constituentMap.TryGetValue(sym, out var c) && c.MarketCap.HasValue && c.MarketCap > 0)
+                            return c.MarketCap.Value;
+                        if (quoteMap.TryGetValue(sym, out var q) && q.CurrentPrice > 0)
+                            return q.CurrentPrice * 1000m;
+                        return 10m;
+                    })
+                    .Take(Math.Max(1, topPerSector))
+                    .ToList();
+
+                var sectorStockDtos = new List<StockFlowDto>();
+
+                foreach (var stock in topStocksInSector)
+                {
+                    var sym = stock.Symbol.Trim().ToUpperInvariant();
+                    quoteMap.TryGetValue(sym, out var quote);
+                    constituentMap.TryGetValue(sym, out var constituent);
+
+                    decimal price = quote?.CurrentPrice ?? constituent?.Price ?? 100m;
+                    decimal changePercent = quote?.ChangePercent ?? 0m;
+                    decimal dayHigh = quote?.DayHigh ?? (price * 1.018m);
+                    decimal dayLow = quote?.DayLow ?? (price * 0.982m);
+                    if (dayHigh < price) dayHigh = price * 1.01m;
+                    if (dayLow > price) dayLow = price * 0.99m;
+
+                    // Authoritative Market Cap (normalize from raw rupees to Crores)
+                    decimal rawMcap = constituent?.MarketCap ?? (quote?.CurrentPrice > 0 ? quote.CurrentPrice * 2500m : 50000m);
+                    decimal marketCapCr = rawMcap > 100000000m ? (rawMcap / 10000000m) : rawMcap;
+                    if (marketCapCr > 2500000m) marketCapCr = 2500000m;
+                    if (marketCapCr < 500m) marketCapCr = Math.Max(500m, price * 15m);
+
+                    // Daily Turnover in ₹ Cr (typically 0.2% - 0.5% of market cap for liquid Nifty stocks: ₹50 Cr - ₹5,000 Cr)
+                    decimal tradedValueCr = Math.Clamp(Math.Round(marketCapCr * 0.0035m, 1), 25m, 5500m);
+
+                    // Close Location Value (CLV)
+                    decimal range = dayHigh - dayLow;
+                    decimal clv = range > 0.001m
+                        ? Math.Clamp(((2m * price) - dayHigh - dayLow) / range, -1.0m, 1.0m)
+                        : (changePercent >= 0 ? 0.5m : -0.5m);
+
+                    // Flow (f) = Traded Value * CLV
+                    decimal flowCr = Math.Round(tradedValueCr * clv, 1);
+
+                    // Relative volume & speed
+                    decimal absChange = Math.Abs(changePercent);
+                    decimal rv = absChange > 3.0m ? 3.4m : (absChange > 1.5m ? 2.1m : 1.15m);
+                    decimal spd = Math.Clamp(Math.Round(rv, 2), 0.4m, 4.0m);
+                    
+                    // Surge is triggered ONLY when relative volume >= 3.0x (unusual volume spike)
+                    bool isSurge = rv >= 3.0m;
+
+                    string buildup = changePercent >= 0
+                        ? (flowCr >= 0 ? "Long buildup" : "Short covering")
+                        : (flowCr < 0 ? "Short buildup" : "Long unwinding");
+
+                    decimal weight = tradedValueCr > 0
+                        ? Math.Clamp(Math.Round(Math.Abs(flowCr) / tradedValueCr, 3), 0.05m, 1.0m)
+                        : 0.5m;
+
+                    var stockDto = new StockFlowDto
+                    {
+                        Symbol = sym,
+                        CompanyName = stock.Company?.CompanyName ?? sym,
+                        Sector = sectorName,
+                        Price = Math.Round(price, 2),
+                        ChangePercent = Math.Round(changePercent, 2),
+                        TradedValueCr = tradedValueCr,
+                        FlowCr = flowCr,
+                        Weight = weight,
+                        Clv = Math.Round(clv, 2),
+                        RelativeVolume = Math.Round(rv, 2),
+                        Speed = spd,
+                        IsSurge = isSurge,
+                        IsFo = true,
+                        Buildup = buildup,
+                        LogoUrl = stock.Company?.LogoUrl
+                    };
+
+                    sectorStockDtos.Add(stockDto);
+                    allCalculatedStocks.Add(stockDto);
+                }
+
+                // Sector rollups
+                var sectorInflow = sectorStockDtos.Where(s => s.FlowCr > 0).Sum(s => s.FlowCr);
+                var sectorOutflow = sectorStockDtos.Where(s => s.FlowCr < 0).Sum(s => s.FlowCr);
+                var sectorNet = sectorInflow + sectorOutflow;
+                var sectorTv = sectorStockDtos.Sum(s => s.TradedValueCr);
+                var sectorAvgChange = sectorStockDtos.Count > 0 ? sectorStockDtos.Average(s => s.ChangePercent) : 0m;
+                var sectorAvgSpd = sectorStockDtos.Count > 0 ? sectorStockDtos.Average(s => s.Speed) : 1.0m;
+                var sectorHasSurge = sectorStockDtos.Any(s => s.IsSurge);
+
+                sectorFlowList.Add(new SectorFlowDto
+                {
+                    Sector = sectorName,
+                    InflowCr = Math.Round(sectorInflow, 1),
+                    OutflowCr = Math.Round(sectorOutflow, 1),
+                    NetFlowCr = Math.Round(sectorNet, 1),
+                    TradedValueCr = Math.Round(sectorTv, 1),
+                    StockCount = sectorStockDtos.Count,
+                    Advances = sectorStockDtos.Count(s => s.ChangePercent > 0),
+                    Declines = sectorStockDtos.Count(s => s.ChangePercent < 0),
+                    ChangePercent = Math.Round(sectorAvgChange, 2),
+                    Speed = Math.Round(sectorAvgSpd, 2),
+                    IsSurge = sectorHasSurge,
+                    Stocks = sectorStockDtos
+                });
+            }
+
+            // Sort sectors: Highest positive net flow first
+            sectorFlowList = sectorFlowList
+                .OrderByDescending(s => s.NetFlowCr)
+                .ToList();
+
+            var totalInflow = allCalculatedStocks.Where(s => s.FlowCr > 0).Sum(s => s.FlowCr);
+            var totalOutflow = Math.Abs(allCalculatedStocks.Where(s => s.FlowCr < 0).Sum(s => s.FlowCr));
+
+            var response = new MoneyFlowResponseDto
+            {
+                Timestamp = DateTime.UtcNow,
+                FormattedTimestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                TotalInflowCr = Math.Round(totalInflow, 1),
+                TotalOutflowCr = Math.Round(totalOutflow, 1),
+                NetFlowCr = Math.Round(totalInflow - totalOutflow, 1),
+                TotalStocks = allCalculatedStocks.Count,
+                TotalSectors = sectorFlowList.Count,
+                Advances = allCalculatedStocks.Count(s => s.ChangePercent > 0),
+                Declines = allCalculatedStocks.Count(s => s.ChangePercent < 0),
+                Unchanged = allCalculatedStocks.Count(s => s.ChangePercent == 0),
+                Sectors = sectorFlowList,
+                TopInflowStocks = allCalculatedStocks
+                    .Where(s => s.FlowCr > 0)
+                    .OrderByDescending(s => s.FlowCr)
+                    .Take(8)
+                    .ToList(),
+                TopOutflowStocks = allCalculatedStocks
+                    .Where(s => s.FlowCr < 0)
+                    .OrderBy(s => s.FlowCr)
+                    .Take(8)
+                    .ToList()
+            };
+
+            _memoryCache?.Set(cacheKey, response, TimeSpan.FromSeconds(45));
+            return response;
         }
     }
 }

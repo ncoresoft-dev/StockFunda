@@ -1,0 +1,463 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* =========================================================================
+   Unified Outer White Box Card (Matches explore-lens-card & money-rotation-card)
+   ========================================================================= */
+.market-pulse-card {
+  background: #ffffff;
+  border: 1px solid #e2e8d0;
+  border-radius: 20px;
+  padding: 24px 28px 24px 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* =========================================================================
+   Top Header Bar inside the White Box
+   ========================================================================= */
+.pulse-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pulse-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Green Square Badge matching Money Rotation & Nifty 50 Map */
+.pulse-square-badge {
+  width: 18px;
+  height: 18px;
+  background: #10b981;
+  border-radius: 4px;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+}
+
+.pulse-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #14180d;
+  letter-spacing: -0.015em;
+}
+
+/* Live Status Badge Pill */
+.live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.pulse-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+  display: inline-block;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.1);
+  }
+}
+
+.pulse-delay-tag {
+  font-size: 0.76rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* Right Controls: Timeframe Selector */
+.pulse-timeframes-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 3px 4px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.tf-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tf-toggle-btn:hover {
+  color: #0f172a;
+}
+
+.tf-toggle-btn.active {
+  color: #0f172a;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+/* =========================================================================
+   3-Column Index Cards Grid (Inside the White Box)
+   ========================================================================= */
+.pulse-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+.pulse-cards-grid.loading {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.pulse-card {
+  background: #fcfdfa;
+  border: 1px solid #e6ecdc;
+  border-radius: 16px;
+  padding: 20px 22px 18px 22px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.pulse-card:hover {
+  background: #ffffff;
+  transform: translateY(-3px);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.pulse-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Card Top Bar */
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.index-meta-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.index-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+}
+
+.exchange-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.explore-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.explore-arrow {
+  transition: transform 0.2s ease;
+}
+
+.pulse-card:hover .explore-link {
+  color: #2563eb;
+}
+
+.pulse-card:hover .explore-arrow {
+  transform: translateX(3px);
+}
+
+/* Big Price & Points Change Stack */
+.price-stack {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.current-price-val {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+.points-change-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.points-change-pill.pill-pos {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.points-change-pill.pill-neg {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.arrow-glyph {
+  font-size: 0.68rem;
+}
+
+/* =========================================================================
+   Aperture Ring Gauge Stage (Properly Proportioned & Centered)
+   ========================================================================= */
+.aperture-gauge-stage {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0 16px 0;
+  position: relative;
+}
+
+.aperture-svg {
+  width: 100%;
+  max-width: 270px;
+  height: auto;
+  overflow: visible;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Concentric Precision Dotted Border (High-Contrast, Clear Circular Dots) */
+.gauge-tick-ring {
+  stroke: #334155;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-dasharray: 1 8;
+  opacity: 0.85;
+}
+
+/* Background Track Arc */
+.gauge-track-arc {
+  stroke: #e4ead8;
+  stroke-width: 12.5;
+  stroke-linecap: round;
+}
+
+/* Active Colored Progress Arc */
+.gauge-fill-arc {
+  stroke-width: 12.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Marker Ring Cursor at Current Level */
+.gauge-marker-ring {
+  fill: #ffffff;
+  stroke-width: 4;
+  transition: cx 0.8s cubic-bezier(0.22, 1, 0.36, 1), cy 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gauge-marker-ring.marker-pos {
+  stroke: #22c55e;
+}
+
+.gauge-marker-ring.marker-neg {
+  stroke: #f43f5e;
+}
+
+/* Center Percentage Text */
+.gauge-center-pct {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-family: inherit;
+}
+
+.gauge-center-pct.pct-pos {
+  fill: #15803d;
+}
+
+.gauge-center-pct.pct-neg {
+  fill: #b91c1c;
+}
+
+/* Center Subtitle: "DAY RANGE" */
+.gauge-center-sub {
+  font-size: 0.74rem;
+  font-weight: 800;
+  fill: #64748b;
+  letter-spacing: 0.08em;
+  font-family: inherit;
+}
+
+/* Day Low / High Bound Badges Aligned Under Arc */
+.gauge-bounds-container {
+  width: 100%;
+  max-width: 260px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -4px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.bound-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.bound-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.bound-num {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+}
+
+.bound-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.35;
+}
+
+.bound-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: #64748b;
+}
+
+/* =========================================================================
+   Takeaway Insight Capsule
+   ========================================================================= */
+.insight-capsule {
+  margin-top: auto;
+  background: #f8faf5;
+  border: 1px solid #eef3e4;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.insight-icon {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.insight-text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* =========================================================================
+   Responsive Breakpoints
+   ========================================================================= */
+@media (max-width: 1024px) {
+  .pulse-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .market-pulse-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .pulse-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price-stack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

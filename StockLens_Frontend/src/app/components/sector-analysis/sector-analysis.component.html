@@ -8,58 +8,56 @@
   </app-header>
 
   <main class="page-content">
-    <!-- 1. SECTOR HERO & CONTROLS -->
-    <section class="sector-hero-card">
-      <div class="hero-top-row">
-        <div class="hero-title-group">
-          <div class="badge-row">
-            <span class="sector-category-tag">EQUITY SECTOR RADAR</span>
-            @if (summary()?.sectorRank) {
-              <span class="rank-tag">Rank {{ summary()?.sectorRank }} of {{ summary()?.totalSectors || 30 }}</span>
-            }
-          </div>
-          <h1 class="sector-main-title">{{ summary()?.sectorName || selectedSector() }} Stocks — Sector Analysis</h1>
-          <p class="sector-desc">{{ summary()?.description || 'Explore market capitalization distribution, valuation ratios, daily price movement, and top peer leaders in this sector.' }}</p>
-        </div>
-
-        <!-- Sector Dropdown Picker -->
-        <div class="sector-picker-box">
-          <label for="sectorSelect" class="picker-label">Switch Sector</label>
-          <div class="custom-select-wrapper">
-            <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    <!-- 1. COMPACT SECTOR INTELLIGENCE HERO BAR -->
+    <header class="sector-page-hero">
+      <div class="hero-left-content">
+        <div class="hero-badge-row">
+          <span class="hero-category-tag">
+            <svg class="radar-tag-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a10 10 0 0 1 10 10"/>
+              <path d="m12 12 7-7"/>
             </svg>
-            <select 
-              id="sectorSelect" 
-              class="sector-select" 
-              [ngModel]="selectedSector()" 
-              (ngModelChange)="onSelectSector($event)">
-              @for (sec of availableSectors(); track sec) {
-                <option [value]="sec">{{ sec }}</option>
-              }
-            </select>
-          </div>
+            SECTOR RADAR & FLOW
+          </span>
+          <span class="live-status-pill">
+            <span class="live-pulse-dot"></span>
+            Live Market
+          </span>
         </div>
+        
+        <h1 class="hero-main-title">Sector Intelligence & Capital Flow</h1>
+        <p class="hero-subtext">
+          Track institutional capital rotation across 19 sectors · Tap any sector row in the flow to inspect its heatmap & financials
+        </p>
       </div>
 
-      <!-- Quick Dynamic Sector Pills (Derived directly from API/DB) -->
-      @if (topSectors().length > 0) {
-        <div class="popular-pills-bar">
-          <span class="pills-label">Sectors:</span>
-          <div class="pills-scroll-container">
-            @for (sec of topSectors(); track sec) {
-              <button 
-                type="button" 
-                class="sec-chip" 
-                [class.active]="selectedSector() === sec"
-                (click)="onSelectSector(sec)">
-                {{ sec }}
-              </button>
-            }
-          </div>
+      <!-- Quick Macro Market Stat Pills -->
+      <div class="hero-stats-row">
+        <div class="hero-stat-pill up" *ngIf="sectorsUpCount() > 0 || sectorsDownCount() > 0" title="Advancing sectors today">
+          <span class="stat-bullet green">▲</span>
+          <span class="stat-text"><strong>{{ sectorsUpCount() }}</strong> Sectors Up</span>
         </div>
-      }
+
+        <div class="hero-stat-pill down" *ngIf="sectorsUpCount() > 0 || sectorsDownCount() > 0" title="Declining sectors today">
+          <span class="stat-bullet red">▼</span>
+          <span class="stat-text"><strong>{{ sectorsDownCount() }}</strong> Sectors Down</span>
+        </div>
+
+        <div class="hero-stat-pill leader-pill" *ngIf="topSector() as ts" (click)="onFlowSectorSelected(ts.sector)" title="Click to inspect today's top gaining sector">
+          <span class="leader-trophy">🏆</span>
+          <span class="stat-text">Top: <strong>{{ ts.sector }}</strong> <span class="leader-pct">({{ ts.changePercent >= 0 ? '+' : '' }}{{ ts.changePercent.toFixed(2) }}%)</span></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. MARKET-WIDE INSTITUTIONAL MONEY FLOW -->
+    <section class="money-flow-section" id="money-flow-section">
+      <app-money-flow-chart 
+        [activeSector]="selectedSector()" 
+        (sectorSelect)="onFlowSectorSelected($event)"
+        (dataLoaded)="onMoneyFlowLoaded($event)">
+      </app-money-flow-chart>
     </section>
 
     <!-- LOADING SPINNER -->
@@ -84,14 +82,38 @@
     }
 
     @if (!isLoading() && !errorMessage()) {
-      <!-- 2. TREEMAP HEATMAP SECTION (Trendlyne Style) -->
-      <section class="heatmap-section">
+      <!-- 2. TREEMAP HEATMAP SECTION (With Integrated Sector Selector & Controls) -->
+      <section class="heatmap-section" id="sector-deepdive-section">
         <div class="heatmap-header">
           <div class="heatmap-title-box">
-            <h2 class="section-title">
+            <div class="sector-heading-controls-row">
               <span class="icon-pulse"></span>
-              Sector Heatmap (Treemap)
-            </h2>
+              
+              <!-- Sleek Interactive Sector Dropdown Pill -->
+              <div class="sector-inline-picker" title="Switch active sector">
+                <select 
+                  id="sectorSelect" 
+                  class="sector-select-pill" 
+                  [ngModel]="selectedSector()" 
+                  (ngModelChange)="onSelectSector($event)">
+                  @for (sec of availableSectors(); track sec) {
+                    <option [value]="sec">{{ sec }}</option>
+                  }
+                </select>
+                <svg class="picker-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+
+              <h2 class="section-title">
+                Stocks Heatmap
+              </h2>
+
+              @if (summary()?.sectorRank) {
+                <span class="rank-tag-badge">Rank #{{ summary()?.sectorRank }} of {{ summary()?.totalSectors || 19 }}</span>
+              }
+            </div>
+
             <span class="section-subtitle">Tile size weighted by Market Cap • Color intensity indicates 1-Day % Change</span>
           </div>
 
@@ -414,8 +436,12 @@
                         <div class="sym-row">
                           <span class="st-sym">{{ st.symbol }}</span>
                           @if (st.primaryBadge) {
-                            <span class="badge-pill" [class.leader]="st.primaryBadge.includes('Leader')" [class.profit]="st.primaryBadge.includes('Profit')" [class.value]="st.primaryBadge.includes('Value')">
-                              {{ st.primaryBadge }}
+                            <span class="badge-pill" 
+                              [class.leader]="st.primaryBadge.includes('Leader') || st.primaryBadge.includes('Market Cap')" 
+                              [class.profit]="st.primaryBadge.includes('Profit') || st.primaryBadge.includes('ROE')" 
+                              [class.value]="st.primaryBadge.includes('Value')"
+                              [title]="getBadgeTooltip(st)">
+                              {{ getDisplayBadge(st.primaryBadge) }}
                             </span>
                           } @else if (!st.marketCapCr && !st.price) {
                             <span class="badge-pill pending" title="Financials and quotes not yet synced">
@@ -473,9 +499,9 @@
                       <button 
                         type="button" 
                         class="btn-quick-cmp" 
-                        title="Compare with Sector Leader"
+                        title="Compare with Highest Market Cap stock"
                         (click)="compareWithLeader(st.symbol)">
-                        vs Leader
+                        vs Top Cap
                       </button>
                     </div>
                   </td>

@@ -9,6 +9,7 @@ namespace StockLens_BusinessLayer.Interfaces
     {
         Task<IReadOnlyList<string>> GetAvailableSectorsAsync(CancellationToken cancellationToken = default);
         Task<SectorAnalysisResponseDto> GetSectorAnalysisAsync(string? sectorName = null, CancellationToken cancellationToken = default);
+        Task<MoneyFlowResponseDto> GetMoneyFlowAsync(int topPerSector = 5, CancellationToken cancellationToken = default);
     }
 }
 

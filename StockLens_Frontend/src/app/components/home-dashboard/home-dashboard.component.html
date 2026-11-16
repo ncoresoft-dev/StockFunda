@@ -334,8 +334,23 @@
   </section>
 
   <!-- ========================================================================= -->
-  <!-- NIFTY 50 Market Cap Heatmap                                               -->
+  <!-- Live Market Indices (Nifty 50, Sensex, Bank Nifty in 1 Row)               -->
   <!-- ========================================================================= -->
+  <section class="market-pulse-wrapper">
+    <app-market-pulse></app-market-pulse>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- Sector Money Rotation (High-level Capital Migration Strip)                -->
+  <!-- ========================================================================= -->
+  <section class="money-rotation-section">
+    <app-money-rotation></app-money-rotation>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- NIFTY 50 Market Cap Heatmap (CURRENTLY COMMENTED OUT)                     -->
+  <!-- ========================================================================= -->
+  @if (false) {
   <section class="nifty-map-section">
     <!-- White Container Card -->
     <div class="nifty-map-card">
@@ -624,6 +639,7 @@
       </div>
     </div>
   </section>
+  }
 
   <!-- ========================================================================= -->
   <!-- Continue Research Section (Matching Reference Screenshot media_1793011474740) -->

@@ -15,6 +15,10 @@ export class StockIndexService {
   // Cache to avoid hitting API constantly on tab switches
   private cachedNifty50List: Nifty50StockItem[] | null = null;
   private inFlightNifty50$: Observable<Nifty50StockItem[]> | null = null;
+  private cachedSensexList: Nifty50StockItem[] | null = null;
+  private inFlightSensex$: Observable<Nifty50StockItem[]> | null = null;
+  private cachedBankNiftyList: Nifty50StockItem[] | null = null;
+  private inFlightBankNifty$: Observable<Nifty50StockItem[]> | null = null;
   private inFlightSymbolsMap = new Map<string, Observable<Nifty50StockItem[]>>();
 
   /**
@@ -30,17 +34,30 @@ export class StockIndexService {
     }
 
     this.inFlightNifty50$ = this.http.get<any[]>(`${this.apiUrl}/nifty-50`).pipe(
-      map(data => data.map(item => ({
-        symbol: item.symbol,
-        companyName: item.companyName || item.company_name,
-        sector: item.sector,
-        logoUrl: item.logoUrl || item.logo_url,
-        websiteUrl: item.websiteUrl || item.website_url,
-        price: item.price,
-        marketCap: item.marketCap ?? item.market_cap,
-        profitGrowthYoy: item.profitGrowthYoy ?? item.profit_growth_yoy,
-        exchange: 'NSE'
-      } as Nifty50StockItem))),
+      map(data => {
+        const mapped = (data || []).map(item => ({
+          symbol: item.symbol,
+          companyName: item.companyName || item.company_name,
+          sector: item.sector,
+          logoUrl: item.logoUrl || item.logo_url,
+          websiteUrl: item.websiteUrl || item.website_url,
+          price: item.price,
+          marketCap: item.marketCap ?? item.market_cap,
+          profitGrowthYoy: item.profitGrowthYoy ?? item.profit_growth_yoy,
+          weightagePercentage: item.weightagePercentage ?? item.weightage_percentage,
+          exchange: 'NSE'
+        } as Nifty50StockItem));
+
+        const totalCap = mapped.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+        if (totalCap > 0) {
+          mapped.forEach(s => {
+            if (s.weightagePercentage === undefined && s.marketCap) {
+              s.weightagePercentage = Math.round(((s.marketCap) / totalCap) * 10000) / 100;
+            }
+          });
+        }
+        return mapped;
+      }),
       tap(mappedData => {
         this.cachedNifty50List = mappedData;
         this.inFlightNifty50$ = null;
@@ -57,19 +74,159 @@ export class StockIndexService {
   }
 
   /**
+   * Returns BSE SENSEX constituent companies for the UI
+   */
+  getSensexList(forceRefresh = false): Observable<Nifty50StockItem[]> {
+    if (!forceRefresh && this.cachedSensexList && this.cachedSensexList.length > 0) {
+      return of(this.cachedSensexList);
+    }
+
+    if (!forceRefresh && this.inFlightSensex$) {
+      return this.inFlightSensex$;
+    }
+
+    this.inFlightSensex$ = this.http.get<any[]>(`${this.apiUrl}/sensex`).pipe(
+      map(data => {
+        const mapped = (data || []).map(item => ({
+          symbol: item.symbol,
+          companyName: item.companyName || item.company_name,
+          sector: item.sector || 'Equities',
+          logoUrl: item.logoUrl || item.logo_url,
+          websiteUrl: item.websiteUrl || item.website_url,
+          price: item.price,
+          marketCap: item.marketCap ?? item.market_cap,
+          profitGrowthYoy: item.profitGrowthYoy ?? item.profit_growth_yoy,
+          weightagePercentage: item.weightagePercentage ?? item.weightage_percentage,
+          exchange: 'BSE'
+        } as Nifty50StockItem));
+
+        if (this.cachedNifty50List && this.cachedNifty50List.length > 0) {
+          const niftyMap = new Map(this.cachedNifty50List.map(s => [s.symbol.toUpperCase(), s]));
+          mapped.forEach(s => {
+            const nStock = niftyMap.get(s.symbol.toUpperCase());
+            if (nStock) {
+              if (s.price == null && nStock.price != null) s.price = nStock.price;
+              if (s.marketCap == null && nStock.marketCap != null) s.marketCap = nStock.marketCap;
+              if (!s.logoUrl && nStock.logoUrl) s.logoUrl = nStock.logoUrl;
+            }
+          });
+        }
+
+        const totalCap = mapped.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+        if (totalCap > 0) {
+          mapped.forEach(s => {
+            if (s.weightagePercentage === undefined && s.marketCap) {
+              s.weightagePercentage = Math.round(((s.marketCap) / totalCap) * 10000) / 100;
+            }
+          });
+        }
+        return mapped;
+      }),
+      tap(mappedData => {
+        this.cachedSensexList = mappedData;
+        this.inFlightSensex$ = null;
+      }),
+      catchError(error => {
+        console.error('Error fetching BSE Sensex companies:', error);
+        this.inFlightSensex$ = null;
+        return of(this.cachedSensexList || []);
+      }),
+      shareReplay(1)
+    );
+
+    return this.inFlightSensex$;
+  }
+
+  /**
+   * Returns NIFTY BANK constituent companies for the UI
+   */
+  getBankNiftyList(forceRefresh = false): Observable<Nifty50StockItem[]> {
+    if (!forceRefresh && this.cachedBankNiftyList && this.cachedBankNiftyList.length > 0) {
+      return of(this.cachedBankNiftyList);
+    }
+
+    if (!forceRefresh && this.inFlightBankNifty$) {
+      return this.inFlightBankNifty$;
+    }
+
+    this.inFlightBankNifty$ = this.http.get<any[]>(`${this.apiUrl}/bank-nifty`).pipe(
+      map(data => {
+        const mapped = (data || []).map(item => ({
+          symbol: item.symbol,
+          companyName: item.companyName || item.company_name,
+          sector: item.sector || 'Financial Services',
+          logoUrl: item.logoUrl || item.logo_url,
+          websiteUrl: item.websiteUrl || item.website_url,
+          price: item.price,
+          marketCap: item.marketCap ?? item.market_cap,
+          profitGrowthYoy: item.profitGrowthYoy ?? item.profit_growth_yoy,
+          weightagePercentage: item.weightagePercentage ?? item.weightage_percentage,
+          exchange: 'NSE'
+        } as Nifty50StockItem));
+
+        if (this.cachedNifty50List && this.cachedNifty50List.length > 0) {
+          const niftyMap = new Map(this.cachedNifty50List.map(s => [s.symbol.toUpperCase(), s]));
+          mapped.forEach(s => {
+            const nStock = niftyMap.get(s.symbol.toUpperCase());
+            if (nStock) {
+              if (s.price == null && nStock.price != null) s.price = nStock.price;
+              if (s.marketCap == null && nStock.marketCap != null) s.marketCap = nStock.marketCap;
+              if (!s.logoUrl && nStock.logoUrl) s.logoUrl = nStock.logoUrl;
+            }
+          });
+        }
+
+        const totalCap = mapped.reduce((sum, s) => sum + (s.marketCap || 0), 0);
+        if (totalCap > 0) {
+          mapped.forEach(s => {
+            if (s.weightagePercentage === undefined && s.marketCap) {
+              s.weightagePercentage = Math.round(((s.marketCap) / totalCap) * 10000) / 100;
+            }
+          });
+        }
+        return mapped;
+      }),
+      tap(mappedData => {
+        this.cachedBankNiftyList = mappedData;
+        this.inFlightBankNifty$ = null;
+      }),
+      catchError(error => {
+        console.error('Error fetching Bank Nifty companies:', error);
+        this.inFlightBankNifty$ = null;
+        return of(this.cachedBankNiftyList || []);
+      }),
+      shareReplay(1)
+    );
+
+    return this.inFlightBankNifty$;
+  }
+
+  /**
    * Updates price and market cap for a symbol in local cache
    */
   updateStockInCache(symbol: string, price?: number | null, marketCap?: number | null): void {
-    if (!this.cachedNifty50List || !symbol) return;
+    if (!symbol) return;
     const cleanSym = symbol.trim().toUpperCase();
-    const item = this.cachedNifty50List.find(s => s.symbol?.toUpperCase() === cleanSym);
-    if (item) {
-      if (price !== undefined && price !== null && price > 0) {
-        item.price = price;
+
+    const updateItem = (item?: Nifty50StockItem) => {
+      if (item) {
+        if (price !== undefined && price !== null && price > 0) {
+          item.price = price;
+        }
+        if (marketCap !== undefined && marketCap !== null && marketCap > 0) {
+          item.marketCap = marketCap;
+        }
       }
-      if (marketCap !== undefined && marketCap !== null && marketCap > 0) {
-        item.marketCap = marketCap;
-      }
+    };
+
+    if (this.cachedNifty50List) {
+      updateItem(this.cachedNifty50List.find(s => s.symbol?.toUpperCase() === cleanSym));
+    }
+    if (this.cachedSensexList) {
+      updateItem(this.cachedSensexList.find(s => s.symbol?.toUpperCase() === cleanSym));
+    }
+    if (this.cachedBankNiftyList) {
+      updateItem(this.cachedBankNiftyList.find(s => s.symbol?.toUpperCase() === cleanSym));
     }
   }
 
@@ -79,6 +236,10 @@ export class StockIndexService {
   clearCache(): void {
     this.cachedNifty50List = null;
     this.inFlightNifty50$ = null;
+    this.cachedSensexList = null;
+    this.inFlightSensex$ = null;
+    this.cachedBankNiftyList = null;
+    this.inFlightBankNifty$ = null;
     this.inFlightSymbolsMap.clear();
   }
 

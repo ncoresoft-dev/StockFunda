@@ -103,5 +103,41 @@ namespace StockLens_UnitTests
             // Verify repository saved the quotes
             _repoMock.Verify(r => r.SaveOrUpdateQuotesAsync(It.IsAny<IEnumerable<MarketTickerQuote>>(), It.IsAny<CancellationToken>()), Times.Once);
         }
+
+        [Fact]
+        public async Task GetMarketPulseAsync_ReturnsDistinctDynamicValues_ForDifferentTimeframes()
+        {
+            // Arrange
+            var service = new MarketTickerService(
+                _repoMock.Object,
+                _yahooMock.Object,
+                _memoryCache,
+                NullLogger<MarketTickerService>.Instance);
+
+            // Act
+            var pulse1D = await service.GetMarketPulseAsync("1D", forceRefresh: true);
+            var pulse1W = await service.GetMarketPulseAsync("1W", forceRefresh: true);
+            var pulse1M = await service.GetMarketPulseAsync("1M", forceRefresh: true);
+
+            // Assert
+            pulse1D.Should().NotBeNull();
+            pulse1W.Should().NotBeNull();
+            pulse1M.Should().NotBeNull();
+
+            var nifty1D = pulse1D.Indices.First(i => i.Symbol == "^NSEI");
+            var nifty1W = pulse1W.Indices.First(i => i.Symbol == "^NSEI");
+            var nifty1M = pulse1M.Indices.First(i => i.Symbol == "^NSEI");
+
+            // Percentages and bounds should be dynamic and distinct
+            nifty1D.ChangePercent.Should().NotBe(nifty1W.ChangePercent);
+            nifty1W.ChangePercent.Should().NotBe(nifty1M.ChangePercent);
+
+            nifty1D.DayLow.Should().NotBe(nifty1W.DayLow);
+            nifty1W.DayLow.Should().NotBe(nifty1M.DayLow);
+
+            nifty1D.RangeProgressPct.Should().BeInRange(5.0, 95.0);
+            nifty1W.RangeProgressPct.Should().BeInRange(5.0, 95.0);
+            nifty1M.RangeProgressPct.Should().BeInRange(5.0, 95.0);
+        }
     }
 }

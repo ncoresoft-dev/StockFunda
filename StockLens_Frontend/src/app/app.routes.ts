@@ -15,6 +15,11 @@ export const routes: Routes = [
     title: 'StockLens — NIFTY 50'
   },
   {
+    path: 'nifty-50',
+    redirectTo: 'nifty50',
+    pathMatch: 'full'
+  },
+  {
     path: 'watchlist',
     redirectTo: 'nifty50',
     pathMatch: 'full'

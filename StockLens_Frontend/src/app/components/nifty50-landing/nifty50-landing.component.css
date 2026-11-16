@@ -147,6 +147,16 @@ app-header {
   color: #d97706;
 }
 
+.benchmark-tag.sensex-tag {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.benchmark-tag.banknifty-tag {
+  background: #ecfdf5;
+  color: #047857;
+}
+
 .dark-theme .benchmark-tag {
   background: rgba(2, 132, 199, 0.15);
   color: #38bdf8;
@@ -155,6 +165,16 @@ app-header {
 .dark-theme .benchmark-tag.watchlist-tag {
   background: rgba(251, 191, 36, 0.2);
   color: #fbbf24;
+}
+
+.dark-theme .benchmark-tag.sensex-tag {
+  background: rgba(109, 40, 217, 0.2);
+  color: #c4b5fd;
+}
+
+.dark-theme .benchmark-tag.banknifty-tag {
+  background: rgba(4, 120, 87, 0.2);
+  color: #6ee7b7;
 }
 
 .tag-icon {

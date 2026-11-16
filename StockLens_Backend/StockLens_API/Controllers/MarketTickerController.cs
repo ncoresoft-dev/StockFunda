@@ -41,6 +41,24 @@ namespace StockLens_API.Controllers
         }
 
         /// <summary>
+        /// Retrieves dynamic 3-card Market Pulse telemetry (Nifty 50, Sensex, Bank Nifty) with live quotes,
+        /// sparkline curves, day low-high range slider positions, and AI market breadth insights.
+        /// </summary>
+        /// <param name="timeframe">Timeframe resolution: 1D, 1W, or 1M.</param>
+        /// <param name="forceRefresh">Force live refresh from Yahoo Finance.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        [HttpGet("pulse")]
+        [ProducesResponseType(typeof(MarketPulseResponseDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMarketPulse(
+            [FromQuery] string timeframe = "1D",
+            [FromQuery] bool forceRefresh = false,
+            CancellationToken cancellationToken = default)
+        {
+            var pulse = await _tickerService.GetMarketPulseAsync(timeframe, forceRefresh, cancellationToken);
+            return Ok(pulse);
+        }
+
+        /// <summary>
         /// Retrieves real-time company orbital radar & 7-day sparkline trend data for the Explore by Lens view.
         /// </summary>
         /// <param name="lens">The lens category (Growth, Cash Flow, Ownership, Risk).</param>

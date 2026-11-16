@@ -1,0 +1,358 @@
+/* ==========================================================================
+   Money Rotation Component Styles (Compact Capital Migration Strip)
+   ========================================================================== */
+
+.money-rotation-card {
+  background: #ffffff;
+  border: 1px solid #e6ecdc;
+  border-radius: 20px;
+  padding: 22px 24px 18px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #14180d;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==========================================
+   1. Header Row
+   ========================================== */
+.rotation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.rotation-title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rotation-square-badge {
+  width: 18px;
+  height: 18px;
+  background: #3b82f6;
+  border-radius: 4px;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+}
+
+.title-text {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: #14180d;
+  letter-spacing: -0.015em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+
+
+/* Legend Pills */
+.rotation-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-box {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-box.leaving {
+  background: #ef4444;
+}
+
+.legend-box.net {
+  background: #3b82f6;
+}
+
+.legend-circle.arriving {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+/* Right Controls */
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.simulated-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.flask-icon {
+  font-size: 0.75rem;
+}
+
+.view-money-flow-btn {
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.view-money-flow-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.arrow-right {
+  font-size: 0.9rem;
+  transition: transform 0.2s ease;
+}
+
+.view-money-flow-btn:hover .arrow-right {
+  transform: translateX(3px);
+}
+
+/* ==========================================
+   2. Main Animated Stage (Flex Layout for Zero Gap Alignment)
+   ========================================== */
+.rotation-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 160px;
+  margin: 8px 0;
+}
+
+/* Left & Right Columns for Crisp HTML Typography */
+.leaving-labels-col {
+  position: relative;
+  width: 175px;
+  height: 100%;
+  flex-shrink: 0;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.arriving-labels-col {
+  position: relative;
+  width: 175px;
+  height: 100%;
+  flex-shrink: 0;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.sector-node-row {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+}
+
+.sector-node-row:hover,
+.sector-node-row.is-hovered {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.sector-node-row.left {
+  right: 0;
+  justify-content: flex-end;
+}
+
+.sector-node-row.right {
+  left: 0;
+  justify-content: flex-start;
+}
+
+.sector-name-txt {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.sector-flow-txt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sector-flow-txt.red {
+  color: #dc2626;
+}
+
+.sector-flow-txt.green {
+  color: #16a34a;
+}
+
+.node-dot-bullet {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.node-dot-bullet.red {
+  color: #ef4444;
+}
+
+.node-dot-bullet.green {
+  color: #16a34a;
+}
+
+.surge-amber-star {
+  color: #d97706;
+  font-size: 0.72rem;
+}
+
+/* Center SVG Pipeline Canvas */
+.svg-pipeline-wrap {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.rotation-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Center Net Flow Badge (Crisp Normal Typography, placed cleanly above blue divider) */
+.center-net-badge-wrap {
+  position: absolute;
+  left: 50%;
+  top: 0px;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-net-val {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 2px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.center-net-val .net-prefix {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.center-net-val .net-amount {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.center-net-val.pos .net-amount {
+  color: #16a34a;
+}
+
+.center-net-val.neg .net-amount {
+  color: #dc2626;
+}
+
+.ambient-funnel-ribbon {
+  transition: stroke-opacity 0.25s ease, stroke-width 0.25s ease;
+}
+
+.moving-stream-particles {
+  animation: rotateParticleStream 2.4s linear infinite;
+  transition: opacity 0.25s ease;
+}
+
+.moving-stream-particles.dimmed {
+  opacity: 0.12;
+}
+
+@keyframes rotateParticleStream {
+  0% {
+    stroke-dashoffset: 56;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.center-divider-bar {
+  transition: all 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .leaving-labels-col,
+  .arriving-labels-col {
+    width: 140px;
+  }
+  .sector-name-txt {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .money-rotation-card {
+    display: none;
+  }
+}

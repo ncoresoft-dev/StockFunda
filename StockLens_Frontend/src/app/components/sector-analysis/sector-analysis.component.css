@@ -12,192 +12,165 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem 2rem 4rem;
-  max-width: 1600px;
+  padding: 1.25rem 1.25rem 3rem;
   width: 100%;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
-/* 1. HERO & CONTROLS */
-.sector-hero-card {
+/* 0. SECTOR PAGE HERO HEADER */
+.sector-page-hero {
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.hero-top-row {
+  border-radius: 14px;
+  padding: 1.15rem 1.6rem;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.04);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
+  align-items: center;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
-.hero-title-group {
-  flex: 1;
-  min-width: 320px;
-}
-
-.badge-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.sector-category-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-cyan);
-  background: rgba(56, 189, 248, 0.12);
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-}
-
-.rank-tag {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.12);
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-.sector-main-title {
-  font-size: 1.85rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary);
-}
-
-.sector-desc {
-  font-size: 0.92rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  max-width: 900px;
-  margin: 0;
-}
-
-/* Sector Picker Dropdown */
-.sector-picker-box {
+.hero-left-content {
   display: flex;
   flex-direction: column;
+  gap: 0.3rem;
+  min-width: 300px;
+}
+
+.hero-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.hero-category-tag {
+  display: inline-flex;
+  align-items: center;
   gap: 0.35rem;
-  min-width: 260px;
-}
-
-.picker-label {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.09);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(2, 132, 199, 0.22);
 }
 
-.custom-select-wrapper {
-  position: relative;
-  display: flex;
+.radar-tag-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.live-status-pill {
+  display: inline-flex;
   align-items: center;
-}
-
-.select-icon {
-  position: absolute;
-  left: 12px;
-  width: 18px;
-  height: 18px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.sector-select {
-  width: 100%;
-  padding: 0.7rem 1rem 0.7rem 2.4rem;
-  font-size: 0.95rem;
+  gap: 0.4rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  animation: livePulseGlow 1.8s infinite;
+}
+
+@keyframes livePulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.15); }
+}
+
+.hero-main-heading {
+  font-size: 1.45rem;
+  font-weight: 800;
   color: var(--text-primary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px top 50%;
-  background-size: 10px auto;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
-.sector-select:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
-
-/* Popular Pills */
-.popular-pills-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-color);
-}
-
-.pills-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.pills-scroll-container {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.sec-chip {
-  white-space: nowrap;
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.35rem 0.85rem;
-  border-radius: 9999px;
-  background: var(--bg-secondary);
+.hero-subtext {
+  font-size: 0.83rem;
   color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.hero-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.hero-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
-.sec-chip:hover {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: var(--accent-primary);
+.hero-stat-pill.up .stat-bullet {
+  color: #16a34a;
+  font-size: 0.65rem;
 }
 
-.sec-chip.active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: #ffffff;
-  font-weight: 600;
+.hero-stat-pill.down .stat-bullet {
+  color: #dc2626;
+  font-size: 0.65rem;
 }
 
-/* 2. TREEMAP HEATMAP SECTION */
+.hero-stat-pill.leader-pill {
+  cursor: pointer;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.hero-stat-pill.leader-pill:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.55);
+  transform: translateY(-1px);
+}
+
+.leader-trophy {
+  font-size: 0.85rem;
+}
+
+.leader-pct {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* 1. MARKET-WIDE MONEY FLOW SECTION */
+.money-flow-section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. TREEMAP HEATMAP SECTION (With Integrated Sector Selector) */
 .heatmap-section {
   background: var(--bg-card);
   backdrop-filter: blur(16px);
@@ -209,6 +182,85 @@
   flex-direction: column;
   gap: 1.25rem;
 }
+
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.heatmap-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Integrated Sector Heading & Dropdown Row */
+.sector-heading-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.sector-inline-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sector-select-pill {
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.38rem 2.2rem 0.38rem 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  appearance: none;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sector-select-pill:hover {
+  border-color: var(--accent-primary, #6366f1);
+  background: var(--bg-hover, rgba(99, 102, 241, 0.05));
+}
+
+.sector-select-pill:focus {
+  border-color: var(--accent-primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.picker-chevron {
+  position: absolute;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.rank-tag-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+  /* flex-direction: column;
+  gap: 1.25rem;
+} */
 
 .heatmap-header {
   display: flex;

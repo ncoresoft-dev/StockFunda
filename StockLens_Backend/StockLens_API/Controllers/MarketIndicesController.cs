@@ -34,6 +34,30 @@ namespace StockLens_API.Controllers
         }
 
         /// <summary>
+        /// Retrieves the list of BSE Sensex constituent companies.
+        /// </summary>
+        [HttpGet("sensex")]
+        [ProducesResponseType(typeof(IEnumerable<MarketIndexCompanyDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetSensexCompanies(CancellationToken cancellationToken)
+        {
+            var result = await _marketIndicesService.GetSensexCompaniesAsync(cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Retrieves the list of Nifty Bank constituent companies.
+        /// </summary>
+        [HttpGet("bank-nifty")]
+        [ProducesResponseType(typeof(IEnumerable<MarketIndexCompanyDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetBankNiftyCompanies(CancellationToken cancellationToken)
+        {
+            var result = await _marketIndicesService.GetBankNiftyCompaniesAsync(cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Retrieves company index data for comma-separated stock symbols.
         /// </summary>
         [HttpGet("stocks-by-symbols")]

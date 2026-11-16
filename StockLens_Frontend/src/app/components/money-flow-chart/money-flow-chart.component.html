@@ -1,0 +1,276 @@
+<div class="money-flow-widget-container">
+  <!-- Top Header Bar -->
+  <div class="flow-header-row">
+    <div class="flow-title-group">
+      <div class="flow-main-title">
+        <h2 class="title-text">Money flow</h2>
+      </div>
+
+      <!-- Flow Legend Matching Reference Screenshot -->
+      <div class="flow-legend-pills">
+        <span class="legend-item"><span class="legend-bar-sample"></span> Thickness = ₹ flow</span>
+        <span class="legend-item"><span class="speed-dots">•••</span> Speed = volume intensity</span>
+        <span class="legend-item surge-text"><span class="surge-bolt-icon">⚡</span> Surge</span>
+        <span class="legend-item"><span class="legend-dot dot-lb">●</span> Long buildup</span>
+        <span class="legend-item"><span class="legend-dot dot-sc">●</span> Short covering</span>
+        <span class="legend-item"><span class="legend-dot dot-sb">●</span> Short buildup</span>
+        <span class="legend-item"><span class="legend-dot dot-lu">●</span> Long unwinding</span>
+      </div>
+    </div>
+
+    <!-- Live Status / Disconnected Badge -->
+    <div class="flow-controls-group">
+      <div *ngIf="!errorMessage()" class="live-status-badge">
+        <span class="live-pulse-dot"></span>
+        <span class="live-text">Live data</span>
+      </div>
+      <div *ngIf="errorMessage()" class="offline-status-badge" (click)="fetchMoneyFlow()" title="Click to reconnect">
+        <span class="offline-dot"></span>
+        <span class="offline-text">Disconnected · Retry</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breadth Advances vs Declines Progress Bar (Only when data is loaded and no error) -->
+  <div *ngIf="!isLoading() && !errorMessage() && data() as d" class="flow-breadth-row">
+    <div class="breadth-label left">
+      <span class="breadth-caption">Breadth</span>
+      <span class="breadth-val up">{{ d.advances }} up</span>
+    </div>
+
+    <div class="breadth-track-bar">
+      <div class="breadth-fill up" [style.width.%]="getAdvancesPercent(d.advances, d.declines)"></div>
+      <div class="breadth-fill down" [style.width.%]="getDeclinesPercent(d.advances, d.declines)"></div>
+    </div>
+
+    <div class="breadth-label right">
+      <span class="breadth-val down">{{ d.declines }} down</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="flow-loading-stage">
+    <div class="flow-spinner"></div>
+    <span class="loading-label">Calculating real-time institutional flow...</span>
+  </div>
+
+  <!-- Error State (Shown when API fails or gives no response) -->
+  <div *ngIf="!isLoading() && errorMessage() as err" class="flow-error-stage">
+    <div class="error-icon-box">
+      <svg class="error-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    </div>
+    <h3 class="error-title">Unable to Load Money Flow</h3>
+    <p class="error-desc">{{ err }}</p>
+    <button type="button" class="error-retry-btn" (click)="fetchMoneyFlow()">
+      <svg class="retry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+      </svg>
+      Retry Connection
+    </button>
+  </div>
+
+  <!-- Main 3-Column Interactive Flow Canvas (Only when data is loaded and no error) -->
+  <div *ngIf="!isLoading() && !errorMessage() && data() as d" class="money-flow-stage-layout">
+
+    <!-- ========================================== -->
+    <!-- LEFT COLUMN: Sectors List (19 Sectors)    -->
+    <!-- ========================================== -->
+    <div class="sectors-flow-column">
+      <div *ngFor="let sec of d.sectors" class="sector-row" [class.is-dimmed]="isSectorDimmed(sec.sector)"
+        [class.is-highlighted]="isSectorHighlighted(sec.sector)" (mouseenter)="onSectorHover(sec.sector)"
+        (mouseleave)="onClearHover()" (click)="onSectorRowClick(sec.sector)">
+        <!-- Sector Name & Dedicated Surge Icon Slot (Fixed alignment) -->
+        <div class="sector-name-col" [title]="sec.sector">
+          <span class="surge-icon-slot">
+            <span *ngIf="sec.isSurge" class="surge-icon-amber" title="Unusual volume surge">⚡</span>
+          </span>
+          <span class="sector-title-text">{{ sec.sector }}</span>
+        </div>
+
+        <!-- % Change + Mini Direction Indicator -->
+        <div class="sector-change-col">
+          <span class="sec-change-text" [class.pos]="sec.changePercent >= 0" [class.neg]="sec.changePercent < 0">
+            {{ sec.changePercent >= 0 ? '+' : '' }}{{ sec.changePercent.toFixed(2) }}%
+          </span>
+          <span class="sec-mini-pill" [class.pos]="sec.changePercent >= 0" [class.neg]="sec.changePercent < 0"></span>
+        </div>
+
+        <!-- Net Flow in ₹ Cr -->
+        <div class="sector-flow-val-col">
+          <span class="sec-flow-text" [class.pos]="sec.netFlowCr >= 0" [class.neg]="sec.netFlowCr < 0">
+            {{ sec.netFlowCr >= 0 ? '+' : '' }}{{ formatCrores(sec.netFlowCr) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- CENTER COLUMN: Particle Strands & Gateways -->
+    <!-- ========================================== -->
+    <div class="center-strands-column" [style.height.px]="CANVAS_HEIGHT">
+      <svg class="flow-svg-canvas" [attr.viewBox]="'0 0 ' + CANVAS_WIDTH + ' ' + CANVAS_HEIGHT"
+        preserveAspectRatio="none">
+        <defs>
+          <!-- Green Gate Glow -->
+          <filter id="greenGateGlow" x="-50%" y="-30%" width="200%" height="160%">
+            <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#22c55e" flood-opacity="0.6" />
+          </filter>
+
+          <!-- Red Gate Glow -->
+          <filter id="redGateGlow" x="-50%" y="-30%" width="200%" height="160%">
+            <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.6" />
+          </filter>
+        </defs>
+
+        <!-- TOP GATE: Inflow Vertical Capsule Bar (Green) -->
+        <rect [attr.x]="GATE_X - 3.5" [attr.y]="INFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#22c55e"
+          filter="url(#greenGateGlow)" class="center-gate-bar green-gate" />
+
+        <!-- BOTTOM GATE: Outflow Vertical Capsule Bar (Red) -->
+        <rect [attr.x]="GATE_X - 3.5" [attr.y]="OUTFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#ef4444"
+          filter="url(#redGateGlow)" class="center-gate-bar red-gate" />
+
+        <!-- Dynamic Flowing Strands (Left to Gate, and Gate to Right) -->
+        <g *ngFor="let s of flowStrands()">
+          <!-- Ambient Background Path -->
+          <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
+            [attr.stroke-width]="s.thickness" [attr.stroke-opacity]="isStrandActive(s) ? 0.28 : 0.04"
+            class="ambient-strand-path" />
+
+          <!-- Fast Moving Particle Dash -->
+          <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
+            [attr.stroke-width]="s.thickness * 0.95" stroke-dasharray="5 18"
+            [style.animationDuration.s]="(4.0 / s.speed).toFixed(2)" class="flowing-dash-path"
+            [class.active-highlight]="isStrandActive(s) && (hoveredSector() || hoveredStock())"
+            [class.dimmed]="!isStrandActive(s)" />
+        </g>
+      </svg>
+
+      <!-- Center Net Flow Text Summary (Between Green Gate & Red Gate) -->
+      <div class="center-flow-net-card">
+        <div class="net-inflow-label">
+          INFLOW <span class="net-value">{{ formatCrores(d.totalInflowCr) }}</span>
+        </div>
+        <div class="net-main-title" [class.pos]="d.netFlowCr >= 0" [class.neg]="d.netFlowCr < 0">
+          NET {{ d.netFlowCr >= 0 ? '+' : '-' }}{{ formatCrores(MathAbs(d.netFlowCr)) }}
+        </div>
+        <div class="net-outflow-label">
+          OUTFLOW <span class="net-value">{{ formatCrores(d.totalOutflowCr) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- RIGHT COLUMN: Top Inflow & Outflow Stocks  -->
+    <!-- ========================================== -->
+    <div class="stocks-flow-column">
+
+      <!-- TOP: INFLOW STOCKS GROUP -->
+      <div class="stock-group-section inflow-group">
+        <div class="stock-group-header">
+          TOP INFLOW STOCKS <span class="header-sub">· buildup · change · CLV · ₹ cr</span>
+        </div>
+
+        <div class="stock-list-rows">
+          <div *ngFor="let st of (d.topInflowStocks || []).slice(0, 8)" class="stock-flow-row"
+            [class.is-dimmed]="isStockDimmed(st)" [class.is-highlighted]="isStockHighlighted(st)"
+            (mouseenter)="onStockHover(st.symbol)" (mouseleave)="onClearHover()" (click)="onStockClick(st.symbol)"
+            [title]="'View ' + st.companyName + ' fundamentals'">
+            <!-- Symbol & Surge -->
+            <div class="stock-sym-col">
+              <span class="stock-code">{{ st.symbol }}</span>
+              <span *ngIf="st.isSurge" class="surge-icon-amber-sm" title="Surge volume">⚡</span>
+            </div>
+
+            <!-- Buildup Badge (LB / LU / SC / SB) -->
+            <div class="stock-badge-col">
+              <span class="buildup-tag" [ngClass]="getBuildupBadge(st.buildup).cssClass"
+                [title]="getBuildupBadge(st.buildup).label">
+                {{ getBuildupBadge(st.buildup).code }}
+              </span>
+            </div>
+
+            <!-- % Change -->
+            <div class="stock-chg-col">
+              <span class="stock-pct-val" [class.pos]="st.changePercent >= 0" [class.neg]="st.changePercent < 0">
+                {{ st.changePercent >= 0 ? '+' : '' }}{{ st.changePercent.toFixed(2) }}%
+              </span>
+            </div>
+
+            <!-- CLV Bar -->
+            <div class="stock-clv-col" [title]="'CLV: ' + st.clv">
+              <div class="clv-track">
+                <div class="clv-bar-fill" [class.pos]="st.clv >= 0" [class.neg]="st.clv < 0"
+                  [style.width.px]="getClvBarWidth(st.clv)"></div>
+              </div>
+            </div>
+
+            <!-- Amount in ₹ cr -->
+            <div class="stock-val-col">
+              <span class="stock-flow-num green">{{ formatStockFlow(st.flowCr) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM: OUTFLOW STOCKS GROUP -->
+      <div class="stock-group-section outflow-group">
+        <div class="stock-list-rows">
+          <div *ngFor="let st of (d.topOutflowStocks || []).slice(0, 8)" class="stock-flow-row"
+            [class.is-dimmed]="isStockDimmed(st)" [class.is-highlighted]="isStockHighlighted(st)"
+            (mouseenter)="onStockHover(st.symbol)" (mouseleave)="onClearHover()" (click)="onStockClick(st.symbol)"
+            [title]="'View ' + st.companyName + ' fundamentals'">
+            <!-- Symbol & Surge -->
+            <div class="stock-sym-col">
+              <span class="stock-code">{{ st.symbol }}</span>
+              <span *ngIf="st.isSurge" class="surge-icon-amber-sm" title="Surge volume">⚡</span>
+            </div>
+
+            <!-- Buildup Badge (LB / LU / SC / SB) -->
+            <div class="stock-badge-col">
+              <span class="buildup-tag" [ngClass]="getBuildupBadge(st.buildup).cssClass"
+                [title]="getBuildupBadge(st.buildup).label">
+                {{ getBuildupBadge(st.buildup).code }}
+              </span>
+            </div>
+
+            <!-- % Change -->
+            <div class="stock-chg-col">
+              <span class="stock-pct-val" [class.pos]="st.changePercent >= 0" [class.neg]="st.changePercent < 0">
+                {{ st.changePercent >= 0 ? '+' : '' }}{{ st.changePercent.toFixed(2) }}%
+              </span>
+            </div>
+
+            <!-- CLV Bar -->
+            <div class="stock-clv-col" [title]="'CLV: ' + st.clv">
+              <div class="clv-track">
+                <div class="clv-bar-fill" [class.pos]="st.clv >= 0" [class.neg]="st.clv < 0"
+                  [style.width.px]="getClvBarWidth(st.clv)"></div>
+              </div>
+            </div>
+
+            <!-- Amount in ₹ cr -->
+            <div class="stock-val-col">
+              <span class="stock-flow-num red">{{ formatStockFlow(st.flowCr) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Bottom Sub-Footer Bar (Only when data is present and no error) -->
+  <div class="flow-footer-bar" *ngIf="!isLoading() && !errorMessage() && data()">
+    <div class="flow-meta-caption">
+      Top 5 active companies per sector · Auto-recalculated every 45s
+    </div>
+  </div>
+</div>

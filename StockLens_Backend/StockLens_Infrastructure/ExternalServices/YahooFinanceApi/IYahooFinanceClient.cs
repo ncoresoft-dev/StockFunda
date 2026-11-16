@@ -83,8 +83,21 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
         Task<System.Collections.Generic.List<StockLens_Infrastructure.ExternalServices.IndianApi.IndianApiFinancialPeriodDto>> GetQuarterlyIncomeStatementsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<System.Collections.Generic.List<YahooDebtResponse>> GetHistoricalDebtAsync(string symbol, string exchange, CancellationToken cancellationToken = default);
         Task<YahooSparklineQuoteDto?> GetSparklineQuoteAsync(string symbol, string? exchange = "NSE", int days = 7, CancellationToken cancellationToken = default);
+        Task<YahooIndexPulseQuoteDto?> GetIndexPulseQuoteAsync(string symbol, string timeframe = "1D", CancellationToken cancellationToken = default);
         Task<YahooGrowthMetricsDto?> GetGrowthMetricsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
         Task<YahooStockFundamentalsDto?> GetComprehensiveFundamentalsAsync(string symbol, string? exchange = "NSE", CancellationToken cancellationToken = default);
+    }
+
+    public class YahooIndexPulseQuoteDto
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal PreviousClose { get; set; }
+        public decimal Change { get; set; }
+        public decimal ChangePercent { get; set; }
+        public decimal DayHigh { get; set; }
+        public decimal DayLow { get; set; }
+        public System.Collections.Generic.List<decimal> ClosingPrices { get; set; } = new();
     }
 
     public class YahooSparklineQuoteDto

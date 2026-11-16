@@ -403,6 +403,12 @@
   flex-shrink: 0;
 }
 
+/* Live Market Pulse Section */
+.market-pulse-wrapper {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
 /* Explore by Lens Main Card */
 .explore-lens-card {
   background: #ffffff;
@@ -410,6 +416,7 @@
   border-radius: 24px;
   padding: 28px 32px 36px 32px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  margin-bottom: 10px;
 }
 
 .lens-card-header {

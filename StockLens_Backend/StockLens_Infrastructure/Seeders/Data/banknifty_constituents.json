@@ -1,0 +1,100 @@
+[
+  {
+    "symbol": "HDFCBANK",
+    "companyName": "HDFC Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE040A01034"
+  },
+  {
+    "symbol": "ICICIBANK",
+    "companyName": "ICICI Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE090A01021"
+  },
+  {
+    "symbol": "SBIN",
+    "companyName": "State Bank of India",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE062A01020"
+  },
+  {
+    "symbol": "AXISBANK",
+    "companyName": "Axis Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE238A01034"
+  },
+  {
+    "symbol": "KOTAKBANK",
+    "companyName": "Kotak Mahindra Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE237A01036"
+  },
+  {
+    "symbol": "INDUSINDBK",
+    "companyName": "IndusInd Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE095A01012"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "companyName": "Bank of Baroda",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE028A01039"
+  },
+  {
+    "symbol": "PNB",
+    "companyName": "Punjab National Bank",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE160A01022"
+  },
+  {
+    "symbol": "CANBK",
+    "companyName": "Canara Bank",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE476A01022"
+  },
+  {
+    "symbol": "UNIONBANK",
+    "companyName": "Union Bank of India",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE692A01016"
+  },
+  {
+    "symbol": "FEDERALBNK",
+    "companyName": "The Federal Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE171A01029"
+  },
+  {
+    "symbol": "IDFCFIRSTB",
+    "companyName": "IDFC First Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE092T01019"
+  },
+  {
+    "symbol": "YESBANK",
+    "companyName": "Yes Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE528G01035"
+  },
+  {
+    "symbol": "AUBANK",
+    "companyName": "AU Small Finance Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE949L01017"
+  }
+]

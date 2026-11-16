@@ -13,6 +13,8 @@ import { MarketTickerQuote, ExploreLensCompany, LensMetric } from '../../models/
 import { Company } from '../../models/stock-news.model';
 import { Nifty50StockItem } from '../../models/stock-index.model';
 import { HeaderComponent } from '../header/header.component';
+import { MoneyRotationComponent } from '../money-rotation/money-rotation.component';
+import { MarketPulseComponent } from '../market-pulse/market-pulse.component';
 import { formatCurrency, formatCrores } from '../../utils/formatters.util';
 import { computeSquarifiedTreemap, TreemapBounds } from '../../utils/squarified-treemap.util';
 
@@ -60,7 +62,7 @@ export interface HeatmapStats {
 @Component({
   selector: 'app-home-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, HeaderComponent],
+  imports: [CommonModule, FormsModule, HeaderComponent, MoneyRotationComponent, MarketPulseComponent],
   templateUrl: './home-dashboard.component.html',
   styleUrls: ['./home-dashboard.component.css']
 })

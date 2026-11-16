@@ -1,0 +1,212 @@
+[
+  {
+    "symbol": "ADANIPORTS",
+    "companyName": "Adani Ports and Special Economic Zone Limited",
+    "sector": "Financial Services",
+    "industry": "Services",
+    "isin": "INE742F01042"
+  },
+  {
+    "symbol": "ASIANPAINT",
+    "companyName": "Asian Paints Limited",
+    "sector": "Consumer Durables",
+    "industry": "Consumer Durables",
+    "isin": "INE021A01026"
+  },
+  {
+    "symbol": "AXISBANK",
+    "companyName": "Axis Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE238A01034"
+  },
+  {
+    "symbol": "BAJAJFINSV",
+    "companyName": "Bajaj Finserv Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE918I01026"
+  },
+  {
+    "symbol": "BAJFINANCE",
+    "companyName": "Bajaj Finance Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE296A01032"
+  },
+  {
+    "symbol": "BEL",
+    "companyName": "Bharat Electronics Limited",
+    "sector": "Capital Goods",
+    "industry": "Capital Goods",
+    "isin": "INE263A01024"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "companyName": "Bharti Airtel Limited",
+    "sector": "Telecommunication",
+    "industry": "Telecommunication",
+    "isin": "INE397D01024"
+  },
+  {
+    "symbol": "ETERNAL",
+    "companyName": "ETERNAL LIMITED",
+    "sector": "Industrials",
+    "industry": "Consumer Services",
+    "isin": "INE758T01015"
+  },
+  {
+    "symbol": "HCLTECH",
+    "companyName": "HCL Technologies Limited",
+    "sector": "Information Technology",
+    "industry": "Information Technology",
+    "isin": "INE860A01027"
+  },
+  {
+    "symbol": "HDFCBANK",
+    "companyName": "HDFC Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE040A01034"
+  },
+  {
+    "symbol": "HINDUNILVR",
+    "companyName": "Hindustan Unilever Limited",
+    "sector": "Industrials",
+    "industry": "Fast Moving Consumer Goods",
+    "isin": "INE030A01027"
+  },
+  {
+    "symbol": "ICICIBANK",
+    "companyName": "ICICI Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE090A01021"
+  },
+  {
+    "symbol": "INDIGO",
+    "companyName": "InterGlobe Aviation Limited",
+    "sector": "Financial Services",
+    "industry": "Services",
+    "isin": "INE646L01027"
+  },
+  {
+    "symbol": "INFY",
+    "companyName": "Infosys Limited",
+    "sector": "Information Technology",
+    "industry": "Information Technology",
+    "isin": "INE009A01021"
+  },
+  {
+    "symbol": "ITC",
+    "companyName": "ITC Limited",
+    "sector": "Industrials",
+    "industry": "Fast Moving Consumer Goods",
+    "isin": "INE154A01025"
+  },
+  {
+    "symbol": "KOTAKBANK",
+    "companyName": "Kotak Mahindra Bank Limited",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE237A01036"
+  },
+  {
+    "symbol": "LT",
+    "companyName": "Larsen & Toubro Limited",
+    "sector": "Construction",
+    "industry": "Construction",
+    "isin": "INE018A01030"
+  },
+  {
+    "symbol": "M&M",
+    "companyName": "Mahindra & Mahindra Limited",
+    "sector": "Automobile and Auto Components",
+    "industry": "Automobile and Auto Components",
+    "isin": "INE101A01026"
+  },
+  {
+    "symbol": "MARUTI",
+    "companyName": "Maruti Suzuki India Limited",
+    "sector": "Automobile and Auto Components",
+    "industry": "Automobile and Auto Components",
+    "isin": "INE585B01010"
+  },
+  {
+    "symbol": "NTPC",
+    "companyName": "NTPC Limited",
+    "sector": "Utilities",
+    "industry": "Power",
+    "isin": "INE733E01010"
+  },
+  {
+    "symbol": "POWERGRID",
+    "companyName": "Power Grid Corporation of India Limited",
+    "sector": "Utilities",
+    "industry": "Power",
+    "isin": "INE752E01010"
+  },
+  {
+    "symbol": "RELIANCE",
+    "companyName": "Reliance Industries Limited",
+    "sector": "Oil, Gas & Consumable Fuels",
+    "industry": "Oil Gas & Consumable Fuels",
+    "isin": "INE002A01018"
+  },
+  {
+    "symbol": "SBIN",
+    "companyName": "State Bank of India",
+    "sector": "Financial Services",
+    "industry": "Financial Services",
+    "isin": "INE062A01020"
+  },
+  {
+    "symbol": "SUNPHARMA",
+    "companyName": "Sun Pharmaceutical Industries Limited",
+    "sector": "Healthcare",
+    "industry": "Healthcare",
+    "isin": "INE044A01036"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "companyName": "Tata Steel Limited",
+    "sector": "Metals & Mining",
+    "industry": "Metals & Mining",
+    "isin": "INE081A01020"
+  },
+  {
+    "symbol": "TCS",
+    "companyName": "Tata Consultancy Services Limited",
+    "sector": "Information Technology",
+    "industry": "Information Technology",
+    "isin": "INE467B01029"
+  },
+  {
+    "symbol": "TECHM",
+    "companyName": "Tech Mahindra Limited",
+    "sector": "Information Technology",
+    "industry": "Information Technology",
+    "isin": "INE669C01036"
+  },
+  {
+    "symbol": "TITAN",
+    "companyName": "Titan Company Limited",
+    "sector": "Consumer Durables",
+    "industry": "Consumer Durables",
+    "isin": "INE280A01028"
+  },
+  {
+    "symbol": "TRENT",
+    "companyName": "Trent Limited",
+    "sector": "Industrials",
+    "industry": "Consumer Services",
+    "isin": "INE849A01020"
+  },
+  {
+    "symbol": "ULTRACEMCO",
+    "companyName": "UltraTech Cement Limited",
+    "sector": "Construction Materials",
+    "industry": "Construction Materials",
+    "isin": "INE481G01011"
+  }
+]

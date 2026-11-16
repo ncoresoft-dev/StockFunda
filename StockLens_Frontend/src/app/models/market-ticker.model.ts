@@ -53,3 +53,31 @@ export interface ExploreLensResponse {
   companies: ExploreLensCompany[];
   lastUpdated: string;
 }
+
+export interface MarketPulseIndex {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  formattedPrice: string;
+  change: number;
+  formattedPointsChange: string;
+  changePercent: number;
+  formattedChangePercent: string;
+  isPositive: boolean;
+  dayLow: number;
+  formattedDayLow: string;
+  dayHigh: number;
+  formattedDayHigh: string;
+  rangeProgressPct: number;
+  sparklinePrices: number[];
+  trendPath: string;
+  takeawayNote: string;
+}
+
+export interface MarketPulseResponse {
+  timeframe: string;
+  marketSummary: string;
+  sectorMapRoute: string;
+  lastUpdated: string;
+  indices: MarketPulseIndex[];
+}

@@ -5,9 +5,10 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { SectorAnalysisService } from '../../services/sector-analysis.service';
-import { SectorAnalysisResponse, SectorSummary, SectorStock } from '../../models/sector-analysis.model';
+import { SectorAnalysisResponse, SectorSummary, SectorStock, MoneyFlowResponse } from '../../models/sector-analysis.model';
 import { computeSquarifiedTreemap, TreemapBounds, TreemapLayoutItem } from '../../utils/squarified-treemap.util';
 import { HeaderComponent } from '../header/header.component';
+import { MoneyFlowChartComponent } from '../money-flow-chart/money-flow-chart.component';
 
 export interface TreemapTile {
   stock: SectorStock;
@@ -35,7 +36,7 @@ export interface TreemapTile {
 @Component({
   selector: 'app-sector-analysis',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, HeaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, HeaderComponent, MoneyFlowChartComponent],
   templateUrl: './sector-analysis.component.html',
   styleUrls: ['./sector-analysis.component.css']
 })
@@ -55,12 +56,40 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   topLosers = signal<SectorStock[]>([]);
   bestOverallStock = signal<SectorStock | null>(null);
 
+  // Macro Money Flow State for Hero Banner
+  moneyFlowData = signal<MoneyFlowResponse | null>(null);
+
+  onMoneyFlowLoaded(data: MoneyFlowResponse): void {
+    if (data) {
+      this.moneyFlowData.set(data);
+    }
+  }
+
+  sectorsUpCount = computed(() => {
+    const d = this.moneyFlowData();
+    if (!d || !d.sectors) return 0;
+    return d.sectors.filter(s => s.changePercent >= 0).length;
+  });
+
+  sectorsDownCount = computed(() => {
+    const d = this.moneyFlowData();
+    if (!d || !d.sectors) return 0;
+    return d.sectors.filter(s => s.changePercent < 0).length;
+  });
+
+  topSector = computed(() => {
+    const d = this.moneyFlowData();
+    if (!d || !d.sectors || d.sectors.length === 0) return null;
+    const sorted = [...d.sectors].sort((a, b) => b.changePercent - a.changePercent);
+    return sorted[0];
+  });
+
   // Filters & Controls
   filterMode = signal<'all' | 'gainers' | 'losers'>('all');
   searchQuery = signal<string>('');
   selectedForCompare = signal<Set<string>>(new Set());
   hoveredStock = signal<SectorStock | null>(null);
-  
+
   // Sector Search
   sectorSearchQuery = signal<string>('');
   isSectorDropdownOpen = signal<boolean>(false);
@@ -74,6 +103,7 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
 
   // Subscriptions
   private routeSub?: Subscription;
+  private fragmentSub?: Subscription;
 
   // Counts of active stocks with real market capitalization and prices
   activeStocksCount = computed(() => {
@@ -112,10 +142,20 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
         this.loadSectorData();
       }
     });
+
+    this.fragmentSub = this.route.fragment.subscribe(fragment => {
+      if (fragment === 'money-flow-section') {
+        setTimeout(() => {
+          const el = document.getElementById('money-flow-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 250);
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
+    this.fragmentSub?.unsubscribe();
   }
 
   /**
@@ -132,7 +172,7 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
         this.topGainers.set(res.topGainers || []);
         this.topLosers.set(res.topLosers || []);
         this.bestOverallStock.set(res.bestOverallStock || null);
-        
+
         if (res.availableSectors && res.availableSectors.length > 0) {
           this.availableSectors.set(res.availableSectors);
         }
@@ -164,6 +204,19 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
       queryParamsHandling: 'merge'
     });
     this.loadSectorData(sectorName);
+  }
+
+  /**
+   * Called when a sector is clicked in the Money Flow chart.
+   * Switches active sector and scrolls down to the individual sector deep-dive.
+   */
+  onFlowSectorSelected(sectorName: string): void {
+    if (!sectorName) return;
+    this.onSelectSector(sectorName);
+    const target = document.getElementById('sector-deepdive-section');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   /**
@@ -225,10 +278,10 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
       const chg = stock.changePercent || 0;
       const isPos = chg > 0;
       const isNeut = Math.abs(chg) < 0.01;
-      
+
       const colors = this.getTileColor(chg);
       const minDimension = Math.min(node.widthPct, node.heightPct);
-      
+
       let fontSizeTier: 'sm' | 'md' | 'lg' | 'xl' = 'sm';
       if (minDimension >= 22) fontSizeTier = 'xl';
       else if (minDimension >= 14) fontSizeTier = 'lg';
@@ -427,6 +480,38 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
 
   getDeclineBreadthPercent(): number {
     return 100 - this.getAdvanceBreadthPercent();
+  }
+
+  /**
+   * Normalize badge labels (e.g. "Sector Leader" -> "Highest Market Cap", "Top Profitability" -> "Highest ROE")
+   * to directly map each badge 1:1 with specific table metric columns.
+   */
+  getDisplayBadge(badge?: string | null): string {
+    if (!badge) return '';
+    if (badge.includes('Leader')) {
+      return '👑 Highest Market Cap';
+    }
+    if (badge.includes('Profitability')) {
+      return '⭐ Highest ROE';
+    }
+    return badge;
+  }
+
+  /**
+   * Informative tooltip explaining what each constituent badge means.
+   */
+  getBadgeTooltip(st: SectorStock): string {
+    if (!st.primaryBadge) return '';
+    if (st.primaryBadge.includes('Leader') || st.primaryBadge.includes('Market Cap')) {
+      return `Highest Market Cap: Largest company in ${this.selectedSector()} (${this.formatCr(st.marketCapCr)})`;
+    }
+    if (st.primaryBadge.includes('ROE') || st.primaryBadge.includes('Profit')) {
+      return `Highest Return on Equity in ${this.selectedSector()} (${this.formatPercent(st.roe)} ROE) — Based on annual balance sheet performance, not 1-day stock price return`;
+    }
+    if (st.primaryBadge.includes('Value')) {
+      return `Best Value: Attractive valuation with reasonable P/E (${this.formatRatio(st.peRatio)}) and healthy ROE`;
+    }
+    return st.primaryBadge;
   }
 }
 

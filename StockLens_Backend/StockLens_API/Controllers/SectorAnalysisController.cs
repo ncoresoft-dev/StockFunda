@@ -1,10 +1,6 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using StockLens_BusinessLayer.DTOs;
 using StockLens_BusinessLayer.Interfaces;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace StockLens_API.Controllers
 {
@@ -41,6 +37,19 @@ namespace StockLens_API.Controllers
         public async Task<IActionResult> GetSectorAnalysis([FromQuery] string? sector, CancellationToken cancellationToken)
         {
             var result = await _sectorService.GetSectorAnalysisAsync(sector, cancellationToken);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Retrieves live institutional money flow, sector inflow/outflow, and top moving stocks (Choice A: Top 4-5 per sector).
+        /// </summary>
+        /// <param name="topPerSector">Number of top stocks per sector to evaluate (defaults to 5).</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        [HttpGet("money-flow")]
+        [ProducesResponseType(typeof(MoneyFlowResponseDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetMoneyFlow([FromQuery] int topPerSector = 5, CancellationToken cancellationToken = default)
+        {
+            var result = await _sectorService.GetMoneyFlowAsync(topPerSector, cancellationToken);
             return Ok(result);
         }
     }

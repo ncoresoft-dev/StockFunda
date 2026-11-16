@@ -45,3 +45,53 @@ export interface SectorAnalysisResponse {
   availableSectors: string[];
 }
 
+export interface StockFlowItem {
+  symbol: string;
+  companyName: string;
+  sector: string;
+  price: number;
+  changePercent: number;
+  tradedValueCr: number;
+  flowCr: number;
+  weight: number;
+  clv: number;
+  relativeVolume: number;
+  speed: number;
+  isSurge: boolean;
+  isFo: boolean;
+  buildup?: string | null;
+  logoUrl?: string | null;
+}
+
+export interface SectorFlowItem {
+  sector: string;
+  inflowCr: number;
+  outflowCr: number;
+  netFlowCr: number;
+  tradedValueCr: number;
+  stockCount: number;
+  advances: number;
+  declines: number;
+  changePercent: number;
+  speed: number;
+  isSurge: boolean;
+  stocks: StockFlowItem[];
+}
+
+export interface MoneyFlowResponse {
+  timestamp: string;
+  formattedTimestamp: string;
+  totalInflowCr: number;
+  totalOutflowCr: number;
+  netFlowCr: number;
+  totalStocks: number;
+  totalSectors: number;
+  advances: number;
+  declines: number;
+  unchanged: number;
+  sectors: SectorFlowItem[];
+  topInflowStocks: StockFlowItem[];
+  topOutflowStocks: StockFlowItem[];
+}
+
+

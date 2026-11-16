@@ -12,7 +12,7 @@ import { HeaderComponent } from '../header/header.component';
 
 export type SortField = 'weightage' | 'symbol' | 'name' | 'sector' | 'industry';
 export type SortOrder = 'asc' | 'desc';
-export type ViewTab = 'nifty50' | 'watchlist';
+export type ViewTab = 'nifty50' | 'sensex' | 'banknifty' | 'watchlist';
 
 @Component({
   selector: 'app-nifty50-landing',
@@ -27,7 +27,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   private readonly indexService = inject(StockIndexService);
   readonly watchlistService = inject(WatchlistService);
 
-  // Active View Tab: 'nifty50' or 'watchlist'
+  // Active View Tab: 'nifty50', 'sensex', 'banknifty', or 'watchlist'
   activeTab = signal<ViewTab>('nifty50');
 
   // Theme
@@ -37,15 +37,17 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Table Data & Filtering
   allStocks = signal<Nifty50StockItem[]>([]);
+  sensexStocks = signal<Nifty50StockItem[]>([]);
+  bankNiftyStocks = signal<Nifty50StockItem[]>([]);
   isLoading = signal<boolean>(true);
   tableSearchQuery = signal<string>('');
   selectedSector = signal<string>('All');
   sortField = signal<SortField>('weightage');
   sortOrder = signal<SortOrder>('desc');
 
-  // Sector Categories
+  // Sector Categories (dynamically computes from the currently selected index or watchlist)
   sectors = computed(() => {
-    const list = this.allStocks();
+    const list = this.currentBaseStocks();
     const set = new Set<string>();
     list.forEach(s => {
       if (s.sector) set.add(s.sector);
@@ -55,7 +57,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Sector Breakdown with Counts (sorted by count desc)
   sectorStats = computed(() => {
-    const list = this.allStocks();
+    const list = this.currentBaseStocks();
     const map = new Map<string, number>();
     list.forEach(s => {
       if (s.sector) {
@@ -95,12 +97,46 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Base list depending on active tab
   currentBaseStocks = computed(() => {
-    const list = this.allStocks();
     const tab = this.activeTab();
+
+    if (tab === 'banknifty') {
+      const niftyMap = new Map(this.allStocks().map(s => [s.symbol.toUpperCase(), s]));
+      return this.bankNiftyStocks().map(b => {
+        const nStock = niftyMap.get(b.symbol.toUpperCase());
+        if (nStock && (b.price == null || b.marketCap == null)) {
+          return {
+            ...b,
+            price: b.price ?? nStock.price,
+            marketCap: b.marketCap ?? nStock.marketCap,
+            logoUrl: b.logoUrl || nStock.logoUrl,
+            sector: b.sector || nStock.sector
+          };
+        }
+        return b;
+      });
+    }
+
+    if (tab === 'sensex') {
+      const niftyMap = new Map(this.allStocks().map(s => [s.symbol.toUpperCase(), s]));
+      return this.sensexStocks().map(b => {
+        const nStock = niftyMap.get(b.symbol.toUpperCase());
+        if (nStock && (b.price == null || b.marketCap == null)) {
+          return {
+            ...b,
+            price: b.price ?? nStock.price,
+            marketCap: b.marketCap ?? nStock.marketCap,
+            logoUrl: b.logoUrl || nStock.logoUrl,
+            sector: b.sector || nStock.sector
+          };
+        }
+        return b;
+      });
+    }
 
     if (tab === 'watchlist') {
       const symbols = this.watchlistService.watchlistSymbols();
-      const foundMap = new Map(list.map(s => [s.symbol.toUpperCase(), s]));
+      const allKnown = [...this.allStocks(), ...this.sensexStocks(), ...this.bankNiftyStocks()];
+      const foundMap = new Map(allKnown.map(s => [s.symbol.toUpperCase(), s]));
 
       return symbols.map(sym => {
         const upper = sym.toUpperCase();
@@ -112,19 +148,19 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
           symbol: upper,
           companyName: custom?.companyName || base?.companyName || meta?.companyName || `${upper} Ltd`,
           sector: custom?.sector || base?.sector || meta?.sector || 'Equities',
-          industry: base?.industry || 'NSE Listed',
+          industry: base?.industry || 'Listed',
           logoUrl: custom?.logoUrl || base?.logoUrl || meta?.logoUrl,
           websiteUrl: custom?.websiteUrl || base?.websiteUrl,
           price: custom?.price ?? base?.price ?? meta?.price,
           marketCap: custom?.marketCap ?? base?.marketCap ?? meta?.marketCap,
           weightagePercentage: base?.weightagePercentage,
           isin: base?.isin,
-          exchange: 'NSE'
+          exchange: base?.exchange || 'NSE'
         } as Nifty50StockItem;
       });
     }
 
-    return list;
+    return this.allStocks();
   });
 
   // Filtered & Sorted Stocks for Display
@@ -144,8 +180,8 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
       );
     }
 
-    // Filter by sector (only when in NIFTY 50 tab or if sector filter is active)
-    if (sector !== 'All' && this.activeTab() === 'nifty50') {
+    // Filter by sector (active for NIFTY 50, SENSEX, and BANK NIFTY tabs)
+    if (sector !== 'All' && (this.activeTab() === 'nifty50' || this.activeTab() === 'sensex' || this.activeTab() === 'banknifty')) {
       list = list.filter(s => s.sector === sector);
     }
 
@@ -176,7 +212,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Market Summary Stats
   marketStats = computed(() => {
-    const list = this.allStocks();
+    const list = this.currentBaseStocks();
     const total = list.length;
     const sectorsCount = this.sectors().length > 1 ? this.sectors().length - 1 : 0;
 
@@ -186,12 +222,14 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
       topWeighted = sortedByWeight[0];
     }
 
+    const isBankNifty = this.activeTab() === 'banknifty';
+    const isSensex = this.activeTab() === 'sensex';
     return {
       totalConstituents: total,
       sectorsCount,
       topWeighted,
-      exchange: 'NSE',
-      category: 'Broad Market Benchmark'
+      exchange: isSensex ? 'BSE' : 'NSE',
+      category: isBankNifty ? 'NSE Banking Benchmark' : (isSensex ? 'BSE Benchmark Index' : 'Broad Market Benchmark')
     };
   });
 
@@ -202,16 +240,37 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
     const initialView = this.route.snapshot.queryParams['tab'] || this.route.snapshot.queryParams['view'];
     if (initialView === 'watchlist') {
       this.setActiveTab('watchlist');
+    } else if (initialView === 'sensex') {
+      this.setActiveTab('sensex');
+    } else if (initialView === 'banknifty') {
+      this.setActiveTab('banknifty');
     }
 
-    // Only forceRefresh if user landed directly on the NIFTY 50 tab
-    this.loadNifty50Stocks(this.activeTab() === 'nifty50');
+    // Load initial data based on active tab
+    if (this.activeTab() === 'banknifty') {
+      this.loadBankNiftyStocks(true);
+      this.loadNifty50Stocks(false);
+      this.loadSensexStocks(false);
+    } else if (this.activeTab() === 'sensex') {
+      this.loadSensexStocks(true);
+      this.loadNifty50Stocks(false);
+      this.loadBankNiftyStocks(false);
+    } else {
+      this.loadNifty50Stocks(this.activeTab() === 'nifty50');
+      // Prefetch Sensex & Bank Nifty stocks dynamically in background so tab switching is instantaneous
+      this.loadSensexStocks(false);
+      this.loadBankNiftyStocks(false);
+    }
 
     // Listen for subsequent query param changes
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const view = params['tab'] || params['view'];
       if (view === 'watchlist' && this.activeTab() !== 'watchlist') {
         this.setActiveTab('watchlist');
+      } else if (view === 'banknifty' && this.activeTab() !== 'banknifty') {
+        this.setActiveTab('banknifty');
+      } else if (view === 'sensex' && this.activeTab() !== 'sensex') {
+        this.setActiveTab('sensex');
       } else if (view === 'nifty50' && this.activeTab() !== 'nifty50') {
         this.setActiveTab('nifty50');
       }
@@ -224,20 +283,70 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   }
 
   loadNifty50Stocks(forceRefresh: boolean): void {
-    if (this.allStocks().length === 0) {
+    if (this.allStocks().length === 0 && this.activeTab() === 'nifty50') {
       this.isLoading.set(true);
     }
     this.indexService.getNifty50List(forceRefresh).subscribe({
       next: (stocks) => {
         this.allStocks.set(stocks);
-        this.isLoading.set(false);
+        if (this.activeTab() === 'nifty50') {
+          this.isLoading.set(false);
+        }
       },
       error: (err) => {
         console.warn('Failed to load NIFTY 50 constituent data:', err);
         if (this.allStocks().length === 0) {
           this.allStocks.set([]);
         }
-        this.isLoading.set(false);
+        if (this.activeTab() === 'nifty50') {
+          this.isLoading.set(false);
+        }
+      }
+    });
+  }
+
+  loadSensexStocks(forceRefresh: boolean = false): void {
+    if (this.sensexStocks().length === 0 && this.activeTab() === 'sensex') {
+      this.isLoading.set(true);
+    }
+    this.indexService.getSensexList(forceRefresh).subscribe({
+      next: (stocks) => {
+        this.sensexStocks.set(stocks);
+        if (this.activeTab() === 'sensex') {
+          this.isLoading.set(false);
+        }
+      },
+      error: (err) => {
+        console.warn('Failed to load BSE SENSEX constituent data:', err);
+        if (this.sensexStocks().length === 0) {
+          this.sensexStocks.set([]);
+        }
+        if (this.activeTab() === 'sensex') {
+          this.isLoading.set(false);
+        }
+      }
+    });
+  }
+
+  loadBankNiftyStocks(forceRefresh: boolean = false): void {
+    if (this.bankNiftyStocks().length === 0 && this.activeTab() === 'banknifty') {
+      this.isLoading.set(true);
+    }
+    this.indexService.getBankNiftyList(forceRefresh).subscribe({
+      next: (stocks) => {
+        this.bankNiftyStocks.set(stocks);
+        if (this.activeTab() === 'banknifty') {
+          this.isLoading.set(false);
+        }
+      },
+      error: (err) => {
+        console.warn('Failed to load BANK NIFTY constituent data:', err);
+        if (this.bankNiftyStocks().length === 0) {
+          this.bankNiftyStocks.set([]);
+        }
+        if (this.activeTab() === 'banknifty') {
+          this.isLoading.set(false);
+        }
       }
     });
   }
@@ -313,13 +422,29 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   setActiveTab(tab: ViewTab): void {
     this.activeTab.set(tab);
     this.tableSearchQuery.set('');
+    this.selectedSector.set('All');
     if (tab === 'watchlist') {
       this.sortField.set('symbol');
       this.sortOrder.set('asc');
       this.loadCustomWatchlistStocks();
+    } else if (tab === 'banknifty') {
+      this.sortField.set('weightage');
+      this.sortOrder.set('desc');
+      if (this.bankNiftyStocks().length === 0) {
+        this.loadBankNiftyStocks(false);
+      }
+    } else if (tab === 'sensex') {
+      this.sortField.set('weightage');
+      this.sortOrder.set('desc');
+      if (this.sensexStocks().length === 0) {
+        this.loadSensexStocks(false);
+      }
     } else {
       this.sortField.set('weightage');
       this.sortOrder.set('desc');
+      if (this.allStocks().length === 0) {
+        this.loadNifty50Stocks(false);
+      }
     }
   }
 
@@ -361,7 +486,11 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   toggleStar(event: Event, symbol: string): void {
     event.stopPropagation();
     const upper = symbol.toUpperCase();
-    const stock = this.allStocks().find(s => s.symbol.toUpperCase() === upper) || this.customStocksMap().get(upper);
+    const stock = this.currentBaseStocks().find(s => s.symbol.toUpperCase() === upper) ||
+                  this.allStocks().find(s => s.symbol.toUpperCase() === upper) ||
+                  this.sensexStocks().find(s => s.symbol.toUpperCase() === upper) ||
+                  this.bankNiftyStocks().find(s => s.symbol.toUpperCase() === upper) ||
+                  this.customStocksMap().get(upper);
     this.watchlistService.toggleWatchlist(symbol, stock ? {
       symbol: stock.symbol,
       companyName: stock.companyName,

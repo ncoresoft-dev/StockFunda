@@ -8,7 +8,7 @@
   <!-- ========================================================================= -->
   <app-header
     [showWatchlist]="false"
-    [availableStocks]="allStocks()"
+    [availableStocks]="currentBaseStocks()"
     (stockSelected)="navigateToStock($event.symbol)">
   </app-header>
 
@@ -29,6 +29,22 @@
               </svg>
               NSE Benchmark Index
             </span>
+            } @else if (activeTab() === 'sensex') {
+            <span class="benchmark-tag sensex-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+              BSE Benchmark Index (S&amp;P BSE SENSEX)
+            </span>
+            } @else if (activeTab() === 'banknifty') {
+            <span class="benchmark-tag banknifty-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+              NSE Banking Benchmark (NIFTY BANK)
+            </span>
             } @else {
             <span class="benchmark-tag watchlist-tag">
               <svg viewBox="0 0 24 24" fill="currentColor" class="tag-icon">
@@ -42,14 +58,24 @@
           </div>
 
           <div class="title-with-tabs">
-            <h1 class="page-title">{{ activeTab() === 'nifty50' ? 'NIFTY 50' : 'My Watchlist' }}</h1>
+            <h1 class="page-title">{{ activeTab() === 'nifty50' ? 'NIFTY 50' : (activeTab() === 'sensex' ? 'BSE SENSEX' : (activeTab() === 'banknifty' ? 'BANK NIFTY' : 'My Watchlist')) }}</h1>
 
-            <!-- Tab Switcher (NIFTY 50 / My Watchlist) -->
+            <!-- Tab Switcher (NIFTY 50 / BSE SENSEX / BANK NIFTY / My Watchlist) -->
             <div class="view-switch-tabs">
               <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'nifty50'"
                 (click)="setActiveTab('nifty50')">
                 <span>NIFTY 50</span>
-                <span class="tab-badge">{{ allStocks().length }}</span>
+                <span class="tab-badge">{{ allStocks().length || 50 }}</span>
+              </button>
+              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'sensex'"
+                (click)="setActiveTab('sensex')">
+                <span>BSE SENSEX</span>
+                <span class="tab-badge">{{ sensexStocks().length || 30 }}</span>
+              </button>
+              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'banknifty'"
+                (click)="setActiveTab('banknifty')">
+                <span>BANK NIFTY</span>
+                <span class="tab-badge">{{ bankNiftyStocks().length || 14 }}</span>
               </button>
               <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'watchlist'"
                 (click)="setActiveTab('watchlist')">
@@ -66,8 +92,7 @@
           </div>
 
           <p class="page-subtitle">
-            {{ activeTab() === 'nifty50' ? "Official constituent companies of India's flagship NIFTY 50 Index" : "Stocks
-            you are currently tracking in your watchlist" }}
+            {{ activeTab() === 'nifty50' ? "Official constituent companies of India's flagship NIFTY 50 Index" : (activeTab() === 'sensex' ? "Top 30 financially sound, established companies listed on the Bombay Stock Exchange (BSE)" : (activeTab() === 'banknifty' ? "14 major banking stocks representing the Indian banking sector on the NSE" : "Stocks you are currently tracking in your watchlist")) }}
           </p>
         </div>
 
@@ -115,15 +140,15 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input type="text" class="fs-input"
-              [placeholder]="activeTab() === 'nifty50' ? 'Search company, symbol, or sector...' : 'Filter your watchlist stocks...'"
+              [placeholder]="activeTab() === 'nifty50' ? 'Search NIFTY 50 company, symbol, or sector...' : (activeTab() === 'sensex' ? 'Search Sensex company, symbol, or sector...' : (activeTab() === 'banknifty' ? 'Search Bank Nifty bank name or symbol...' : 'Filter your watchlist stocks...'))"
               [(ngModel)]="tableSearchQuery" />
             @if (tableSearchQuery()) {
             <button type="button" class="fs-clear" (click)="tableSearchQuery.set('')">✕</button>
             }
           </div>
 
-          <!-- Modern Sector Dropdown (Visible when in NIFTY 50 tab) -->
-          @if (activeTab() === 'nifty50') {
+          <!-- Modern Sector Dropdown (Visible when in NIFTY 50, BSE SENSEX, or BANK NIFTY tab) -->
+          @if (activeTab() === 'nifty50' || activeTab() === 'sensex' || activeTab() === 'banknifty') {
           <div class="sector-dropdown-wrapper">
             <svg class="sector-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
@@ -146,7 +171,7 @@
         </div>
 
         <!-- Quick 1-Click Popular Sector Chips (No Horizontal Scrollbars) -->
-        @if (activeTab() === 'nifty50') {
+        @if (activeTab() === 'nifty50' || activeTab() === 'sensex' || activeTab() === 'banknifty') {
         <div class="quick-sectors-bar">
           <span class="quick-label">Top Sectors:</span>
           <button type="button" class="sector-chip" [class.active]="selectedSector() === 'All'" (click)="setSector('All')">
@@ -169,13 +194,13 @@
       </div>
 
       <!-- ========================================================================= -->
-      <!-- 3. NIFTY 50 / WATCHLIST TABLE                                            -->
+      <!-- 3. NIFTY 50 / SENSEX / BANK NIFTY / WATCHLIST TABLE                       -->
       <!-- ========================================================================= -->
       <div class="watchlist-table-card">
         @if (isLoading()) {
         <div class="table-loading-state">
           <div class="mini-spinner large"></div>
-          <p>Loading NIFTY 50 constituent companies...</p>
+          <p>Loading {{ activeTab() === 'banknifty' ? 'BANK NIFTY' : (activeTab() === 'sensex' ? 'BSE SENSEX' : 'NIFTY 50') }} constituent companies...</p>
         </div>
         } @else if (activeTab() === 'watchlist' && currentBaseStocks().length === 0) {
         <!-- Empty Watchlist State -->
