@@ -12,5 +12,6 @@ namespace StockLens_BusinessLayer.Interfaces
         Task<IEnumerable<MarketIndexCompanyDto>> GetSensexCompaniesAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<MarketIndexCompanyDto>> GetBankNiftyCompaniesAsync(CancellationToken cancellationToken = default);
         Task<IEnumerable<MarketIndexCompanyDto>> GetStocksBySymbolsAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default);
+        Task<IndexAttributionResponseDto?> GetIndexAttributionAsync(string indexKey, bool forceRefresh = false, CancellationToken cancellationToken = default);
     }
 }

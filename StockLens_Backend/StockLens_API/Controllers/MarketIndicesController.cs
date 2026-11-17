@@ -74,5 +74,25 @@ namespace StockLens_API.Controllers
             var result = await _marketIndicesService.GetStocksBySymbolsAsync(symbolList, cancellationToken);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Retrieves index attribution analytics (Tug of war, Top Lifters/Draggers, Circle slices, and Point Contributions).
+        /// Supports "nifty-50", "sensex", and "bank-nifty".
+        /// </summary>
+        [HttpGet("attribution/{indexKey}")]
+        [ProducesResponseType(typeof(IndexAttributionResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetIndexAttribution(
+            string indexKey,
+            [FromQuery] bool forceRefresh = false,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _marketIndicesService.GetIndexAttributionAsync(indexKey, forceRefresh, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = $"Attribution data for index '{indexKey}' could not be computed." });
+            }
+            return Ok(result);
+        }
     }
 }

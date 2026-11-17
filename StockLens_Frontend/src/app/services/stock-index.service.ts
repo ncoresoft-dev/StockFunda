@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, tap, shareReplay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Nifty50StockItem } from '../models/stock-index.model';
+import { Nifty50StockItem, IndexAttributionResponse } from '../models/stock-index.model';
 
 @Injectable({
   providedIn: 'root'
@@ -244,6 +244,19 @@ export class StockIndexService {
   }
 
   /**
+   * Retrieves a cached stock item if present across Nifty 50, Sensex, or Bank Nifty
+   */
+  getCachedStockBySymbol(symbol: string): Nifty50StockItem | undefined {
+    if (!symbol) return undefined;
+    const clean = symbol.trim().toUpperCase();
+    return (
+      this.cachedNifty50List?.find(s => s.symbol.toUpperCase() === clean) ||
+      this.cachedSensexList?.find(s => s.symbol.toUpperCase() === clean) ||
+      this.cachedBankNiftyList?.find(s => s.symbol.toUpperCase() === clean)
+    );
+  }
+
+  /**
    * Finds stock items matching a list of symbols (for Watchlist tab or custom queries).
    * Queries the dedicated backend endpoint so non-Nifty stocks (e.g. BANDHANBNK) return real logo, CMP, and market cap.
    */
@@ -267,7 +280,12 @@ export class StockIndexService {
         logoUrl: item.logoUrl || item.logo_url,
         websiteUrl: item.websiteUrl || item.website_url,
         price: item.price,
-        marketCap: item.marketCap || item.market_cap,
+        marketCap: item.marketCap ?? item.market_cap,
+        change: item.change,
+        changePercent: item.changePercent ?? item.change_percent,
+        isPositive: item.isPositive ?? item.is_positive ?? (item.change_percent != null ? item.change_percent >= 0 : (item.change != null ? item.change >= 0 : true)),
+        trendPath: item.trendPath || item.trend_path,
+        sevenDayPrices: item.sevenDayPrices || item.seven_day_prices,
         exchange: 'NSE'
       } as Nifty50StockItem))),
       tap(() => {
@@ -286,6 +304,32 @@ export class StockIndexService {
 
     this.inFlightSymbolsMap.set(joined, obs$);
     return obs$;
+  }
+
+  private attributionCache = new Map<string, IndexAttributionResponse>();
+
+  /**
+   * Retrieves index attribution analytics (Who Moved NIFTY, Tug of War, Donut Slices, Contributors)
+   */
+  getIndexAttribution(indexKey: string, forceRefresh = false): Observable<IndexAttributionResponse | null> {
+    const cleanKey = (indexKey || 'nifty-50').trim().toLowerCase();
+
+    if (!forceRefresh && this.attributionCache.has(cleanKey)) {
+      return of(this.attributionCache.get(cleanKey)!);
+    }
+
+    const url = `${this.apiUrl}/attribution/${encodeURIComponent(cleanKey)}${forceRefresh ? '?forceRefresh=true' : ''}`;
+    return this.http.get<IndexAttributionResponse>(url).pipe(
+      tap(data => {
+        if (data) {
+          this.attributionCache.set(cleanKey, data);
+        }
+      }),
+      catchError(err => {
+        console.warn(`Could not fetch index attribution for ${cleanKey}:`, err);
+        return of(this.attributionCache.get(cleanKey) || null);
+      })
+    );
   }
 }
 

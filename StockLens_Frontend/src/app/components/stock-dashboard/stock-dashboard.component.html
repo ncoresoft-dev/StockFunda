@@ -686,7 +686,8 @@
         <app-stock-peer-comparison-card [symbol]="selectedSymbol()" [companyName]="companyOverview()?.companyName || ''"
           [exchange]="selectedExchange()" [peers]="companyPeers()" [isLoading]="isPeersLoading()"
           [hasError]="hasPeersError()" [industry]="companyOverview()?.industry"
-          [isLightTheme]="isLightTheme()"></app-stock-peer-comparison-card>
+          [isLightTheme]="isLightTheme()"
+          [currentLogoUrl]="getCompanyLogoUrl()"></app-stock-peer-comparison-card>
       </section>
 
       <!-- ===================================================================== -->

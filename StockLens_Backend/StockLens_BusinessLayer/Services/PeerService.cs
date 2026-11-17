@@ -1,8 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StockLens_BusinessLayer.DTOs;
 using StockLens_BusinessLayer.Interfaces;
 using StockLens_DataLayer.Entities;
 using StockLens_DataLayer.Interfaces;
+using StockLens_Infrastructure.DataContext;
 using StockLens_Infrastructure.ExternalServices.BharatStock;
 using StockLens_Infrastructure.ExternalServices.IndianApi;
 using System;
@@ -22,6 +24,7 @@ namespace StockLens_BusinessLayer.Services
         private readonly IFinancialProvider _financialProvider;
         private readonly IIndianApiBalanceSheetClient _indianApiClient;
         private readonly ILogger<PeerService> _logger;
+        private readonly StockLensDataContext? _dbContext;
 
         public PeerService(
             ICompanyRepository companyRepository,
@@ -30,7 +33,8 @@ namespace StockLens_BusinessLayer.Services
             ICompareProvider compareProvider,
             IFinancialProvider financialProvider,
             IIndianApiBalanceSheetClient indianApiClient,
-            ILogger<PeerService> logger)
+            ILogger<PeerService> logger,
+            StockLensDataContext? dbContext = null)
         {
             _companyRepository = companyRepository;
             _stockRepository = stockRepository;
@@ -39,6 +43,7 @@ namespace StockLens_BusinessLayer.Services
             _financialProvider = financialProvider;
             _indianApiClient = indianApiClient;
             _logger = logger;
+            _dbContext = dbContext;
         }
 
         public async Task<List<PeerDto>> GetStockPeersAsync(string symbol, string? exchange = "NSE", bool forceRefresh = false, CancellationToken cancellationToken = default)
@@ -65,7 +70,7 @@ namespace StockLens_BusinessLayer.Services
                     var lastSynced = dbPeers.First().LastSyncedAt;
                     if ((DateTime.UtcNow - lastSynced).TotalHours < 24)
                     {
-                        return dbPeers.Select(p => new PeerDto
+                        var cachedPeers = dbPeers.Select(p => new PeerDto
                         {
                             CompanyName = p.CompanyName,
                             Price = p.Price,
@@ -77,6 +82,9 @@ namespace StockLens_BusinessLayer.Services
                             DividendYield = p.DividendYield,
                             TotalShares = p.TotalShares
                         }).ToList();
+
+                        await EnrichPeersWithLogoAndSymbolAsync(cachedPeers, cancellationToken);
+                        return cachedPeers;
                     }
                     else
                     {
@@ -145,6 +153,7 @@ namespace StockLens_BusinessLayer.Services
                         resultList = peerRecords.Select(p => new PeerDto
                         {
                             CompanyName = p.CompanyName ?? p.Symbol ?? string.Empty,
+                            Symbol = p.Symbol,
                             Price = p.Price,
                             PeRatio = p.PeRatio,
                             PbRatio = p.PbRatio,
@@ -204,7 +213,7 @@ namespace StockLens_BusinessLayer.Services
                 var cachedDbPeers = await _stockPeerRepository.GetPeersByStockIdAsync(stockId);
                 if (cachedDbPeers != null && cachedDbPeers.Count > 0)
                 {
-                    return cachedDbPeers.Select(p => new PeerDto
+                    var fallbackPeers = cachedDbPeers.Select(p => new PeerDto
                     {
                         CompanyName = p.CompanyName,
                         Price = p.Price,
@@ -216,6 +225,9 @@ namespace StockLens_BusinessLayer.Services
                         DividendYield = p.DividendYield,
                         TotalShares = p.TotalShares
                     }).ToList();
+
+                    await EnrichPeersWithLogoAndSymbolAsync(fallbackPeers, cancellationToken);
+                    return fallbackPeers;
                 }
             }
 
@@ -239,7 +251,124 @@ namespace StockLens_BusinessLayer.Services
                 await _stockPeerRepository.SavePeersAsync(stockId, entitiesToSave);
             }
 
+            await EnrichPeersWithLogoAndSymbolAsync(resultList, cancellationToken);
             return resultList;
+        }
+
+        private async Task EnrichPeersWithLogoAndSymbolAsync(List<PeerDto> peers, CancellationToken cancellationToken = default)
+        {
+            if (peers == null || peers.Count == 0 || _dbContext == null) return;
+
+            try
+            {
+                // Fetch company reference catalog with logos for matching
+                var companies = await _dbContext.CompanyMaster
+                    .AsNoTracking()
+                    .Select(c => new { c.Symbol, c.CompanyName, c.LogoUrl })
+                    .ToListAsync(cancellationToken);
+
+                if (companies == null || companies.Count == 0) return;
+
+                var bySymbol = companies
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+                    .GroupBy(c => c.Symbol.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+                var byExactName = companies
+                    .Where(c => !string.IsNullOrWhiteSpace(c.CompanyName))
+                    .GroupBy(c => c.CompanyName.Trim().ToUpperInvariant())
+                    .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+                foreach (var peer in peers)
+                {
+                    // 1. Direct match by Symbol if already set
+                    if (!string.IsNullOrWhiteSpace(peer.Symbol) && bySymbol.TryGetValue(peer.Symbol.Trim().ToUpperInvariant(), out var matchBySym))
+                    {
+                        peer.Symbol = matchBySym.Symbol;
+                        peer.LogoUrl = matchBySym.LogoUrl;
+                        continue;
+                    }
+
+                    // 2. CompanyName matches a Symbol directly (e.g. peer name is "TCS" or "RELIANCE")
+                    var cleanName = (peer.CompanyName ?? string.Empty).Trim().ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(cleanName) && bySymbol.TryGetValue(cleanName, out var matchNameAsSym))
+                    {
+                        peer.Symbol = matchNameAsSym.Symbol;
+                        peer.LogoUrl = matchNameAsSym.LogoUrl;
+                        continue;
+                    }
+
+                    // 3. Exact match on CompanyName
+                    if (!string.IsNullOrEmpty(cleanName) && byExactName.TryGetValue(cleanName, out var matchByName))
+                    {
+                        peer.Symbol ??= matchByName.Symbol;
+                        peer.LogoUrl ??= matchByName.LogoUrl;
+                        continue;
+                    }
+
+                    // 4. Normalized CompanyName match (stripping LTD, LIMITED, INDIA, CORP, etc.)
+                    var normPeerName = NormalizeForMatching(cleanName);
+                    if (!string.IsNullOrEmpty(normPeerName))
+                    {
+                        var normCandidate = companies.FirstOrDefault(c =>
+                        {
+                            var normDb = NormalizeForMatching(c.CompanyName);
+                            return normDb == normPeerName ||
+                                   (normDb.Length > 4 && normPeerName.Length > 4 && (normDb.StartsWith(normPeerName) || normPeerName.StartsWith(normDb)));
+                        });
+
+                        if (normCandidate != null)
+                        {
+                            peer.Symbol ??= normCandidate.Symbol;
+                            peer.LogoUrl ??= normCandidate.LogoUrl;
+                            continue;
+                        }
+                    }
+
+                    // 5. First token match if symbol or distinct name (e.g., "INFOSYS" from "Infosys Ltd")
+                    var firstToken = cleanName.Split(new[] { ' ', '.', '-', '_' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                    if (!string.IsNullOrEmpty(firstToken) && firstToken.Length >= 4)
+                    {
+                        var tokenMatch = companies.FirstOrDefault(c =>
+                            c.Symbol.Equals(firstToken, StringComparison.OrdinalIgnoreCase) ||
+                            c.CompanyName.StartsWith(firstToken, StringComparison.OrdinalIgnoreCase));
+
+                        if (tokenMatch != null)
+                        {
+                            peer.Symbol ??= tokenMatch.Symbol;
+                            peer.LogoUrl ??= tokenMatch.LogoUrl;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enrich peer comparison items with logo and symbol.");
+            }
+        }
+
+        private static string NormalizeForMatching(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            var str = input.Trim().ToUpperInvariant();
+            str = str.Replace(".", "").Replace(",", "").Replace("&", "AND").Replace("-", " ");
+            
+            // Strip common trailing legal designations
+            string[] suffixes = { " LIMITED", " LTD", " INDIA", " IND", " CORP", " CORPORATION", " CO", " HOLDINGS" };
+            bool removed = true;
+            while (removed)
+            {
+                removed = false;
+                foreach (var s in suffixes)
+                {
+                    if (str.EndsWith(s))
+                    {
+                        str = str.Substring(0, str.Length - s.Length).Trim();
+                        removed = true;
+                    }
+                }
+            }
+            return str.Trim();
         }
 
         private static string? NormalizeSector(string? raw)

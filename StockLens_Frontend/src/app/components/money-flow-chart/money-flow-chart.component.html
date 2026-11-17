@@ -128,27 +128,32 @@
           </filter>
         </defs>
 
-        <!-- TOP GATE: Inflow Vertical Capsule Bar (Green) -->
-        <rect [attr.x]="GATE_X - 3.5" [attr.y]="INFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#22c55e"
-          filter="url(#greenGateGlow)" class="center-gate-bar green-gate" />
+        <!-- 1. DYNAMIC FLOWING STRANDS (Rendered FIRST so horizontal lines pass BEHIND the vertical lines) -->
+        <g class="strands-layer">
+          <g *ngFor="let s of flowStrands()">
+            <!-- Ambient Background Path -->
+            <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
+              [attr.stroke-width]="s.thickness" [attr.stroke-opacity]="isStrandActive(s) ? 0.28 : 0.04"
+              class="ambient-strand-path" />
 
-        <!-- BOTTOM GATE: Outflow Vertical Capsule Bar (Red) -->
-        <rect [attr.x]="GATE_X - 3.5" [attr.y]="OUTFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#ef4444"
-          filter="url(#redGateGlow)" class="center-gate-bar red-gate" />
+            <!-- Fast Moving Particle Dash -->
+            <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
+              [attr.stroke-width]="s.thickness * 0.95" stroke-dasharray="5 18"
+              [style.animationDuration.s]="(4.0 / s.speed).toFixed(2)" class="flowing-dash-path"
+              [class.active-highlight]="isStrandActive(s) && (hoveredSector() || hoveredStock())"
+              [class.dimmed]="!isStrandActive(s)" />
+          </g>
+        </g>
 
-        <!-- Dynamic Flowing Strands (Left to Gate, and Gate to Right) -->
-        <g *ngFor="let s of flowStrands()">
-          <!-- Ambient Background Path -->
-          <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
-            [attr.stroke-width]="s.thickness" [attr.stroke-opacity]="isStrandActive(s) ? 0.28 : 0.04"
-            class="ambient-strand-path" />
+        <!-- 2. SIMPLE VERTICAL LINES (Rendered ON TOP of strands so horizontal lines pass BEHIND them) -->
+        <g class="center-gates-layer">
+          <!-- TOP GATE: Inflow Simple Vertical Line (Green) -->
+          <rect [attr.x]="GATE_X - 3.5" [attr.y]="INFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#22c55e"
+            filter="url(#greenGateGlow)" class="center-gate-bar green-gate" />
 
-          <!-- Fast Moving Particle Dash -->
-          <path [attr.d]="s.pathD" fill="none" [attr.stroke]="s.targetType === 'inflow' ? '#22c55e' : '#ef4444'"
-            [attr.stroke-width]="s.thickness * 0.95" stroke-dasharray="5 18"
-            [style.animationDuration.s]="(4.0 / s.speed).toFixed(2)" class="flowing-dash-path"
-            [class.active-highlight]="isStrandActive(s) && (hoveredSector() || hoveredStock())"
-            [class.dimmed]="!isStrandActive(s)" />
+          <!-- BOTTOM GATE: Outflow Simple Vertical Line (Red) -->
+          <rect [attr.x]="GATE_X - 3.5" [attr.y]="OUTFLOW_GATE_Y - 24" width="7" height="48" rx="3.5" fill="#ef4444"
+            filter="url(#redGateGlow)" class="center-gate-bar red-gate" />
         </g>
       </svg>
 

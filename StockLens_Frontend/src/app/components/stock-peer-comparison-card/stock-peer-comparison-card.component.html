@@ -68,9 +68,36 @@
           </thead>
           <tbody>
             @for (peer of peers; track peer.companyName; let i = $index) {
-              <tr [class.highlight]="isCurrentCompany(peer.companyName)">
+              <tr [class.highlight]="isCurrentCompany(peer.companyName, peer.symbol)">
                 <td class="col-sno">{{ i + 1 }}.</td>
-                <td class="col-name fw-500">{{ peer.companyName }}</td>
+                <td class="col-name">
+                  <div class="peer-company-cell" (click)="navigateToStock(peer)" [title]="'View ' + peer.companyName">
+                    <div class="peer-logo-box" [class.has-logo]="getPeerLogo(peer) != null">
+                      @if (getPeerLogo(peer)) {
+                        <img [src]="getPeerLogo(peer)"
+                             [alt]="peer.companyName + ' Logo'"
+                             class="peer-logo-img"
+                             (error)="onLogoError(peer)"
+                             loading="lazy" />
+                      } @else {
+                        <div class="peer-avatar-fallback" [style.background]="getAvatarBg(peer)">
+                          {{ getInitials(peer) }}
+                        </div>
+                      }
+                    </div>
+                    <div class="peer-name-info">
+                      <div class="peer-name-row">
+                        <span class="peer-company-name fw-500">{{ peer.companyName }}</span>
+                        @if (isCurrentCompany(peer.companyName, peer.symbol)) {
+                          <span class="current-stock-badge">Current</span>
+                        }
+                      </div>
+                      @if (peer.symbol) {
+                        <span class="peer-symbol-sub">{{ peer.symbol }}</span>
+                      }
+                    </div>
+                  </div>
+                </td>
                 <td class="col-num">{{ formatNumber(peer.price) }}</td>
                 @if (hasPeRatio) { <td class="col-num">{{ formatNumber(peer.peRatio) }}</td> }
                 @if (hasPbRatio) { <td class="col-num">{{ formatNumber(peer.pbRatio) }}</td> }
@@ -79,8 +106,8 @@
                 @if (hasRoce) { <td class="col-num" [class.text-emerald]="(peer.roce || 0) > 15">{{ formatNumber(peer.roce) }}</td> }
                 @if (hasDividendYield) { <td class="col-num">{{ formatNumber(peer.dividendYield) }}</td> }
                 <td class="col-action">
-                  @if (!isCurrentCompany(peer.companyName)) {
-                    <button type="button" class="btn-peer-vs" (click)="compareWithPeer(peer.companyName)" title="Compare {{symbol}} with {{peer.companyName}}">
+                  @if (!isCurrentCompany(peer.companyName, peer.symbol)) {
+                    <button type="button" class="btn-peer-vs" (click)="$event.stopPropagation(); compareWithPeer(peer)" title="Compare {{symbol}} with {{peer.companyName}}">
                       VS
                     </button>
                   }

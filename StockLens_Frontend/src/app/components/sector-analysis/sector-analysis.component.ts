@@ -87,7 +87,9 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   // Filters & Controls
   filterMode = signal<'all' | 'gainers' | 'losers'>('all');
   searchQuery = signal<string>('');
-  selectedForCompare = signal<Set<string>>(new Set());
+  selectedForCompare = signal<string[]>([]);
+  compareValidationMsg = signal<string | null>(null);
+  private validationTimeout: any = null;
   hoveredStock = signal<SectorStock | null>(null);
 
   // Sector Search
@@ -164,6 +166,8 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   loadSectorData(sectorName?: string): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    this.selectedForCompare.set([]);
+    this.compareValidationMsg.set(null);
 
     this.sectorService.getSectorAnalysis(sectorName).subscribe({
       next: (res: SectorAnalysisResponse) => {
@@ -383,49 +387,81 @@ export class SectorAnalysisComponent implements OnInit, OnDestroy {
   });
 
   /**
-   * Toggle stock selection for comparison
+   * Toggle stock selection for comparison (strictly 2 stocks maximum)
    */
   toggleCompare(symbol: string): void {
-    this.selectedForCompare.update(set => {
-      const next = new Set(set);
-      if (next.has(symbol)) {
-        next.delete(symbol);
+    const current = this.selectedForCompare();
+    const idx = current.indexOf(symbol);
+
+    if (idx > -1) {
+      // Deselect stock
+      const next = current.filter(s => s !== symbol);
+      this.selectedForCompare.set(next);
+      if (next.length === 1) {
+        this.showValidationMessage(`Selected 1 company (${next[0]}). Select 1 more to compare.`);
       } else {
-        if (next.size >= 4) {
-          alert('You can compare a maximum of 4 companies at a time.');
-          return next;
-        }
-        next.add(symbol);
+        this.compareValidationMsg.set(null);
       }
-      return next;
-    });
+    } else {
+      if (current.length < 2) {
+        // Less than 2: append new selection
+        const next = [...current, symbol];
+        this.selectedForCompare.set(next);
+        if (next.length === 1) {
+          this.showValidationMessage(`Selected ${symbol}. Select 1 more company to compare.`);
+        } else {
+          this.showValidationMessage(`Ready! Click "Compare" to analyze ${next[0]} vs ${next[1]}.`);
+        }
+      } else {
+        // 3rd checkbox selected:
+        // Automatically uncheck the 1st selected company (FIFO), keeping the 2nd and adding the 3rd
+        const dropped = current[0];
+        const next = [current[1], symbol];
+        this.selectedForCompare.set(next);
+        this.showValidationMessage(`Maximum 2 companies allowed. Deselected ${dropped} and selected ${symbol}.`);
+      }
+    }
+  }
+
+  showValidationMessage(msg: string): void {
+    this.compareValidationMsg.set(msg);
+    if (this.validationTimeout) {
+      clearTimeout(this.validationTimeout);
+    }
+    this.validationTimeout = setTimeout(() => {
+      this.compareValidationMsg.set(null);
+    }, 4500);
+  }
+
+  clearCompareSelection(): void {
+    this.selectedForCompare.set([]);
+    this.compareValidationMsg.set(null);
   }
 
   isStockSelected(symbol: string): boolean {
-    return this.selectedForCompare().has(symbol);
+    return this.selectedForCompare().includes(symbol);
   }
 
   /**
-   * Navigate to Compare matrix with selected stocks
+   * Navigate to Compare matrix with selected stocks (exactly 2 required)
    */
   launchComparison(): void {
-    const selected = Array.from(this.selectedForCompare());
-    if (selected.length === 0) return;
-
-    if (selected.length === 1 && this.bestOverallStock()) {
-      // Auto-pair with sector leader
-      const leader = this.bestOverallStock()?.symbol;
-      if (leader && leader !== selected[0]) {
-        selected.unshift(leader);
+    const selected = this.selectedForCompare();
+    if (selected.length !== 2) {
+      if (selected.length === 0) {
+        this.showValidationMessage('Please select 2 companies using the checkboxes to compare.');
+      } else if (selected.length === 1) {
+        this.showValidationMessage(`Please select 1 more company to compare with ${selected[0]} (exactly 2 required).`);
       }
+      return;
     }
 
-    const queryParams: Record<string, string> = {};
-    selected.forEach((sym, idx) => {
-      queryParams[`stock${idx + 1}`] = sym;
+    this.router.navigate(['/compare'], {
+      queryParams: {
+        stock1: selected[0],
+        stock2: selected[1]
+      }
     });
-
-    this.router.navigate(['/compare'], { queryParams });
   }
 
   /**

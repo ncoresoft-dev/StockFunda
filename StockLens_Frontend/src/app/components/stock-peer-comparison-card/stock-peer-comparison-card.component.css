@@ -199,9 +199,125 @@
   background-color: rgba(56, 189, 248, 0.05);
 }
 
-.peer-table tbody tr.highlight td.col-name {
+.peer-table tbody tr.highlight td.col-name,
+.peer-table tbody tr.highlight .peer-company-name {
   color: #38bdf8;
   font-weight: 600;
+}
+
+/* Peer Company Column with Logo */
+.peer-table th.col-name,
+.peer-table td.col-name {
+  min-width: 220px;
+}
+
+.peer-company-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  vertical-align: middle;
+  text-align: left;
+  cursor: pointer;
+}
+
+.peer-company-cell:hover .peer-company-name {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+
+.peer-logo-box {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.peer-logo-box:not(.has-logo) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.peer-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.peer-avatar-fallback {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.peer-name-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.peer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.peer-company-name {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #f1f5f9;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.peer-symbol-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+
+.current-stock-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .col-num {
@@ -217,7 +333,9 @@
   color: #10b981;
 }
 
-.loading-state, .error-state, .empty-state {
+.loading-state,
+.error-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -456,9 +574,46 @@
 
 .light-mode .peer-table tbody tr.highlight td.col-name,
 :host-context(.light-theme) .peer-table tbody tr.highlight td.col-name,
-:host-context([data-theme="light"]) .peer-table tbody tr.highlight td.col-name {
+:host-context([data-theme="light"]) .peer-table tbody tr.highlight td.col-name,
+.light-mode .peer-table tbody tr.highlight .peer-company-name,
+:host-context(.light-theme) .peer-table tbody tr.highlight .peer-company-name,
+:host-context([data-theme="light"]) .peer-table tbody tr.highlight .peer-company-name {
   color: #0284c7 !important;
   font-weight: 700 !important;
+}
+
+.light-mode .peer-logo-box,
+:host-context(.light-theme) .peer-logo-box,
+:host-context([data-theme="light"]) .peer-logo-box {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode .peer-company-name,
+:host-context(.light-theme) .peer-company-name,
+:host-context([data-theme="light"]) .peer-company-name {
+  color: #1e293b !important;
+}
+
+.light-mode .peer-company-cell:hover .peer-company-name,
+:host-context(.light-theme) .peer-company-cell:hover .peer-company-name,
+:host-context([data-theme="light"]) .peer-company-cell:hover .peer-company-name {
+  color: #0284c7 !important;
+}
+
+.light-mode .peer-symbol-sub,
+:host-context(.light-theme) .peer-symbol-sub,
+:host-context([data-theme="light"]) .peer-symbol-sub {
+  color: #64748b !important;
+}
+
+.light-mode .current-stock-badge,
+:host-context(.light-theme) .current-stock-badge,
+:host-context([data-theme="light"]) .current-stock-badge {
+  background: #e0f2fe !important;
+  border-color: #bae6fd !important;
+  color: #0369a1 !important;
 }
 
 .light-mode .text-emerald,

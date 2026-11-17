@@ -25,6 +25,21 @@ namespace StockLens_BusinessLayer.DTOs
         [JsonPropertyName("market_cap")]
         public decimal? MarketCap { get; set; }
 
+        [JsonPropertyName("change")]
+        public decimal? Change { get; set; }
+
+        [JsonPropertyName("change_percent")]
+        public decimal? ChangePercent { get; set; }
+
+        [JsonPropertyName("is_positive")]
+        public bool? IsPositive { get; set; }
+
+        [JsonPropertyName("trend_path")]
+        public string? TrendPath { get; set; }
+
+        [JsonPropertyName("seven_day_prices")]
+        public System.Collections.Generic.List<decimal>? SevenDayPrices { get; set; }
+
         [JsonPropertyName("pe_ratio")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public decimal? PeRatio { get; set; }

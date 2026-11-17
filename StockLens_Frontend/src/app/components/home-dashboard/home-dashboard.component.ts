@@ -378,7 +378,11 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     if (!symbols || symbols.length === 0) return;
     const cleanSymbols = Array.from(new Set(symbols.map(s => s.trim().toUpperCase()))).filter(Boolean).sort();
     const key = cleanSymbols.join(',');
-    if (this.lastFetchedSymbolsKey === key) return; // Prevent duplicate network calls for identical symbols
+    const hasMissingMcap = cleanSymbols.some(s => {
+      const st = this.backendStocksMap().get(s);
+      return !st || st.marketCap == null;
+    });
+    if (!hasMissingMcap && this.lastFetchedSymbolsKey === key) return; // Prevent duplicate network calls for identical symbols
     this.lastFetchedSymbolsKey = key;
 
     this.indexService.getStocksBySymbols(cleanSymbols).subscribe({

@@ -365,7 +365,7 @@
               Who is the Best? — Top Sector Constituents
             </h2>
             <p class="section-subtitle">
-              Compare valuations, profitability, and leadership ranks. Select up to 4 companies to analyze head-to-head in the Comparison Matrix.
+              Compare valuations, profitability, and leadership ranks. Select any 2 companies to analyze head-to-head in the Comparison Matrix.
             </p>
           </div>
 
@@ -380,24 +380,65 @@
                 (ngModelChange)="searchQuery.set($event)">
             </div>
 
-            <!-- Launch Comparison Matrix Button -->
-            @if (selectedForCompare().size > 0) {
-              <button class="btn-compare-selected" (click)="launchComparison()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
-                </svg>
-                Compare Selected ({{ selectedForCompare().size }})
-              </button>
-            }
+            <!-- Compare Actions & Status Button -->
+            <div class="compare-actions-group">
+              @if (selectedForCompare().length > 0) {
+                <button type="button" class="btn-clear-selection" (click)="clearCompareSelection()" title="Clear selection">
+                  Clear ({{ selectedForCompare().length }})
+                </button>
+
+                <button 
+                  type="button"
+                  class="btn-compare-selected" 
+                  [class.ready]="selectedForCompare().length === 2"
+                  [class.pending]="selectedForCompare().length !== 2"
+                  (click)="launchComparison()"
+                  [title]="selectedForCompare().length === 2 ? 'Compare ' + selectedForCompare()[0] + ' vs ' + selectedForCompare()[1] : 'Please select exactly 2 companies to compare'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"></path>
+                  </svg>
+                  <span>
+                    @if (selectedForCompare().length === 2) {
+                      Compare Selected ({{ selectedForCompare()[0] }} vs {{ selectedForCompare()[1] }})
+                    } @else {
+                      Select 1 More to Compare (1/2)
+                    }
+                  </span>
+                </button>
+              }
+            </div>
           </div>
         </div>
+
+        <!-- Validation & Selection Status Banner -->
+        @if (compareValidationMsg()) {
+          <div class="compare-validation-banner" [class.banner-ready]="selectedForCompare().length === 2">
+            <div class="banner-icon">
+              @if (selectedForCompare().length === 2) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              }
+            </div>
+            <span class="banner-text">{{ compareValidationMsg() }}</span>
+            <button type="button" class="banner-close" (click)="compareValidationMsg.set(null)" title="Dismiss">✕</button>
+          </div>
+        }
 
         <!-- Matrix Table -->
         <div class="table-responsive-wrapper">
           <table class="peer-table">
             <thead>
               <tr>
-                <th class="col-select">Select</th>
+                <th class="col-select" title="Select 2 companies to compare">
+                  Select {{ selectedForCompare().length > 0 ? '(' + selectedForCompare().length + '/2)' : '' }}
+                </th>
                 <th class="col-rank">#</th>
                 <th class="col-company" (click)="sortBy('symbol')">Company</th>
                 <th class="col-price" (click)="sortBy('price')">Price</th>

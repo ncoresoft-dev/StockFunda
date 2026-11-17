@@ -1,7 +1,7 @@
 <div class="landing-container" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()"
   [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
   <!-- Top Animated Cyber Reload Progress Bar -->
-  <div class="top-reload-bar" [class.active]="isLoading()"></div>
+  <div class="top-reload-bar" [class.active]="isLoading() || isAttributionLoading()"></div>
 
   <!-- ========================================================================= -->
   <!-- 1. TOP GLOBAL APPLICATION NAVBAR                                          -->
@@ -13,317 +13,805 @@
   </app-header>
 
   <!-- ========================================================================= -->
-  <!-- 2. MAIN NIFTY 50 CONTENT AREA                                             -->
+  <!-- 2. MAIN FULL-WIDTH NIFTY 50 CONTAINER (ZERO SCROLL SINGLE PAGE)           -->
   <!-- ========================================================================= -->
   <main class="landing-main">
     <div class="landing-content-inner">
-      <!-- Page Hero Header -->
-      <div class="page-hero-section">
-        <div class="hero-text-block">
-          <div class="hero-badge-row">
-            @if (activeTab() === 'nifty50') {
-            <span class="benchmark-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                <polyline points="17 6 23 6 23 12"></polyline>
-              </svg>
-              NSE Benchmark Index
-            </span>
-            } @else if (activeTab() === 'sensex') {
-            <span class="benchmark-tag sensex-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                <polyline points="17 6 23 6 23 12"></polyline>
-              </svg>
-              BSE Benchmark Index (S&amp;P BSE SENSEX)
-            </span>
-            } @else if (activeTab() === 'banknifty') {
-            <span class="benchmark-tag banknifty-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-                <polyline points="17 6 23 6 23 12"></polyline>
-              </svg>
-              NSE Banking Benchmark (NIFTY BANK)
-            </span>
-            } @else {
-            <span class="benchmark-tag watchlist-tag">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="tag-icon">
-                <polygon
-                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                </polygon>
-              </svg>
-              Personal Watchlist
-            </span>
-            }
-          </div>
 
-          <div class="title-with-tabs">
-            <h1 class="page-title">{{ activeTab() === 'nifty50' ? 'NIFTY 50' : (activeTab() === 'sensex' ? 'BSE SENSEX' : (activeTab() === 'banknifty' ? 'BANK NIFTY' : 'My Watchlist')) }}</h1>
-
-            <!-- Tab Switcher (NIFTY 50 / BSE SENSEX / BANK NIFTY / My Watchlist) -->
-            <div class="view-switch-tabs">
-              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'nifty50'"
-                (click)="setActiveTab('nifty50')">
-                <span>NIFTY 50</span>
-                <span class="tab-badge">{{ allStocks().length || 50 }}</span>
-              </button>
-              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'sensex'"
-                (click)="setActiveTab('sensex')">
-                <span>BSE SENSEX</span>
-                <span class="tab-badge">{{ sensexStocks().length || 30 }}</span>
-              </button>
-              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'banknifty'"
-                (click)="setActiveTab('banknifty')">
-                <span>BANK NIFTY</span>
-                <span class="tab-badge">{{ bankNiftyStocks().length || 14 }}</span>
-              </button>
-              <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'watchlist'"
-                (click)="setActiveTab('watchlist')">
-                <svg class="tab-star-icon" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                  </polygon>
-                </svg>
-                <span>My Watchlist</span>
-                <span class="tab-badge" [class.highlight]="watchlistService.watchlistCount() > 0">{{
-                  watchlistService.watchlistCount() }}</span>
-              </button>
-            </div>
-          </div>
-
-          <p class="page-subtitle">
-            {{ activeTab() === 'nifty50' ? "Official constituent companies of India's flagship NIFTY 50 Index" : (activeTab() === 'sensex' ? "Top 30 financially sound, established companies listed on the Bombay Stock Exchange (BSE)" : (activeTab() === 'banknifty' ? "14 major banking stocks representing the Indian banking sector on the NSE" : "Stocks you are currently tracking in your watchlist")) }}
-          </p>
+      <!-- Compact Single-Line Hero Header -->
+      <div class="page-hero-section compact-hero">
+        <div class="hero-left-title-row">
+          <h1 class="page-title">{{ activeTab() === 'nifty50' ? 'NIFTY 50' : (activeTab() === 'sensex' ? 'BSE SENSEX' : (activeTab() === 'banknifty' ? 'BANK NIFTY' : 'My Watchlist')) }}</h1>
+          @if (activeTab() === 'nifty50') {
+          <span class="benchmark-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+            NSE Benchmark
+          </span>
+          } @else if (activeTab() === 'sensex') {
+          <span class="benchmark-tag sensex-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+            BSE SENSEX
+          </span>
+          } @else if (activeTab() === 'banknifty') {
+          <span class="benchmark-tag banknifty-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tag-icon">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+            BANK NIFTY
+          </span>
+          } @else {
+          <span class="benchmark-tag watchlist-tag basket-pill">
+            Your basket
+          </span>
+          }
         </div>
 
-        <!-- Real Index Metadata Summary Cards -->
-        <div class="market-summary-cards">
-          <div class="summary-card index-card">
-            <div class="sc-label">Total Constituents</div>
-            <div class="sc-value-row">
-              <span class="sc-price">{{ marketStats().totalConstituents }}</span>
-              <span class="sc-badge positive">
-                Companies
-              </span>
+        <!-- Tab Switcher (NIFTY 50 / BSE SENSEX / BANK NIFTY / My Watchlist) -->
+        <div class="view-switch-tabs compact-tabs">
+          <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'nifty50'"
+            (click)="setActiveTab('nifty50')">
+            <span>NIFTY 50</span>
+            @if (activeTab() === 'nifty50' && isAttributionLoading()) {
+              <span class="tab-mini-spinner" title="Loading NIFTY 50..."></span>
+            } @else {
+              <span class="tab-badge">{{ allStocks().length || 50 }}</span>
+            }
+          </button>
+          <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'sensex'"
+            (click)="setActiveTab('sensex')">
+            <span>BSE SENSEX</span>
+            @if (activeTab() === 'sensex' && isAttributionLoading()) {
+              <span class="tab-mini-spinner" title="Loading BSE SENSEX..."></span>
+            } @else {
+              <span class="tab-badge">{{ sensexStocks().length || 30 }}</span>
+            }
+          </button>
+          <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'banknifty'"
+            (click)="setActiveTab('banknifty')">
+            <span>BANK NIFTY</span>
+            @if (activeTab() === 'banknifty' && isAttributionLoading()) {
+              <span class="tab-mini-spinner" title="Loading BANK NIFTY..."></span>
+            } @else {
+              <span class="tab-badge">{{ bankNiftyStocks().length || 14 }}</span>
+            }
+          </button>
+          <button type="button" class="view-tab-btn" [class.active]="activeTab() === 'watchlist'"
+            (click)="setActiveTab('watchlist')">
+            <svg class="tab-star-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span>My Watchlist</span>
+            <span class="tab-badge" [class.highlight]="watchlistService.watchlistCount() > 0">{{
+              watchlistService.watchlistCount() }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 3. ATTRIBUTION & CONTRIBUTORS DASHBOARD (DEFAULT FOR INDEX TABS)          -->
+      <!-- ========================================================================= -->
+      @if (activeTab() !== 'watchlist') {
+      <div class="attribution-dashboard-grid single-page-grid" [class.is-loading]="isAttributionLoading()">
+
+        <!-- Seamless Loading Overlay during Index API fetch -->
+        @if (isAttributionLoading()) {
+        <div class="attr-loading-overlay">
+          <div class="attr-loader-card">
+            <div class="attr-spinner-circle">
+              <svg class="spinner-svg" viewBox="0 0 50 50">
+                <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+                <circle class="spinner-bar" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+              </svg>
+            </div>
+            <div class="attr-loader-text">
+              <div class="alt-title">Loading {{ currentTabTitle() }} attribution...</div>
+              <div class="alt-subtitle">Computing real-time index impact & constituent points</div>
+            </div>
+            <div class="attr-loader-progress">
+              <div class="shimmer-bar"></div>
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- ===================================================================== -->
+        <!-- LEFT PANEL: Circle Donut Chart Visualization (~60%)                   -->
+        <!-- ===================================================================== -->
+        <div class="attr-left-card">
+          <div class="attr-header-row">
+            <div class="attr-title-group">
+              <h2 class="attr-title">Who moved {{ attributionData()?.indexName || 'NIFTY 50' }}</h2>
+              <p class="attr-subtitle">Segment size is points contributed. Green lifts, red drags.</p>
+            </div>
+
+            <!-- View Mode Switcher: Circle | Waterfall -->
+            <div class="view-mode-toggle">
+              <button type="button" class="vmode-btn" [class.active]="viewMode() === 'circle'" (click)="setViewMode('circle')">Circle</button>
+              <button type="button" class="vmode-btn" [class.active]="viewMode() === 'waterfall'" (click)="setViewMode('waterfall')">Waterfall</button>
             </div>
           </div>
 
-          <div class="summary-card market-breadth-card">
-            <div class="sc-label">Sectors Represented</div>
-            <div class="sc-value-row">
-              <span class="sc-price">{{ marketStats().sectorsCount }}</span>
-              <span class="sc-badge positive">
-                Sectors
-              </span>
+          <!-- 1. CIRCLE VIEW (DONUT ATTRIBUTION CHART) -->
+          @if (viewMode() === 'circle') {
+          <div class="circle-stage-container">
+            <!-- Flanking Left: Pushing Up (Top Positive Movers) -->
+            <div class="flanking-column lifters">
+              <div class="flanking-header">
+                <span class="flanking-dot green"></span>
+                <span>Pushing up</span>
+              </div>
+              <div class="flanking-list">
+                @for (stock of attributionData()?.topLifters; track stock.symbol) {
+                <div class="flanking-item lifter-item"
+                     (click)="navigateToStock(stock.symbol)"
+                     (mouseenter)="setSliceHover(stock.symbol)"
+                     (mouseleave)="setSliceHover(null)">
+                  <div class="flanking-item-row">
+                    <span class="fl-symbol">{{ stock.symbol }}</span>
+                    <span class="fl-points green">{{ stock.formattedPoints }}</span>
+                  </div>
+                  <div class="fl-mini-bar">
+                    <div class="fl-bar-fill green" [style.width.%]="stock.pointBarPct"></div>
+                  </div>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Center Donut Chart Container -->
+            <div class="donut-chart-wrapper">
+              <svg viewBox="0 0 480 480" class="donut-svg">
+                <!-- SVG Clip Paths for 100% Slice Boundary Protection -->
+                <defs>
+                  @for (item of donutSlices(); track item.slice.id) {
+                  <clipPath [attr.id]="item.clipPathId">
+                    <path [attr.d]="item.path"></path>
+                  </clipPath>
+                  }
+                </defs>
+
+                <!-- SVG Slices Group -->
+                <g class="slices-group">
+                  @for (item of donutSlices(); track item.slice.id) {
+                  <path
+                    [attr.d]="item.path"
+                    [attr.fill]="item.fill"
+                    [attr.stroke]="item.stroke"
+                    stroke-width="1.2"
+                    class="donut-slice-path"
+                    [class.hovered]="hoveredSliceId() === item.slice.id"
+                    (mouseenter)="onSliceMouseEnter($event, item.slice)"
+                    (mousemove)="onSliceMouseMove($event, item.slice)"
+                    (mouseleave)="onSliceMouseLeave()"
+                    (click)="item.slice.isOther ? null : navigateToStock(item.slice.id)">
+                  </path>
+
+                  <!-- Label inside slice bounded by clip-path and fitted typography -->
+                  @if (item.showPoints || item.showSymbol) {
+                  <g [attr.clip-path]="'url(#' + item.clipPathId + ')'" class="slice-text-group">
+                    @if (item.showSymbol) {
+                    <text
+                      [attr.x]="item.labelX"
+                      [attr.y]="item.showPoints ? item.labelY - 5 : item.labelY + 3"
+                      [style.font-size.px]="item.symbolFontSize"
+                      text-anchor="middle"
+                      class="slice-label-title"
+                      fill="#ffffff">
+                      {{ item.displaySymbol }}
+                    </text>
+                    }
+                    @if (item.showPoints) {
+                    <text
+                      [attr.x]="item.labelX"
+                      [attr.y]="item.showSymbol ? item.labelY + 8 : item.labelY + 3"
+                      [style.font-size.px]="item.pointsFontSize"
+                      text-anchor="middle"
+                      class="slice-label-points"
+                      [attr.fill]="item.slice.isOther ? '#cbd5e1' : (item.slice.isLifter ? '#e6fffa' : '#ffe4e6')">
+                      {{ item.displayPoints }}
+                    </text>
+                    }
+                  </g>
+                  }
+                  }
+                </g>
+
+                <!-- Center Cutout Hole -->
+                <circle cx="240" cy="240" r="113" class="donut-center-circle"></circle>
+
+                <!-- Center Content: Index Name, Live Price, Net Change Pill, Prev Close -->
+                <g class="donut-center-content">
+                  <text x="240" y="196" text-anchor="middle" class="dc-index-name">
+                    {{ attributionData()?.indexName || 'NIFTY 50' }}
+                  </text>
+
+                  <text x="240" y="238" text-anchor="middle" class="dc-index-price">
+                    {{ attributionData()?.formattedPrice || '25,291.10' }}
+                  </text>
+
+                  <!-- Two Distinct Mini-Pills Side-by-Side (Option 3) -->
+                  <g class="dc-pills-row">
+                    <!-- Pill 1: Net Points Change -->
+                    <g class="dc-pill-item">
+                      <rect
+                        x="148"
+                        y="252"
+                        width="106"
+                        height="25"
+                        rx="12.5"
+                        [attr.class]="(attributionData()?.isPositive ?? true) ? 'dc-pill-bg green' : 'dc-pill-bg red'">
+                      </rect>
+                      <text
+                        x="201"
+                        y="268"
+                        text-anchor="middle"
+                        class="dc-pill-text dc-pill-pts"
+                        [class.green]="attributionData()?.isPositive ?? true"
+                        [class.red]="!(attributionData()?.isPositive ?? true)">
+                        {{ (attributionData()?.isPositive ?? true) ? '▲ ' : '▼ ' }}{{ attributionData()?.formattedChange || '+146.80' }} pts
+                      </text>
+                    </g>
+
+                    <!-- Pill 2: Net Percentage Return -->
+                    <g class="dc-pill-item">
+                      <rect
+                        x="260"
+                        y="252"
+                        width="74"
+                        height="25"
+                        rx="12.5"
+                        [attr.class]="(attributionData()?.isPositive ?? true) ? 'dc-pill-bg green' : 'dc-pill-bg red'">
+                      </rect>
+                      <text
+                        x="297"
+                        y="268"
+                        text-anchor="middle"
+                        class="dc-pill-text dc-pill-pct"
+                        [class.green]="attributionData()?.isPositive ?? true"
+                        [class.red]="!(attributionData()?.isPositive ?? true)">
+                        {{ attributionData()?.formattedChangePercent || '+0.58%' }}
+                      </text>
+                    </g>
+                  </g>
+
+                  <text x="240" y="304" text-anchor="middle" class="dc-prev-close">
+                    Prev. close {{ (attributionData()?.previousClose | number:'1.2-2') || '25,144.30' }}
+                  </text>
+                </g>
+              </svg>
+
+              <!-- Dynamic Floating Glassmorphic Tooltip Card -->
+              @if (activeTooltip(); as tip) {
+              <div class="donut-floating-tooltip"
+                   [class.lifter-tip]="tip.isLifter"
+                   [class.dragger-tip]="!tip.isLifter"
+                   [style.left.px]="tip.x"
+                   [style.top.px]="tip.y">
+                <!-- Tooltip Header -->
+                <div class="tip-header">
+                  <div class="tip-symbol-badge" [class.lifter]="tip.isLifter" [class.dragger]="!tip.isLifter">
+                    {{ tip.symbol }}
+                  </div>
+                  <span class="tip-role-tag" [class.lifter]="tip.isLifter" [class.dragger]="!tip.isLifter">
+                    @if (tip.isLifter) {
+                      <svg class="tip-dir-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                      Lifter
+                    } @else {
+                      <svg class="tip-dir-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      Dragger
+                    }
+                  </span>
+                </div>
+
+                <div class="tip-company-name" [title]="tip.companyName">{{ tip.companyName }}</div>
+                @if (tip.sector) {
+                  <div class="tip-sector-name">{{ tip.sector }}</div>
+                }
+
+                <!-- Impact Hero Row -->
+                <div class="tip-impact-row">
+                  <div class="tip-impact-main">
+                    <span class="tip-pts-label">Impact on Index</span>
+                    <span class="tip-pts-value" [class.lifter]="tip.isLifter" [class.dragger]="!tip.isLifter">
+                      {{ tip.formattedPoints }}
+                    </span>
+                  </div>
+                  @if (tip.percentageOfCategory) {
+                  <div class="tip-category-share">
+                    <span class="tip-share-value">{{ tip.percentageOfCategory | number:'1.1-1' }}%</span>
+                    <span class="tip-share-label">of {{ tip.isLifter ? 'Lifts' : 'Drags' }}</span>
+                  </div>
+                  }
+                </div>
+
+                <!-- Tooltip Metrics Grid -->
+                @if (!tip.isOther) {
+                <div class="tip-metrics-grid">
+                  <div class="tip-metric-cell">
+                    <span class="tm-label">1D Return</span>
+                    <span class="tm-value" [class.lifter]="tip.isLifter" [class.dragger]="!tip.isLifter">
+                      {{ tip.formattedChangePercent || '--' }}
+                    </span>
+                  </div>
+                  <div class="tip-metric-cell">
+                    <span class="tm-label">Weight</span>
+                    <span class="tm-value highlight">{{ tip.weightage ? (tip.weightage | number:'1.2-2') + '%' : '--' }}</span>
+                  </div>
+                  <div class="tip-metric-cell">
+                    <span class="tm-label">LTP (Price)</span>
+                    <span class="tm-value">{{ tip.price ? ('₹' + (tip.price | number:'1.2-2')) : '--' }}</span>
+                  </div>
+                </div>
+                } @else {
+                <div class="tip-metrics-grid is-other">
+                  <div class="tip-metric-cell">
+                    <span class="tm-label">Total Stocks</span>
+                    <span class="tm-value highlight">{{ tip.otherCount || 1 }} Stocks</span>
+                  </div>
+                  <div class="tip-metric-cell">
+                    <span class="tm-label">Classification</span>
+                    <span class="tm-value" [class.lifter]="tip.isLifter" [class.dragger]="!tip.isLifter">
+                      {{ tip.isLifter ? 'Minor Lifters' : 'Minor Draggers' }}
+                    </span>
+                  </div>
+                </div>
+                }
+
+                @if (!tip.isOther) {
+                <div class="tip-footer">
+                  <span>Click slice to view full stock overview</span>
+                  <svg class="tip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                }
+              </div>
+              }
+            </div>
+
+            <!-- Flanking Right: Pulling Down (Top Negative Draggers) -->
+            <div class="flanking-column draggers">
+              <div class="flanking-header draggers-header">
+                <span class="flanking-dot red"></span>
+                <span>Pulling down</span>
+              </div>
+              <div class="flanking-list">
+                @for (stock of attributionData()?.topDraggers; track stock.symbol) {
+                <div class="flanking-item dragger-item"
+                     (click)="navigateToStock(stock.symbol)"
+                     (mouseenter)="setSliceHover(stock.symbol)"
+                     (mouseleave)="setSliceHover(null)">
+                  <div class="flanking-item-row dragger-row">
+                    <span class="fl-points red">{{ stock.formattedPoints }}</span>
+                    <span class="fl-symbol">{{ stock.symbol }}</span>
+                  </div>
+                  <div class="fl-mini-bar dragger-bar">
+                    <div class="fl-bar-fill red" [style.width.%]="stock.pointBarPct"></div>
+                  </div>
+                </div>
+                }
+              </div>
             </div>
           </div>
+          }
 
-          @if (marketStats().topWeighted) {
-          <div class="summary-card top-mover-card" (click)="navigateToStock(marketStats().topWeighted!.symbol)">
-            <div class="sc-label">Top Weightage</div>
-            <div class="mover-info">
-              <span class="mover-symbol">{{ marketStats().topWeighted!.symbol }}</span>
-              <span class="sc-badge positive">{{ marketStats().topWeighted!.weightagePercentage | number:'1.2-2'
-                }}%</span>
+          <!-- 2. WATERFALL VIEW -->
+          @if (viewMode() === 'waterfall') {
+          <div class="waterfall-stage-container">
+            <div class="wf-legend">
+              <span class="wf-legend-item"><span class="dot green"></span> Lifters</span>
+              <span class="wf-legend-item"><span class="dot red"></span> Draggers</span>
+            </div>
+            <div class="wf-bars-list">
+              @for (item of waterfallItems(); track item.symbol) {
+              <div class="wf-row" (click)="navigateToStock(item.symbol)">
+                <div class="wf-sym">{{ item.symbol }}</div>
+                <div class="wf-bar-track">
+                  <div class="wf-bar-fill"
+                       [class.green]="item.isPositive"
+                       [class.red]="!item.isPositive"
+                       [style.width.%]="item.barPct">
+                  </div>
+                </div>
+                <div class="wf-val" [class.green]="item.isPositive" [class.red]="!item.isPositive">
+                  {{ item.points >= 0 ? '+' : '' }}{{ item.points | number:'1.2-2' }}
+                </div>
+              </div>
+              }
             </div>
           </div>
           }
         </div>
-      </div>
 
-      <!-- Controls Bar: Search & Sector Filters -->
-      <div class="controls-toolbar">
-        <div class="controls-top-row">
-          <div class="filter-search-box">
-            <svg class="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <!-- ===================================================================== -->
+        <!-- RIGHT PANEL: Tug of War & Contributors List (~40%)                    -->
+        <!-- ===================================================================== -->
+        <div class="attr-right-card">
+
+          <!-- Top Subcard: Tug of War -->
+          <div class="tug-of-war-widget">
+            <div class="tow-header-row">
+              <span class="tow-title">Tug of war</span>
+              <div class="tow-counts">
+                <span class="tow-count green">{{ attributionData()?.tugOfWar?.liftingCount || 31 }} gainers</span>,
+                <span class="tow-count red">{{ attributionData()?.tugOfWar?.draggingCount || 19 }} losers</span>
+              </div>
+            </div>
+
+            <div class="tow-numbers-row">
+              <div class="tow-num-box green">
+                <div class="tow-main-pts">+{{ (attributionData()?.tugOfWar?.liftingPoints | number:'1.2-2') || '195.96' }}</div>
+                <div class="tow-sub-label">{{ attributionData()?.tugOfWar?.liftingCount || 31 }} lifting</div>
+              </div>
+              <div class="tow-num-box red">
+                <div class="tow-main-pts">{{ (attributionData()?.tugOfWar?.draggingPoints | number:'1.2-2') || '-67.01' }}</div>
+                <div class="tow-sub-label">{{ attributionData()?.tugOfWar?.draggingCount || 19 }} dragging</div>
+              </div>
+            </div>
+
+            <!-- Visual Tug of War Progress Bar -->
+            <div class="tow-progress-track">
+              <div class="tow-progress-green" [style.width.%]="attributionData()?.tugOfWar?.lifterRatioPct || 74"></div>
+              <div class="tow-progress-red" [style.width.%]="100 - (attributionData()?.tugOfWar?.lifterRatioPct || 74)"></div>
+            </div>
+
+            <!-- Narrative Text -->
+            <div class="tow-summary-text">
+              {{ attributionData()?.tugOfWar?.summaryText || 'Lifters are ahead by 128.95 pts. Biggest single move: HDFCBANK +41.86' }}
+            </div>
+          </div>
+
+          <!-- Bottom Subcard: Contributors List -->
+          <div class="contributors-widget">
+            <div class="cw-header-row">
+              <div class="cw-title">
+                <span>Contributors</span>
+                <span class="cw-count-badge">{{ filteredContributors().length }} of {{ attributionData()?.contributors?.length || 50 }}</span>
+              </div>
+            </div>
+
+            <!-- Filter Tabs & Quick Search -->
+            <div class="cw-controls-row">
+              <div class="cw-filter-tabs">
+                <button type="button" class="cw-tab-btn" [class.active]="contributorFilter() === 'all'" (click)="setContributorFilter('all')">All</button>
+                <button type="button" class="cw-tab-btn" [class.active]="contributorFilter() === 'lifting'" (click)="setContributorFilter('lifting')">Lifting</button>
+                <button type="button" class="cw-tab-btn" [class.active]="contributorFilter() === 'dragging'" (click)="setContributorFilter('dragging')">Dragging</button>
+              </div>
+
+              <div class="cw-search-wrap">
+                <svg class="cw-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="cw-search-input" placeholder="Search" [(ngModel)]="contributorSearch" />
+                @if (contributorSearch()) {
+                <button type="button" class="cw-clear-btn" (click)="contributorSearch.set('')">✕</button>
+                }
+              </div>
+            </div>
+
+            <!-- Column Header Labels -->
+            <div class="cw-table-header">
+              <span class="cw-th-stock">Stock</span>
+              <span class="cw-th-weight">Weight</span>
+              <span class="cw-th-chg">Chg %</span>
+              <span class="cw-th-points">Points</span>
+            </div>
+
+            <!-- Scrollable Contributors List (Internal Scrollbar Only) -->
+            <div class="cw-rows-scroll">
+              @for (stock of filteredContributors(); track stock.symbol) {
+              <div class="cw-row"
+                   [class.hovered]="hoveredSliceId() === stock.symbol"
+                   (mouseenter)="setSliceHover(stock.symbol)"
+                   (mouseleave)="setSliceHover(null)"
+                   (click)="navigateToStock(stock.symbol)">
+
+                <!-- Stock Avatar + Name -->
+                <div class="cw-cell-stock">
+                  @if (stock.logoUrl) {
+                  <img [src]="stock.logoUrl" class="cw-stock-logo" [alt]="stock.symbol + ' Logo'" />
+                  } @else {
+                  <div class="cw-stock-avatar">{{ stock.symbol.substring(0, 2) }}</div>
+                  }
+                  <div class="cw-stock-info">
+                    <span class="cw-symbol">{{ stock.symbol }}</span>
+                    <span class="cw-comp-name" [title]="stock.companyName">{{ stock.companyName }}</span>
+                  </div>
+                </div>
+
+                <!-- Weight % -->
+                <div class="cw-cell-weight">
+                  {{ stock.weightage | number:'1.2-2' }}%
+                </div>
+
+                <!-- Chg % (High Contrast Color) -->
+                <div class="cw-cell-chg" [class.green]="stock.changePercent >= 0" [class.red]="stock.changePercent < 0">
+                  {{ stock.formattedChangePercent }}
+                </div>
+
+                <!-- Points with Mini Proportional Bar -->
+                <div class="cw-cell-points">
+                  <div class="cw-mini-bar-track">
+                    <div class="cw-mini-bar-fill"
+                         [class.green]="stock.isLifter"
+                         [class.red]="!stock.isLifter"
+                         [style.width.%]="stock.pointBarPct">
+                    </div>
+                  </div>
+                  <span class="cw-points-val" [class.green]="stock.isLifter" [class.red]="!stock.isLifter">
+                    {{ stock.formattedPoints }}
+                  </span>
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- ========================================================================= -->
+      <!-- 4. WATCHLIST TAB VIEW (ONLY ACTIVE WHEN WATCHLIST TAB IS SELECTED)        -->
+      <!-- ========================================================================= -->
+      @if (activeTab() === 'watchlist') {
+      <div class="watchlist-view-container">
+
+        <!-- 1. Top Summary Metric Pulse Card -->
+        <div class="watchlist-summary-card">
+          <div class="ws-metrics-left">
+            <div class="ws-metric-box">
+              <span class="ws-val">{{ watchlistStats().total }}</span>
+              <span class="ws-lbl">stocks</span>
+            </div>
+            <div class="ws-metric-box">
+              <span class="ws-val green">{{ watchlistStats().upCount }}</span>
+              <span class="ws-lbl">up</span>
+            </div>
+            <div class="ws-metric-box">
+              <span class="ws-val red">{{ watchlistStats().downCount }}</span>
+              <span class="ws-lbl">down</span>
+            </div>
+            <div class="ws-metric-box">
+              <span class="ws-val" [class.green]="watchlistStats().avgChange >= 0" [class.red]="watchlistStats().avgChange < 0">
+                {{ watchlistStats().avgChange >= 0 ? '+' : '' }}{{ watchlistStats().avgChange | number:'1.2-2' }}%
+              </span>
+              <span class="ws-lbl">avg change today</span>
+            </div>
+          </div>
+
+          <div class="ws-summary-right">
+            <div class="ws-bar-track">
+              <div class="ws-bar-fill-green" [style.width.%]="watchlistStats().upPct"></div>
+              <div class="ws-bar-fill-red" [style.width.%]="watchlistStats().downPct"></div>
+            </div>
+            <div class="ws-narrative-text">
+              {{ watchlistStats().narrative }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Controls & Search Toolbar -->
+        <div class="watchlist-toolbar">
+          <div class="watchlist-filter-wrap">
+            <svg class="wt-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" class="fs-input"
-              [placeholder]="activeTab() === 'nifty50' ? 'Search NIFTY 50 company, symbol, or sector...' : (activeTab() === 'sensex' ? 'Search Sensex company, symbol, or sector...' : (activeTab() === 'banknifty' ? 'Search Bank Nifty bank name or symbol...' : 'Filter your watchlist stocks...'))"
-              [(ngModel)]="tableSearchQuery" />
-            @if (tableSearchQuery()) {
-            <button type="button" class="fs-clear" (click)="tableSearchQuery.set('')">✕</button>
+            <input type="text"
+                   class="wt-search-input"
+                   placeholder="Filter your stocks"
+                   [ngModel]="watchlistFilterQuery()"
+                   (ngModelChange)="watchlistFilterQuery.set($event)" />
+            @if (watchlistFilterQuery()) {
+            <button type="button" class="wt-clear-btn" (click)="watchlistFilterQuery.set('')">✕</button>
             }
           </div>
 
-          <!-- Modern Sector Dropdown (Visible when in NIFTY 50, BSE SENSEX, or BANK NIFTY tab) -->
-          @if (activeTab() === 'nifty50' || activeTab() === 'sensex' || activeTab() === 'banknifty') {
-          <div class="sector-dropdown-wrapper">
-            <svg class="sector-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-            <select class="sector-select" [ngModel]="selectedSector()" (ngModelChange)="setSector($event)">
-              <option value="All">All Sectors</option>
-              @for (sec of sectorStats(); track sec.name) {
-              <option [value]="sec.name">{{ sec.name }}</option>
-              }
-            </select>
-            <svg class="sector-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-          }
-
-          <div class="results-count-badge">
-            Showing <strong>{{ filteredStocks().length }}</strong> of {{ currentBaseStocks().length }} stocks
+          <div class="watchlist-actions-right">
+            <button type="button" class="manage-watchlist-action-btn" (click)="openManageWatchlist()">
+              Manage watchlist
+            </button>
           </div>
         </div>
 
-        <!-- Quick 1-Click Popular Sector Chips (No Horizontal Scrollbars) -->
-        @if (activeTab() === 'nifty50' || activeTab() === 'sensex' || activeTab() === 'banknifty') {
-        <div class="quick-sectors-bar">
-          <span class="quick-label">Top Sectors:</span>
-          <button type="button" class="sector-chip" [class.active]="selectedSector() === 'All'" (click)="setSector('All')">
-            All
-          </button>
-          @for (sec of topSectors(); track sec.name) {
-          <button type="button" class="sector-chip" [class.active]="selectedSector() === sec.name" (click)="setSector(sec.name)">
-            {{ sec.name }}
-          </button>
-          }
-
-          @if (selectedSector() !== 'All' && !isTopSector(selectedSector())) {
-          <div class="active-custom-chip">
-            <span>{{ selectedSector() }}</span>
-            <button type="button" class="chip-remove-btn" (click)="setSector('All')" title="Clear filter">✕</button>
-          </div>
-          }
-        </div>
-        }
-      </div>
-
-      <!-- ========================================================================= -->
-      <!-- 3. NIFTY 50 / SENSEX / BANK NIFTY / WATCHLIST TABLE                       -->
-      <!-- ========================================================================= -->
-      <div class="watchlist-table-card">
-        @if (isLoading()) {
-        <div class="table-loading-state">
-          <div class="mini-spinner large"></div>
-          <p>Loading {{ activeTab() === 'banknifty' ? 'BANK NIFTY' : (activeTab() === 'sensex' ? 'BSE SENSEX' : 'NIFTY 50') }} constituent companies...</p>
-        </div>
-        } @else if (activeTab() === 'watchlist' && currentBaseStocks().length === 0) {
-        <!-- Empty Watchlist State -->
+        <!-- 3. Content: Empty State vs Table View vs Cards View -->
+        @if (currentBaseStocks().length === 0) {
         <div class="empty-watchlist-inline">
           <div class="empty-star-bubble">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-              </polygon>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
           </div>
           <h3>Your watchlist is empty</h3>
-          <p>Click the ★ star icon on any NIFTY 50 stock to track it here.</p>
+          <p>Click the ★ star icon on any NIFTY 50 stock to track it here, or use Manage Watchlist to add any stock.</p>
           <button type="button" class="switch-to-nifty-btn" (click)="setActiveTab('nifty50')">
             Explore NIFTY 50
           </button>
         </div>
-        } @else if (filteredStocks().length === 0) {
-        <!-- Filter Search Empty State -->
-        <div class="table-empty-search">
-          <div class="empty-icon-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-          <h3>No companies match "{{ tableSearchQuery() }}"</h3>
-          <p>Try searching for a different company name, symbol, or sector.</p>
-          <button type="button" class="clear-filters-btn" (click)="tableSearchQuery.set(''); selectedSector.set('All')">
-            Reset Filters
-          </button>
-        </div>
         } @else {
-        <div class="table-scroll-container">
-          <table class="watchlist-table">
-            <thead>
-              <tr>
-                <th class="th-rank">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span title="My Watchlist">★</span>
-                    <span>S.No.</span>
-                  </div>
-                </th>
-                <th class="th-company sortable" (click)="setSorting('name')">
-                  <span>Company</span>
-                  @if (sortField() === 'name') {
-                  <span class="sort-icon">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
-                  }
-                </th>
-                <th class="th-num">CMP Rs.</th>
-                <th class="th-num">Mar Cap (Cr)</th>
-                <th class="th-action"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (stock of filteredStocks(); track stock.symbol) {
-              <tr class="stock-row" (click)="navigateToStock(stock.symbol)">
-                <!-- 1. Star and Rank Column -->
-                <td class="td-rank">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" class="star-toggle-btn" [class.starred]="isStarred(stock.symbol)"
-                      (click)="toggleStar($event, stock.symbol)"
-                      [title]="isStarred(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'"
-                      [attr.aria-label]="isStarred(stock.symbol) ? 'Remove from Watchlist' : 'Add to Watchlist'">
-                      @if (isStarred(stock.symbol)) {
-                      <svg class="star-icon filled" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon
-                          points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                      </svg>
-                      } @else {
-                      <svg class="star-icon outlined" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <polygon
-                          points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                      </svg>
-                      }
-                    </button>
-                    <span class="rank-num">{{ $index + 1 }}</span>
-                  </div>
-                </td>
+        <!-- CARDS GRID VIEW (DEFAULT & EXCLUSIVE VIEW) -->
+        <div class="watchlist-cards-grid">
+          @for (stock of watchlistDisplayStocks(); track stock.symbol) {
+          <div class="wl-stock-card" (click)="navigateToStock(stock.symbol)">
+            <div class="wlc-header">
+              <div class="wlc-brand-group">
+                @if (stock.logoUrl) {
+                <img [src]="stock.logoUrl" class="wlc-logo-img" [alt]="stock.companyName + ' Logo'">
+                } @else {
+                <div class="company-avatar-square"
+                     [style.background-color]="getAvatarInfo(stock.companyName, stock.symbol).bg"
+                     [style.color]="getAvatarInfo(stock.companyName, stock.symbol).color">
+                  {{ getAvatarInfo(stock.companyName, stock.symbol).letter }}
+                </div>
+                }
+                <div class="wlc-names">
+                  <span class="wlc-title">{{ stock.companyName }}</span>
+                  <span class="wlc-symbol">{{ stock.symbol }}</span>
+                </div>
+              </div>
+              <button type="button" class="star-toggle-btn starred" (click)="toggleStar($event, stock.symbol)" title="Remove from Watchlist">
+                <svg class="star-icon filled" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </button>
+            </div>
 
-                <!-- 2. Company Info -->
-                <td class="td-company">
-                  <div class="company-cell" style="display: flex; align-items: center; gap: 10px;">
-                    @if (stock.logoUrl) {
-                      <img [src]="stock.logoUrl" class="company-logo" [alt]="stock.companyName + ' Logo'">
-                    } @else {
-                      <div class="company-logo-placeholder">{{ stock.companyName.charAt(0) }}</div>
-                    }
-                    <div class="comp-details">
-                      <a class="comp-name company-link" [title]="stock.companyName" (click)="$event.stopPropagation(); navigateToStock(stock.symbol)">{{ stock.companyName }}</a>
-                    </div>
-                  </div>
-                </td>
+            <div class="wlc-sector-row">
+              <span class="sector-pill-badge">{{ stock.sector || 'Equities' }}</span>
+            </div>
 
-                <!-- 3. CMP Price -->
-                <td class="td-num">₹{{ stock.price != null ? (stock.price | number:'1.2-2') : '—' }}</td>
+            <div class="wlc-price-trend-row">
+              <div class="wlc-price-col">
+                <span class="wlc-price-val">₹{{ stock.price != null ? (stock.price | number:'1.2-2') : '—' }}</span>
+                <span class="chg-indicator" [class.green]="(stock.changePercent ?? 0) >= 0" [class.red]="(stock.changePercent ?? 0) < 0">
+                  {{ (stock.changePercent ?? 0) >= 0 ? '▲ +' : '▼ ' }}{{ (stock.changePercent ?? 0) | number:'1.2-2' }}%
+                </span>
+              </div>
+              <div class="wlc-sparkline-col">
+                <svg class="trend-sparkline-svg" viewBox="0 0 80 26" preserveAspectRatio="none">
+                  <path [attr.d]="getWatchlistTrendPath(stock)"
+                        [attr.stroke]="(stock.changePercent ?? 0) >= 0 ? '#16a34a' : '#dc2626'"
+                        stroke-width="2"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+              </div>
+            </div>
 
-                <!-- 4. Market Cap -->
-                <td class="td-num">₹{{ stock.marketCap != null ? (stock.marketCap | number:'1.2-2') : '—' }}</td>
-
-                <!-- 5. Action Button -->
-                <td class="td-action">
-                  <button type="button" class="view-stock-btn" (click)="navigateToStock(stock.symbol)"
-                    title="View stock details">
-                    <span>View</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="arrow-icon">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-              }
-            </tbody>
-          </table>
+            <div class="wlc-footer-row">
+              <div class="wlc-mcap-meta">
+                <span class="wlc-mcap-label">Market Cap</span>
+                <span class="wlc-mcap-value">₹{{ stock.marketCap != null ? (stock.marketCap | number:'1.2-2') + ' Cr' : '—' }}</span>
+              </div>
+              <span class="wlc-arrow-btn">›</span>
+            </div>
+          </div>
+          }
+          @if (watchlistDisplayStocks().length === 0) {
+          <div class="no-filter-match-cards">
+            No stocks match "<strong>{{ watchlistFilterQuery() }}</strong>"
+          </div>
+          }
         </div>
         }
+
       </div>
+      }
+
     </div>
   </main>
 </div>
+
+<!-- Manage Watchlist Modal -->
+@if (isManageWatchlistModalOpen()) {
+<div class="manage-wl-backdrop" (click)="closeManageWatchlist()">
+  <div class="manage-wl-modal" (click)="$event.stopPropagation()">
+    <div class="manage-wl-header">
+      <div>
+        <h3 class="manage-wl-title">Manage Watchlist</h3>
+        <p class="manage-wl-subtitle">Add or remove stocks tracked in your basket</p>
+      </div>
+      <button type="button" class="manage-wl-close-btn" (click)="closeManageWatchlist()">✕</button>
+    </div>
+
+    <div class="manage-wl-search-box">
+      <svg class="mw-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text"
+             class="mw-search-input"
+             placeholder="Search stocks by name, symbol, or sector..."
+             [ngModel]="manageWatchlistSearchQuery()"
+             (ngModelChange)="manageWatchlistSearchQuery.set($event)" />
+      @if (manageWatchlistSearchQuery()) {
+      <button type="button" class="mw-clear-btn" (click)="manageWatchlistSearchQuery.set('')">✕</button>
+      }
+    </div>
+
+    <div class="manage-wl-body">
+      @if (!manageWatchlistSearchQuery()) {
+        <div class="manage-wl-section-title">
+          Currently Tracked ({{ currentBaseStocks().length }})
+        </div>
+        @if (currentBaseStocks().length === 0) {
+        <div class="manage-wl-empty">No stocks in your watchlist yet. Use the search above to find and add stocks!</div>
+        } @else {
+        <div class="manage-wl-list">
+          @for (stock of currentBaseStocks(); track stock.symbol) {
+          <div class="manage-wl-item">
+            <div class="mw-item-left">
+              <div class="company-avatar-square sm"
+                   [style.background-color]="getAvatarInfo(stock.companyName, stock.symbol).bg"
+                   [style.color]="getAvatarInfo(stock.companyName, stock.symbol).color">
+                {{ getAvatarInfo(stock.companyName, stock.symbol).letter }}
+              </div>
+              <div class="mw-meta">
+                <span class="mw-name">{{ stock.companyName }}</span>
+                <span class="mw-sub">{{ stock.symbol }} &bull; {{ stock.sector || 'Equities' }}</span>
+              </div>
+            </div>
+            <div class="mw-item-right">
+              <button type="button" class="mw-remove-btn" (click)="toggleStar($event, stock.symbol)" title="Remove from watchlist">
+                Remove
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      } @else {
+        <div class="manage-wl-section-title">
+          Search Results ({{ manageWatchlistSuggestions().length }})
+        </div>
+        @if (manageWatchlistSuggestions().length === 0) {
+        <div class="manage-wl-empty">No stocks found matching "{{ manageWatchlistSearchQuery() }}".</div>
+        } @else {
+        <div class="manage-wl-list">
+          @for (stock of manageWatchlistSuggestions(); track stock.symbol) {
+          <div class="manage-wl-item">
+            <div class="mw-item-left">
+              <div class="company-avatar-square sm"
+                   [style.background-color]="getAvatarInfo(stock.companyName, stock.symbol).bg"
+                   [style.color]="getAvatarInfo(stock.companyName, stock.symbol).color">
+                {{ getAvatarInfo(stock.companyName, stock.symbol).letter }}
+              </div>
+              <div class="mw-meta">
+                <span class="mw-name">{{ stock.companyName }}</span>
+                <span class="mw-sub">{{ stock.symbol }} &bull; {{ stock.sector || 'Equities' }}</span>
+              </div>
+            </div>
+            <div class="mw-item-right">
+              @if (isStarred(stock.symbol)) {
+              <button type="button" class="mw-remove-btn" (click)="toggleStar($event, stock.symbol)">
+                Remove
+              </button>
+              } @else {
+              <button type="button" class="mw-add-btn" (click)="toggleStar($event, stock.symbol)">
+                + Add
+              </button>
+              }
+            </div>
+          </div>
+          }
+        </div>
+        }
+      }
+    </div>
+
+    <div class="manage-wl-footer">
+      <button type="button" class="manage-wl-done-btn" (click)="closeManageWatchlist()">Done</button>
+    </div>
+  </div>
+</div>
+}
 
 <!-- Admin Annual Report Form & PIN Prompt Modals -->
 <app-admin-annual-report-modal></app-admin-annual-report-modal>

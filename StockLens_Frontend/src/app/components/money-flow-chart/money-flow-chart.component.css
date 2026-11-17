@@ -460,18 +460,22 @@
   overflow: visible;
 }
 
+.center-gates-layer {
+  pointer-events: none;
+}
+
 .center-gate-bar {
   transition: filter 0.3s ease, fill 0.3s ease;
 }
 
 .center-gate-bar.green-gate {
   fill: #16a34a;
-  filter: drop-shadow(0 0 4px rgba(22, 163, 74, 0.4));
+  filter: drop-shadow(0 0 5px rgba(22, 163, 74, 0.45));
 }
 
 .center-gate-bar.red-gate {
   fill: #dc2626;
-  filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.4));
+  filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.45));
 }
 
 .ambient-strand-path {

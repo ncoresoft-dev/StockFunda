@@ -1,5 +1,7 @@
 export interface Peer {
   companyName: string;
+  symbol?: string;
+  logoUrl?: string;
   price?: number;
   peRatio?: number;
   pbRatio?: number;

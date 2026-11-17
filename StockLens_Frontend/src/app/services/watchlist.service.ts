@@ -8,6 +8,10 @@ export interface WatchlistStockMeta {
   companyName?: string;
   logoUrl?: string;
   price?: number;
+  change?: number;
+  changePercent?: number;
+  isPositive?: boolean;
+  trendPath?: string;
   marketCap?: number;
   sector?: string;
 }
