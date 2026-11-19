@@ -24,7 +24,6 @@ namespace StockLens_BusinessLayer.Services
     {
         private readonly IStockRepository _stockRepository;
         private readonly IStockFinancialRepository _financialRepository;
-        private readonly ICompanyRepository _companyRepository;
         private readonly IStockBalanceSheetRepository _balanceSheetRepository;
         private readonly IFinancialProvider _financialProvider;
         private readonly ISectorValuationService _sectorValuationService;
@@ -39,7 +38,7 @@ namespace StockLens_BusinessLayer.Services
         public StockCashflowService(
             IStockRepository stockRepository,
             IStockFinancialRepository financialRepository,
-            ICompanyRepository companyRepository,
+            ICompanyRepository? companyRepository,
             IStockBalanceSheetRepository balanceSheetRepository,
             IFinancialProvider financialProvider,
             ISectorValuationService sectorValuationService,
@@ -51,7 +50,6 @@ namespace StockLens_BusinessLayer.Services
         {
             _stockRepository = stockRepository;
             _financialRepository = financialRepository;
-            _companyRepository = companyRepository;
             _balanceSheetRepository = balanceSheetRepository;
             _financialProvider = financialProvider;
             _sectorValuationService = sectorValuationService;

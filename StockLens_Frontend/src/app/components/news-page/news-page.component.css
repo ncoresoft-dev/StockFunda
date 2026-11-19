@@ -1,0 +1,121 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: inherit;
+}
+
+.news-page-cockpit {
+  width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+  scroll-behavior: smooth;
+}
+
+/* Custom Cockpit Scrollbar */
+.news-page-cockpit::-webkit-scrollbar {
+  width: 8px;
+}
+
+.news-page-cockpit::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.news-page-cockpit::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.news-page-cockpit::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.news-page-main {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 20px 24px 60px 24px;
+  box-sizing: border-box;
+}
+
+/* =========================================================================
+   Hero Header
+   ========================================================================= */
+.news-hub-hero {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hub-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.hub-subtitle {
+  font-size: 0.96rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 100%;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   Content Panel
+   ========================================================================= */
+.tab-content-panel {
+  width: 100%;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================================
+   Responsive Breakpoints
+   ========================================================================= */
+@media (max-width: 768px) {
+  .news-page-main {
+    padding: 16px 14px 40px 14px;
+  }
+
+  .hub-title {
+    font-size: 1.7rem;
+  }
+
+  .hub-subtitle {
+    font-size: 0.88rem;
+  }
+}

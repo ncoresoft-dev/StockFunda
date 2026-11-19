@@ -1,0 +1,245 @@
+<div class="announcements-card">
+  <!-- 1. Top Header Row -->
+  <div class="announcements-header-row">
+    <div class="header-title-group">
+      <span class="announcements-square-badge" aria-hidden="true"></span>
+      <h2 class="announcements-title">Corporate Announcements</h2>
+      <div class="live-status-pill">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span class="source-tag">Live · NSE Official Feed</span>
+      </div>
+      @if (lastUpdated()) {
+      <span class="updated-tag">Updated {{ lastUpdated() }}</span>
+      }
+    </div>
+
+    <!-- Right Controls: Search & Refresh Button -->
+    <div class="header-controls-group">
+      <div class="search-box">
+        <span class="search-ico">🔍</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search Symbol, Company, or Subject..."
+          [(ngModel)]="searchQuery"
+          (keydown.enter)="onSearchSubmit()"
+        />
+        @if (searchQuery()) {
+        <button type="button" class="clear-search-btn" (click)="clearSearch()">✕</button>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="refresh-btn"
+        [disabled]="isRefreshing()"
+        (click)="triggerRefresh()"
+        title="Check latest announcements from NSE"
+      >
+        <svg
+          class="refresh-icon"
+          [class.spinning]="isRefreshing()"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>{{ isRefreshing() ? 'Syncing...' : 'Sync Feed' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 1.5 Scope Switcher: All Market vs My Watchlist -->
+  <div class="scope-switch-row">
+    <div class="scope-pills-wrap">
+      <button
+        type="button"
+        class="scope-pill-btn"
+        [class.active]="feedScope() === 'all'"
+        (click)="setScope('all')"
+      >
+        <span>🌐 All Market Filings</span>
+      </button>
+
+      <button
+        type="button"
+        class="scope-pill-btn"
+        [class.active]="feedScope() === 'watchlist'"
+        (click)="setScope('watchlist')"
+      >
+        <span>⭐ My Watchlist Only</span>
+        @if (watchlistService.watchlistCount() > 0) {
+        <span class="scope-count-badge">{{ watchlistService.watchlistCount() }}</span>
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Category Filter Pills -->
+  <div class="categories-bar">
+    @for (cat of categories(); track cat) {
+    <button
+      type="button"
+      class="cat-pill-btn"
+      [class.active]="selectedCategory() === cat"
+      (click)="setCategory(cat)"
+    >
+      {{ cat }}
+    </button>
+    }
+  </div>
+
+  <!-- 3. Loading Skeleton State -->
+  @if (loadingState() === 'loading' && !isRefreshing()) {
+  <div class="skeleton-grid">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+  }
+
+  <!-- 4. Error State -->
+  @if (loadingState() === 'error') {
+  <div class="error-box">
+    <span class="error-icon">⚠️</span>
+    <p class="error-msg">{{ errorMessage() || 'Failed to load corporate announcements.' }}</p>
+    <button type="button" class="retry-btn" (click)="loadAnnouncements()">Try Again</button>
+  </div>
+  }
+
+  <!-- 5. Empty State -->
+  @if (loadingState() === 'empty' || (loadingState() === 'success' && filteredAnnouncements().length === 0)) {
+  <div class="empty-box">
+    <span class="empty-icon">📢</span>
+    <p class="empty-title">No announcements found</p>
+    <p class="empty-sub">
+      @if (searchQuery()) {
+      No records matching "{{ searchQuery() }}".
+      } @else {
+      No corporate filings reported under this category yet.
+      }
+    </p>
+    @if (searchQuery() || selectedCategory() !== 'All') {
+    <button type="button" class="reset-filter-btn" (click)="clearSearch(); setCategory('All')">Clear Filters</button>
+    }
+  </div>
+  }
+
+  <!-- 6. Announcements Feed Layout -->
+  @if (loadingState() === 'success' && filteredAnnouncements().length > 0) {
+  <div class="announcements-feed">
+    @for (item of filteredAnnouncements(); track item.seqId || item.id) {
+    <article class="announcement-item-card">
+      <!-- Card Top: Symbol, Company Name, Industry, Time -->
+      <div class="card-top-row">
+        <div class="company-identity-group">
+          <button
+            type="button"
+            class="symbol-badge-btn"
+            (click)="navigateToStock(item.symbol)"
+            title="View {{ item.symbol }} Stock Details"
+          >
+            {{ item.symbol }}
+          </button>
+          <span class="company-name" title="{{ item.companyName }}">{{ item.companyName }}</span>
+          @if (item.industry) {
+          <span class="industry-badge">{{ item.industry }}</span>
+          }
+        </div>
+
+        <div class="meta-timing-group">
+          @if (item.hasXbrl) {
+          <span class="xbrl-pill" title="Extensible Business Reporting Language disclosure available">
+            XBRL
+          </span>
+          }
+          <span class="broadcast-time" [title]="item.disseminationTime || item.broadcastDateTime">
+            <svg class="clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            {{ item.timeAgo || item.disseminationTime || 'Recent' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Subject Headline -->
+      @if (item.subject) {
+      <div class="subject-row">
+        <span class="subject-tag">{{ item.subject }}</span>
+      </div>
+      }
+
+      <!-- Card Details Content -->
+      @if (item.details) {
+      <div class="details-content-box">
+        <p class="details-text" [class.clamped]="!isExpanded(item.id) && item.details.length > 240">
+          {{ item.details }}
+        </p>
+        @if (item.details.length > 240) {
+        <button
+          type="button"
+          class="read-more-btn"
+          (click)="toggleExpand(item.id)"
+        >
+          {{ isExpanded(item.id) ? 'Show less' : 'Read full filing details' }}
+        </button>
+        }
+      </div>
+      }
+
+      <!-- Card Footer: Official PDF Attachment & Links -->
+      <div class="card-footer-row">
+        @if (item.attachmentUrl) {
+        <a
+          [href]="item.attachmentUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pdf-attachment-btn"
+          title="Open official PDF disclosure filing from NSE"
+        >
+          <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span class="attachment-label">Official Disclosure PDF</span>
+          @if (item.attachmentFileSize) {
+          <span class="file-size-pill">{{ item.attachmentFileSize }}</span>
+          }
+          <svg class="external-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+        } @else {
+        <span class="no-doc-tag">Text disclosure only (No PDF attachment)</span>
+        }
+
+        <div class="footer-seq-id">
+          <span class="seq-label">NSE Ref: #{{ item.seqId }}</span>
+        </div>
+      </div>
+    </article>
+    }
+  </div>
+
+  <!-- Load More Section -->
+  @if (hasMore()) {
+  <div class="load-more-container">
+    <button type="button" class="load-more-btn" (click)="loadMore()" [disabled]="isRefreshing()">
+      <span>Load More Announcements</span>
+      <svg class="chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+  </div>
+  }
+  }
+</div>

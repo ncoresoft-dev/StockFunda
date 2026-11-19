@@ -306,20 +306,20 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
 
                     if (firstRes.TryGetProperty("meta", out var meta))
                     {
-                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.TryGetDecimal(out var price)) quote.Price = price;
-                        else if (meta.TryGetProperty("fulldayPrice", out var fp) && fp.TryGetDecimal(out var fprice)) quote.Price = fprice;
+                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var price)) quote.Price = price;
+                        else if (meta.TryGetProperty("fulldayPrice", out var fp) && fp.ValueKind == JsonValueKind.Number && fp.TryGetDecimal(out var fprice)) quote.Price = fprice;
 
-                        if (meta.TryGetProperty("regularMarketDayHigh", out var dh) && dh.TryGetDecimal(out var dayHigh)) quote.DayHigh = dayHigh;
-                        if (meta.TryGetProperty("regularMarketDayLow", out var dl) && dl.TryGetDecimal(out var dayLow)) quote.DayLow = dayLow;
-                        if (meta.TryGetProperty("fiftyTwoWeekHigh", out var yh) && yh.TryGetDecimal(out var yearHigh)) quote.YearHigh = yearHigh;
-                        if (meta.TryGetProperty("fiftyTwoWeekLow", out var yl) && yl.TryGetDecimal(out var yearLow)) quote.YearLow = yearLow;
-                        if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) quote.PreviousClose = prevClose;
-                        else if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) quote.PreviousClose = chartPrevClose;
-                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) quote.ChangePercent = changePercent;
-                        else if (meta.TryGetProperty("fulldayChangePercent", out var fcp) && fcp.TryGetDecimal(out var fulldayChangePercent)) quote.ChangePercent = fulldayChangePercent;
-                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) quote.Change = mChange;
-                        else if (meta.TryGetProperty("fulldayChange", out var fc) && fc.TryGetDecimal(out var fulldayChange)) quote.Change = fulldayChange;
-                        if (meta.TryGetProperty("regularMarketVolume", out var v) && v.TryGetInt64(out var vol)) quote.Volume = vol;
+                        if (meta.TryGetProperty("regularMarketDayHigh", out var dh) && dh.ValueKind == JsonValueKind.Number && dh.TryGetDecimal(out var dayHigh)) quote.DayHigh = dayHigh;
+                        if (meta.TryGetProperty("regularMarketDayLow", out var dl) && dl.ValueKind == JsonValueKind.Number && dl.TryGetDecimal(out var dayLow)) quote.DayLow = dayLow;
+                        if (meta.TryGetProperty("fiftyTwoWeekHigh", out var yh) && yh.ValueKind == JsonValueKind.Number && yh.TryGetDecimal(out var yearHigh)) quote.YearHigh = yearHigh;
+                        if (meta.TryGetProperty("fiftyTwoWeekLow", out var yl) && yl.ValueKind == JsonValueKind.Number && yl.TryGetDecimal(out var yearLow)) quote.YearLow = yearLow;
+                        if (meta.TryGetProperty("previousClose", out var pc) && pc.ValueKind == JsonValueKind.Number && pc.TryGetDecimal(out var prevClose)) quote.PreviousClose = prevClose;
+                        else if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.ValueKind == JsonValueKind.Number && cpc.TryGetDecimal(out var chartPrevClose)) quote.PreviousClose = chartPrevClose;
+                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.ValueKind == JsonValueKind.Number && cp.TryGetDecimal(out var changePercent)) quote.ChangePercent = changePercent;
+                        else if (meta.TryGetProperty("fulldayChangePercent", out var fcp) && fcp.ValueKind == JsonValueKind.Number && fcp.TryGetDecimal(out var fulldayChangePercent)) quote.ChangePercent = fulldayChangePercent;
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.ValueKind == JsonValueKind.Number && mc.TryGetDecimal(out var mChange)) quote.Change = mChange;
+                        else if (meta.TryGetProperty("fulldayChange", out var fc) && fc.ValueKind == JsonValueKind.Number && fc.TryGetDecimal(out var fulldayChange)) quote.Change = fulldayChange;
+                        if (meta.TryGetProperty("regularMarketVolume", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var vol)) quote.Volume = vol;
                     }
 
                     // Fallback to latest close indicator if regularMarketPrice is missing
@@ -334,7 +334,8 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                         {
                             for (int i = closeArr.GetArrayLength() - 1; i >= 0; i--)
                             {
-                                if (closeArr[i].TryGetDecimal(out var lastC) && lastC > 0)
+                                var item = closeArr[i];
+                                if (item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var lastC) && lastC > 0)
                                 {
                                     quote.Price = lastC;
                                     break;
@@ -373,9 +374,13 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
             {
                 var suffix = (exchange != null && exchange.Equals("BSE", StringComparison.OrdinalIgnoreCase)) ? ".BO" : ".NS";
                 var cleanSymbol = symbol.Trim().ToUpperInvariant();
-                var searchSymbol = cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
-                    ? cleanSymbol
-                    : $"{cleanSymbol}{suffix}";
+                var searchSymbol = cleanSymbol switch
+                {
+                    "TATAMOTORS" => "TMCV.NS",
+                    _ => cleanSymbol.StartsWith("^") || cleanSymbol.Contains("=") || cleanSymbol.EndsWith(".NS") || cleanSymbol.EndsWith(".BO")
+                        ? cleanSymbol
+                        : $"{cleanSymbol}{suffix}"
+                };
 
                 var endpoint = $"/v8/finance/chart/{Uri.EscapeDataString(searchSymbol)}?range={days}d&interval=1d";
                 _logger.LogInformation("Fetching sparkline and quote for {Symbol} via Yahoo Finance API", searchSymbol);
@@ -400,11 +405,11 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
 
                     if (firstRes.TryGetProperty("meta", out var meta))
                     {
-                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
-                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
-                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
-                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
-                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
+                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
+                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.ValueKind == JsonValueKind.Number && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
+                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.ValueKind == JsonValueKind.Number && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
+                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.ValueKind == JsonValueKind.Number && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.ValueKind == JsonValueKind.Number && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
                     }
 
                     if (firstRes.TryGetProperty("indicators", out var indObj) &&
@@ -418,7 +423,8 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                             var count = closeArr.GetArrayLength();
                             for (int i = 0; i < count; i++)
                             {
-                                if (closeArr[i].TryGetDecimal(out var cVal) && cVal > 0)
+                                var item = closeArr[i];
+                                if (item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var cVal) && cVal > 0)
                                 {
                                     dto.ClosingPrices.Add(Math.Round(cVal, 2));
                                 }
@@ -505,13 +511,13 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
 
                     if (firstRes.TryGetProperty("meta", out var meta))
                     {
-                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
-                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
-                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
-                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
-                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
-                        if (meta.TryGetProperty("regularMarketDayHigh", out var dh) && dh.TryGetDecimal(out var dayHigh)) dto.DayHigh = Math.Round(dayHigh, 2);
-                        if (meta.TryGetProperty("regularMarketDayLow", out var dl) && dl.TryGetDecimal(out var dayLow)) dto.DayLow = Math.Round(dayLow, 2);
+                        if (meta.TryGetProperty("regularMarketPrice", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetDecimal(out var price)) dto.Price = Math.Round(price, 2);
+                        if (meta.TryGetProperty("chartPreviousClose", out var cpc) && cpc.ValueKind == JsonValueKind.Number && cpc.TryGetDecimal(out var chartPrevClose)) dto.PreviousClose = Math.Round(chartPrevClose, 2);
+                        else if (meta.TryGetProperty("previousClose", out var pc) && pc.ValueKind == JsonValueKind.Number && pc.TryGetDecimal(out var prevClose)) dto.PreviousClose = Math.Round(prevClose, 2);
+                        if (meta.TryGetProperty("regularMarketChangePercent", out var cp) && cp.ValueKind == JsonValueKind.Number && cp.TryGetDecimal(out var changePercent)) dto.ChangePercent = Math.Round(changePercent, 2);
+                        if (meta.TryGetProperty("regularMarketChange", out var mc) && mc.ValueKind == JsonValueKind.Number && mc.TryGetDecimal(out var mChange)) dto.Change = Math.Round(mChange, 2);
+                        if (meta.TryGetProperty("regularMarketDayHigh", out var dh) && dh.ValueKind == JsonValueKind.Number && dh.TryGetDecimal(out var dayHigh)) dto.DayHigh = Math.Round(dayHigh, 2);
+                        if (meta.TryGetProperty("regularMarketDayLow", out var dl) && dl.ValueKind == JsonValueKind.Number && dl.TryGetDecimal(out var dayLow)) dto.DayLow = Math.Round(dayLow, 2);
                     }
 
                     if (firstRes.TryGetProperty("indicators", out var indObj) &&
@@ -525,7 +531,8 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                             var count = closeArr.GetArrayLength();
                             for (int i = 0; i < count; i++)
                             {
-                                if (closeArr[i].TryGetDecimal(out var cVal) && cVal > 0)
+                                var item = closeArr[i];
+                                if (item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var cVal) && cVal > 0)
                                 {
                                     dto.ClosingPrices.Add(Math.Round(cVal, 2));
                                 }
@@ -752,6 +759,7 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                                 decimal? currentPrice = null;
                                 if (c0.TryGetProperty("meta", out var cMeta) && 
                                     cMeta.TryGetProperty("regularMarketPrice", out var rmp) && 
+                                    rmp.ValueKind == JsonValueKind.Number &&
                                     rmp.TryGetDecimal(out var mp))
                                 {
                                     currentPrice = mp;
@@ -768,7 +776,8 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                                         decimal? firstValidClose = null;
                                         for (int i = 0; i < closeArr.GetArrayLength(); i++)
                                         {
-                                            if (closeArr[i].TryGetDecimal(out var cv) && cv > 0)
+                                            var item = closeArr[i];
+                                            if (item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var cv) && cv > 0)
                                             {
                                                 firstValidClose = cv;
                                                 break;
@@ -813,7 +822,7 @@ namespace StockLens_Infrastructure.ExternalServices.YahooFinanceApi
                 if (!string.IsNullOrWhiteSpace(_cachedCrumb) && !string.IsNullOrWhiteSpace(_cachedCookie)) return;
 
                 using var handler = new HttpClientHandler { UseCookies = true, AllowAutoRedirect = true };
-                using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+                using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
                 try

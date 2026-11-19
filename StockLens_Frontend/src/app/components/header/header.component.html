@@ -107,7 +107,22 @@
     </button>
     }
 
-    <!-- 📊 Sector Analysis & Heatmap Button -->
+    <!-- 1. 📰 Latest Market News Button -->
+    @if (showNews) {
+    <button type="button" class="nav-watchlist-btn nav-news-btn" [class.active]="isNewsActive()"
+      (click)="navigateToNews()" title="Latest Market News">
+      <svg class="star-nav-icon news-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
+        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path>
+        <path d="M18 14h-8"></path>
+        <path d="M15 18h-5"></path>
+        <path d="M10 6h8v4h-8V6Z"></path>
+      </svg>
+      <span>News</span>
+    </button>
+    }
+
+    <!-- 2. 📊 Sector Analysis & Heatmap Button -->
     @if (showSectors) {
     <button type="button" class="nav-watchlist-btn nav-sectors-btn" [class.active]="isSectorsActive()"
       (click)="navigateToSectors()" title="Sector Analysis & Heatmap">
@@ -118,11 +133,11 @@
         <rect x="14" y="12" width="7" height="9"></rect>
         <rect x="3" y="16" width="7" height="5"></rect>
       </svg>
-      <span>Sectors</span>
+      <span>Sector</span>
     </button>
     }
 
-    <!-- ⚖️ Stock Comparison Button -->
+    <!-- 3. ⚖️ Stock Comparison Button -->
     @if (showCompare) {
     <button type="button" class="nav-watchlist-btn nav-compare-btn" [class.active]="isCompareActive()"
       (click)="navigateToCompare()" title="Side-by-side Stock Comparison">
@@ -141,7 +156,7 @@
 
     <!-- ⭐ Watchlist Button -->
     @if (showWatchlist) {
-    <button type="button" class="nav-watchlist-btn" (click)="navigateToWatchlist()" title="View My Watchlist">
+    <button type="button" class="nav-watchlist-btn nav-fav-btn" (click)="navigateToWatchlist()" title="View My Watchlist">
       <svg class="star-nav-icon" viewBox="0 0 24 24" fill="currentColor">
         <polygon
           points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">

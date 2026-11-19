@@ -1,4 +1,5 @@
 <div class="landing-container" [class.light-theme]="isLightTheme()" [class.dark-theme]="!isLightTheme()"
+  [class.watchlist-active]="activeTab() === 'watchlist'"
   [attr.data-theme]="isLightTheme() ? 'light' : 'dark'">
   <!-- Top Animated Cyber Reload Progress Bar -->
   <div class="top-reload-bar" [class.active]="isLoading() || isAttributionLoading()"></div>
@@ -562,8 +563,9 @@
       @if (activeTab() === 'watchlist') {
       <div class="watchlist-view-container">
 
-        <!-- 1. Top Summary Metric Pulse Card -->
+        <!-- 1. Top Summary Metric Pulse & Controls Card -->
         <div class="watchlist-summary-card">
+          <!-- Left: Stock Metrics & Line Graph -->
           <div class="ws-metrics-left">
             <div class="ws-metric-box">
               <span class="ws-val">{{ watchlistStats().total }}</span>
@@ -583,19 +585,58 @@
               </span>
               <span class="ws-lbl">avg change today</span>
             </div>
+
+            <!-- Line Graph & Narrative directly near avg change today -->
+            <div class="ws-graph-near-val">
+              <div class="ws-bar-track">
+                <div class="ws-bar-fill-green" [style.width.%]="watchlistStats().upPct"></div>
+                <div class="ws-bar-fill-red" [style.width.%]="watchlistStats().downPct"></div>
+              </div>
+              <div class="ws-narrative-text">
+                {{ watchlistStats().narrative }}
+              </div>
+            </div>
           </div>
 
-          <div class="ws-summary-right">
-            <div class="ws-bar-track">
-              <div class="ws-bar-fill-green" [style.width.%]="watchlistStats().upPct"></div>
-              <div class="ws-bar-fill-red" [style.width.%]="watchlistStats().downPct"></div>
-            </div>
-            <div class="ws-narrative-text">
-              {{ watchlistStats().narrative }}
+          <!-- Right: View Switcher Tabs (Stock Overview & Company Announcement) -->
+          <div class="ws-toggle-right">
+            <div class="wl-toggle-pill-group">
+              <button
+                type="button"
+                class="wl-mode-toggle-btn"
+                [class.active]="watchlistViewMode() === 'cards'"
+                (click)="setWatchlistViewMode('cards')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="wl-mode-ico">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Stock Overview</span>
+                <span class="wl-mode-count">{{ currentBaseStocks().length }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="wl-mode-toggle-btn"
+                [class.active]="watchlistViewMode() === 'feed'"
+                (click)="setWatchlistViewMode('feed')"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="wl-mode-ico">
+                  <path d="M4 11a9 9 0 0 1 9 9"></path>
+                  <path d="M4 4a16 16 0 0 1 16 16"></path>
+                  <circle cx="5" cy="19" r="1"></circle>
+                </svg>
+                <span>Company Announcement</span>
+              </button>
             </div>
           </div>
         </div>
 
+        @if (watchlistViewMode() === 'feed') {
+        <app-watchlist-feed></app-watchlist-feed>
+        } @else {
         <!-- 2. Controls & Search Toolbar -->
         <div class="watchlist-toolbar">
           <div class="watchlist-filter-wrap">
@@ -700,6 +741,7 @@
           </div>
           }
         </div>
+        }
         }
 
       </div>

@@ -23,7 +23,6 @@ namespace StockLens_BusinessLayer.Services
         private static readonly ConcurrentDictionary<int, SemaphoreSlim> StockLocks = new();
         private readonly IStockPriceHistoryRepository _priceHistoryRepository;
         private readonly IStockRepository _stockRepository;
-        private readonly ICompanyRepository _companyRepository;
         private readonly IIndianApiHistoricalDataClient _apiClient;
         private readonly IYahooFinanceClient _yahooFinanceClient;
         private readonly ILogger<StockPriceHistoryService> _logger;
@@ -31,14 +30,13 @@ namespace StockLens_BusinessLayer.Services
         public StockPriceHistoryService(
             IStockPriceHistoryRepository priceHistoryRepository,
             IStockRepository stockRepository,
-            ICompanyRepository companyRepository,
+            ICompanyRepository? companyRepository,
             IIndianApiHistoricalDataClient apiClient,
             IYahooFinanceClient yahooFinanceClient,
             ILogger<StockPriceHistoryService> logger)
         {
             _priceHistoryRepository = priceHistoryRepository;
             _stockRepository = stockRepository;
-            _companyRepository = companyRepository;
             _apiClient = apiClient;
             _yahooFinanceClient = yahooFinanceClient;
             _logger = logger;
@@ -165,13 +163,13 @@ namespace StockLens_BusinessLayer.Services
                                 needsRefresh = true;
                             }
                         }
-                        else if (dbRecords.Count > 0 && dbRecords.OrderByDescending(r => r.Date).Take(10).All(r => r.DeliveryPercentage == null && r.Date > new DateTime(2023, 1, 1)))
+                        else if (forceRefresh || (dbRecords.Count > 0 && dbRecords.OrderByDescending(r => r.Date).Take(5).All(r => r.DeliveryPercentage == null || r.DeliveryPercentage == 0)))
                         {
-                            // Only refresh if recent data is missing delivery metrics, avoiding infinite loops for old nulls
+                            // If recent data is missing delivery metrics or user requested forceRefresh, allow refresh
                             var lastDeliverySync = dbRecords.Max(p => p.LastSyncedAt);
-                            if ((DateTime.UtcNow - lastDeliverySync).TotalHours > 12)
+                            if (forceRefresh || (DateTime.UtcNow - lastDeliverySync).TotalMinutes > 5)
                             {
-                                _logger.LogInformation("Cached data for {Symbol} lacks recent delivery metrics. Forcing refresh.", stock.Symbol);
+                                _logger.LogInformation("Cached data for {Symbol} lacks recent delivery metrics or forceRefresh requested. Forcing refresh.", stock.Symbol);
                                 needsRefresh = true;
                             }
                         }
@@ -191,38 +189,86 @@ namespace StockLens_BusinessLayer.Services
 
                     try
                     {
-                        rawPrices = await _yahooFinanceClient.GetHistoricalPricesAsync(stock.Symbol, stock.Exchange, cancellationToken);
-                        if (rawPrices != null && rawPrices.Count > 0)
+                        var yfTask = _yahooFinanceClient.GetHistoricalPricesAsync(stock.Symbol, stock.Exchange, cancellationToken);
+                        var indTask = _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: "1yr", exchange: stock.Exchange, filter: "default", cancellationToken: cancellationToken);
+
+                        try
                         {
+                            await Task.WhenAll(yfTask, indTask);
+                        }
+                        catch
+                        {
+                            // Ignore aggregate exceptions; individual task status inspected safely below
+                        }
+
+                        if (yfTask.IsCompletedSuccessfully && yfTask.Result != null && yfTask.Result.Count > 0)
+                        {
+                            rawPrices = yfTask.Result;
                             source = "YahooFinance";
-                            
-                            // Delivery data merge from IndianAPI bypassed to protect 500 lifetime limit
-                            // Yahoo Finance supplies full High, Low, Open, Close, Volume
                             _logger.LogInformation("Successfully retrieved {Count} historical price records from Yahoo Finance for {Symbol}", rawPrices.Count, stock.Symbol);
+
+                            // Merge delivery data from Indian API
+                            if (indTask.IsCompletedSuccessfully && indTask.Result != null && indTask.Result.Count > 0)
+                            {
+                                var indianPrices = indTask.Result;
+                                var indianDict = indianPrices
+                                    .Where(d => d.ResolvedDate.HasValue)
+                                    .GroupBy(d => d.ResolvedDate!.Value.Date)
+                                    .ToDictionary(g => g.Key, g => g.First());
+
+                                foreach (var r in rawPrices)
+                                {
+                                    if (r.ResolvedDate.HasValue && indianDict.TryGetValue(r.ResolvedDate.Value.Date, out var ind))
+                                    {
+                                        if (ind.DeliveryPercentage.HasValue && ind.DeliveryPercentage.Value > 0)
+                                        {
+                                            r.DeliveryPercentage = ind.DeliveryPercentage;
+                                        }
+                                        if (ind.DeliveryVolume.HasValue && ind.DeliveryVolume.Value > 0)
+                                        {
+                                            r.DeliveryVolume = ind.DeliveryVolume;
+                                        }
+                                        else if (r.DeliveryPercentage.HasValue && r.Volume.HasValue && r.Volume.Value > 0)
+                                        {
+                                            r.DeliveryVolume = (long)Math.Round(r.Volume.Value * (r.DeliveryPercentage.Value / 100m));
+                                        }
+
+                                        if (ind.Volume.HasValue && ind.Volume.Value > 0)
+                                        {
+                                            r.TotalTradedVolume = ind.Volume;
+                                        }
+                                    }
+                                }
+                                _logger.LogInformation("Successfully merged delivery metrics from IndianAPI for {Symbol}", stock.Symbol);
+                            }
+                        }
+                        else if (indTask.IsCompletedSuccessfully && indTask.Result != null && indTask.Result.Count > 0)
+                        {
+                            rawPrices = indTask.Result;
+                            source = "IndianAPI";
+                            _logger.LogInformation("Yahoo Finance returned no prices for {Symbol}. Using IndianAPI fallback with {Count} records.", stock.Symbol, rawPrices.Count);
                         }
                     }
-                    catch (Exception yfEx)
+                    catch (Exception ex)
                     {
-                        _logger.LogWarning(yfEx, "Failed to fetch OHLC from Yahoo Finance for {Symbol}. Trying IndianAPI fallback.", stock.Symbol);
+                        _logger.LogWarning(ex, "Failed to retrieve historical prices for {Symbol}", stock.Symbol);
                     }
 
                     if (rawPrices == null || rawPrices.Count == 0)
                     {
-                        _logger.LogInformation("Yahoo Finance returned no prices for {Symbol}. Fallback to IndianAPI is commented out.", stock.Symbol);
-                        /*
+                        _logger.LogInformation("Initial parallel fetch returned no prices for {Symbol}. Retrying Yahoo Finance.", stock.Symbol);
                         try
                         {
-                            rawPrices = await _apiClient.GetHistoricalPricesAsync(stock.Symbol, period: period, exchange: stock.Exchange, filter: filter, cancellationToken: cancellationToken);
+                            rawPrices = await _yahooFinanceClient.GetHistoricalPricesAsync(stock.Symbol, stock.Exchange, cancellationToken);
                             if (rawPrices != null && rawPrices.Count > 0)
                             {
-                                source = "IndianAPI";
+                                source = "YahooFinance";
                             }
                         }
-                        catch (Exception apiEx)
+                        catch (Exception retryEx)
                         {
-                            _logger.LogWarning(apiEx, "Failed to fetch from IndianAPI fallback for {Symbol}", stock.Symbol);
+                            _logger.LogWarning(retryEx, "Retry for {Symbol} failed.", stock.Symbol);
                         }
-                        */
                     }
 
                     if (rawPrices != null && rawPrices.Count > 0)
@@ -381,7 +427,7 @@ namespace StockLens_BusinessLayer.Services
 
             // Calculate Volume Delivery Analysis directly in the main response
             var analysisRecords = sortedDbRecords
-                .Where(r => r.TotalTradedVolume.HasValue && r.TotalTradedVolume.Value > 0 && r.DeliveryVolume.HasValue)
+                .Where(r => (r.TotalTradedVolume.HasValue && r.TotalTradedVolume.Value > 0) || r.Volume > 0)
                 .OrderByDescending(r => r.Date)
                 .ToList();
 
@@ -390,7 +436,7 @@ namespace StockLens_BusinessLayer.Services
                 var analysis = new VolumeDeliveryAnalysisDto
                 {
                     Symbol = stock.Symbol,
-                    CompanyName = stock.Symbol, // Using symbol as fallback
+                    CompanyName = stock.Company?.CompanyName ?? stock.Symbol,
                     Exchange = stock.Exchange,
                     AsOfDate = analysisRecords[0].Date.ToString("yyyy-MM-dd")
                 };
@@ -400,17 +446,28 @@ namespace StockLens_BusinessLayer.Services
                     if (slice.Count == 0) return new VolumeDeliveryPeriodDto();
                     long totalTraded = 0;
                     long totalDelivered = 0;
+                    bool hasDelivery = false;
 
                     foreach (var r in slice)
                     {
-                        totalTraded += r.TotalTradedVolume!.Value;
-                        totalDelivered += r.DeliveryVolume!.Value;
+                        var traded = (r.TotalTradedVolume.HasValue && r.TotalTradedVolume.Value > 0) ? r.TotalTradedVolume.Value : r.Volume;
+                        totalTraded += traded;
+                        if (r.DeliveryVolume.HasValue && r.DeliveryVolume.Value > 0)
+                        {
+                            totalDelivered += r.DeliveryVolume.Value;
+                            hasDelivery = true;
+                        }
+                        else if (r.DeliveryPercentage.HasValue && r.DeliveryPercentage.Value > 0 && traded > 0)
+                        {
+                            totalDelivered += (long)Math.Round(traded * (r.DeliveryPercentage.Value / 100m));
+                            hasDelivery = true;
+                        }
                     }
 
                     var count = slice.Count;
-                    var avgTraded = totalTraded / count;
-                    var avgDelivered = totalDelivered / count;
-                    var deliveryPct = totalTraded > 0 ? Math.Round(((decimal)totalDelivered / totalTraded) * 100m, 2) : 0m;
+                    var avgTraded = count > 0 ? (totalTraded / count) : 0;
+                    var avgDelivered = (hasDelivery && count > 0) ? (totalDelivered / count) : 0;
+                    var deliveryPct = (hasDelivery && totalTraded > 0) ? Math.Round(((decimal)totalDelivered / totalTraded) * 100m, 2) : 0m;
 
                     return new VolumeDeliveryPeriodDto
                     {
@@ -418,13 +475,44 @@ namespace StockLens_BusinessLayer.Services
                         DeliveryVolume = avgDelivered,
                         DeliveryPercentage = deliveryPct,
                         FormattedTradedVolume = FormatVolume(avgTraded),
-                        FormattedDeliveryVolume = FormatVolume(avgDelivered)
+                        FormattedDeliveryVolume = hasDelivery ? FormatVolume(avgDelivered) : "—"
                     };
                 }
 
-                analysis.Day = CalculateDbPeriodStats(analysisRecords.Take(1).ToList());
-                analysis.Week = CalculateDbPeriodStats(analysisRecords.Take(5).ToList());
-                analysis.Month = CalculateDbPeriodStats(analysisRecords.Take(22).ToList());
+                var todayRecord = analysisRecords[0];
+                bool todayHasDelivery = (todayRecord.DeliveryVolume.HasValue && todayRecord.DeliveryVolume.Value > 0) ||
+                                        (todayRecord.DeliveryPercentage.HasValue && todayRecord.DeliveryPercentage.Value > 0);
+
+                if (todayHasDelivery)
+                {
+                    analysis.Day = CalculateDbPeriodStats(analysisRecords.Take(1).ToList());
+                    analysis.Week = CalculateDbPeriodStats(analysisRecords.Take(5).ToList());
+                    analysis.Month = CalculateDbPeriodStats(analysisRecords.Take(22).ToList());
+                    analysis.AsOfDate = todayRecord.Date.ToString("yyyy-MM-dd");
+                }
+                else
+                {
+                    // If today's session is live/in-progress and exchange delivery bhavcopy is not yet published (NSE publishes after ~6:30 PM),
+                    // use the latest completed trading session with confirmed delivery data.
+                    var recordsWithDelivery = analysisRecords
+                        .Where(r => (r.DeliveryVolume.HasValue && r.DeliveryVolume.Value > 0) || (r.DeliveryPercentage.HasValue && r.DeliveryPercentage.Value > 0))
+                        .ToList();
+
+                    if (recordsWithDelivery.Count > 0)
+                    {
+                        analysis.Day = CalculateDbPeriodStats(recordsWithDelivery.Take(1).ToList());
+                        analysis.Week = CalculateDbPeriodStats(recordsWithDelivery.Take(5).ToList());
+                        analysis.Month = CalculateDbPeriodStats(recordsWithDelivery.Take(22).ToList());
+                        analysis.AsOfDate = recordsWithDelivery[0].Date.ToString("yyyy-MM-dd");
+                    }
+                    else
+                    {
+                        analysis.Day = CalculateDbPeriodStats(analysisRecords.Take(1).ToList());
+                        analysis.Week = CalculateDbPeriodStats(analysisRecords.Take(5).ToList());
+                        analysis.Month = CalculateDbPeriodStats(analysisRecords.Take(22).ToList());
+                        analysis.AsOfDate = todayRecord.Date.ToString("yyyy-MM-dd");
+                    }
+                }
 
                 result.VolumeDeliveryAnalysis = analysis;
             }

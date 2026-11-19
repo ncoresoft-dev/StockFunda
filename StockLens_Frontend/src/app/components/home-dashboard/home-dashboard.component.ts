@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed, effect, untracked, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { of, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
 import { MarketTickerService } from '../../services/market-ticker.service';
@@ -68,6 +68,7 @@ export interface HeatmapStats {
 })
 export class HomeDashboardComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly tickerService = inject(MarketTickerService);
   private readonly newsService = inject(StockNewsService);
   private readonly indexService = inject(StockIndexService);
@@ -76,6 +77,55 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
 
   // Live Ticker Quotes
   tickerQuotes = signal<MarketTickerQuote[]>([]);
+  tickerErrorMessage = signal<string | null>(null);
+  exploreLensErrorMessage = signal<string | null>(null);
+
+  tickerOverallChange = computed<{ isPositive: boolean; text: string } | null>(() => {
+    const quotes = this.tickerQuotes();
+    if (!quotes || quotes.length === 0) return null;
+    const nifty = quotes.find(q => q.symbol.toUpperCase().includes('NIFTY') || q.shortName.toUpperCase().includes('NIFTY'));
+    if (nifty) {
+      return {
+        isPositive: nifty.isPositive,
+        text: nifty.formattedChange
+      };
+    }
+    const avgChange = quotes.reduce((acc, q) => acc + (q.changePercent || 0), 0) / quotes.length;
+    return {
+      isPositive: avgChange >= 0,
+      text: `${avgChange >= 0 ? '+' : ''}${avgChange.toFixed(2)}%`
+    };
+  });
+
+  marketMood = computed<{ text: string; class: 'bullish' | 'bearish' | 'neutral' }>(() => {
+    const stats = this.heatmapStats();
+    if (stats.stockCount > 0 && (stats.advances > 0 || stats.declines > 0)) {
+      if (stats.advances > stats.declines * 1.5) {
+        return { text: 'Bullish', class: 'bullish' };
+      }
+      if (stats.advances > stats.declines) {
+        return { text: 'Cautiously Bullish', class: 'bullish' };
+      }
+      if (stats.declines > stats.advances * 1.5) {
+        return { text: 'Bearish', class: 'bearish' };
+      }
+      if (stats.declines > stats.advances) {
+        return { text: 'Cautiously Bearish', class: 'bearish' };
+      }
+      return { text: 'Neutral / Mixed', class: 'neutral' };
+    }
+
+    const quotes = this.tickerQuotes();
+    if (quotes && quotes.length > 0) {
+      const pos = quotes.filter(q => q.isPositive).length;
+      const neg = quotes.filter(q => !q.isPositive).length;
+      if (pos > neg) return { text: 'Bullish', class: 'bullish' };
+      if (neg > pos) return { text: 'Bearish', class: 'bearish' };
+      return { text: 'Neutral / Mixed', class: 'neutral' };
+    }
+
+    return { text: 'Data Unavailable', class: 'neutral' };
+  });
 
   // Time-based Greeting
   greeting = signal<string>('Good afternoon');
@@ -261,7 +311,7 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
       sectorMap.set(sec, (sectorMap.get(sec) || 0) + (s.marketCap || 0));
     });
 
-    let topSecName = 'Financial Services';
+    let topSecName = '—';
     let topSecCap = 0;
     sectorMap.forEach((cap, sec) => {
       if (cap > topSecCap) {
@@ -269,11 +319,11 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
         topSecName = sec;
       }
     });
-    const topSecWeight = totalCap > 0 ? ((topSecCap / totalCap) * 100).toFixed(1) : '33.8';
+    const topSecWeight = totalCap > 0 && topSecCap > 0 ? ((topSecCap / totalCap) * 100).toFixed(1) : '0.0';
 
     const topStock = topStocks[0];
-    const topStockSym = topStock ? topStock.symbol : 'RELIANCE';
-    const topStockWeight = totalCap > 0 && topStock ? (((topStock.marketCap || 0) / totalCap) * 100).toFixed(1) : '22.5';
+    const topStockSym = topStock ? topStock.symbol : '—';
+    const topStockWeight = totalCap > 0 && topStock ? (((topStock.marketCap || 0) / totalCap) * 100).toFixed(1) : '0.0';
 
     return {
       totalMarketCapFormatted: this.formatMarketCapLakhCr(totalCap),
@@ -366,6 +416,19 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
     this.loadExploreLens(this.activeLens());
     this.setupSearch();
     this.loadNifty50Data();
+
+    // Redirect to dedicated News Hub if requested via navigation
+    this.route.queryParams.subscribe(params => {
+      if (params['section'] === 'news' || params['tab'] === 'news') {
+        this.router.navigate(['/news']);
+      }
+    });
+
+    this.route.fragment.subscribe(frag => {
+      if (frag === 'news' || frag === 'market-news') {
+        this.router.navigate(['/news']);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -422,21 +485,32 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadTickers(forceRefresh = false): void {
+    this.tickerErrorMessage.set(null);
     this.tickerService.getTickerQuotes(forceRefresh).subscribe({
       next: (quotes) => {
-        this.tickerQuotes.set(quotes);
+        if (quotes && quotes.length > 0) {
+          this.tickerQuotes.set(quotes);
+          this.tickerErrorMessage.set(null);
+        } else {
+          this.tickerQuotes.set([]);
+          this.tickerErrorMessage.set('Market quotes are currently unavailable.');
+        }
       },
       error: (err) => {
         console.error('Error in loadTickers:', err);
+        this.tickerQuotes.set([]);
+        this.tickerErrorMessage.set('Unable to load live market quotes.');
       }
     });
   }
 
   loadExploreLens(lens: LensType, forceRefresh = false): void {
+    this.exploreLensErrorMessage.set(null);
     this.tickerService.getExploreLensData(lens, forceRefresh).subscribe({
       next: (res) => {
         if (res && res.companies && res.companies.length > 0) {
           this.currentLensItems.set(res.companies);
+          this.exploreLensErrorMessage.set(null);
 
           // Seed backendStocksMap with explore lens logos
           this.backendStocksMap.update(currentMap => {
@@ -462,10 +536,18 @@ export class HomeDashboardComponent implements OnInit, OnDestroy {
           const currentSym = this.focusedCompany()?.symbol;
           const matched = res.companies.find(c => c.symbol === currentSym) || res.companies[0];
           this.focusedCompany.set(matched);
+        } else {
+          this.currentLensItems.set([]);
+          this.focusedCompany.set(null);
+          this.exploreLensErrorMessage.set(`No data available for ${lens} lens.`);
         }
       },
       error: (err) => {
-        console.warn('Failed to load real explore lens data, using existing state:', err);
+        console.warn('Failed to load explore lens data:', err);
+        this.currentLensItems.set([]);
+        this.focusedCompany.set(null);
+        const msg = err?.error?.message || err?.message || `Failed to load Explore Lens data for ${lens}.`;
+        this.exploreLensErrorMessage.set(msg);
       }
     });
   }

@@ -23,7 +23,6 @@ namespace StockLens_BusinessLayer.Services
     {
         private readonly IStockRepository _stockRepository;
         private readonly IStockShareholdingRepository _shareholdingRepository;
-        private readonly ICompanyRepository _companyRepository;
         private readonly IIndianApiShareholdingClient _indianApiClient;
         private readonly IShareholdingProvider _bharatStockProvider;
         private readonly IMapper _mapper;
@@ -35,7 +34,7 @@ namespace StockLens_BusinessLayer.Services
         public StockShareholdingService(
             IStockRepository stockRepository,
             IStockShareholdingRepository shareholdingRepository,
-            ICompanyRepository companyRepository,
+            ICompanyRepository? companyRepository,
             IIndianApiShareholdingClient indianApiClient,
             IShareholdingProvider bharatStockProvider,
             IMapper mapper,
@@ -43,7 +42,6 @@ namespace StockLens_BusinessLayer.Services
         {
             _stockRepository = stockRepository;
             _shareholdingRepository = shareholdingRepository;
-            _companyRepository = companyRepository;
             _indianApiClient = indianApiClient;
             _bharatStockProvider = bharatStockProvider;
             _mapper = mapper;

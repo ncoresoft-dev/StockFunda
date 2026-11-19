@@ -12,6 +12,7 @@ using StockLens_Infrastructure.ExternalServices.YahooFinanceApi;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,40 +22,34 @@ namespace StockLens_BusinessLayer.Services
     {
         private readonly IStockRepository _stockRepository;
         private readonly IStockNewsRepository _newsRepository;
-        private readonly IIndianApiNewsClient _indianApiClient;
         private readonly IGoogleNewsClient _googleNewsClient;
         private readonly IMapper _mapper;
         private readonly IndianApiSettings _settings;
         private readonly ILogger<StockNewsService> _logger;
         private readonly IYahooFinanceClient _yahooFinanceClient;
-        private readonly ICompanyRepository _companyRepository;
 
         public StockNewsService(
             IStockRepository stockRepository,
             IStockNewsRepository newsRepository,
-            IIndianApiNewsClient indianApiClient,
             IGoogleNewsClient googleNewsClient,
             IMapper mapper,
             IOptions<IndianApiSettings> settings,
             ILogger<StockNewsService> logger,
-            IYahooFinanceClient yahooFinanceClient,
-            ICompanyRepository companyRepository)
+            IYahooFinanceClient yahooFinanceClient)
         {
             _stockRepository = stockRepository;
             _newsRepository = newsRepository;
-            _indianApiClient = indianApiClient;
             _googleNewsClient = googleNewsClient;
             _mapper = mapper;
             _settings = settings.Value;
             _logger = logger;
             _yahooFinanceClient = yahooFinanceClient;
-            _companyRepository = companyRepository;
         }
 
         public async Task<StockNewsResponseDto> GetLatestNewsBySymbolAsync(
             string symbol,
             string? exchange = "NSE",
-            int limit = 5,
+            int limit = 15,
             int page = 1,
             bool forceRefresh = false,
             CancellationToken cancellationToken = default)
@@ -68,7 +63,6 @@ namespace StockLens_BusinessLayer.Services
             var cleanExchange = string.IsNullOrWhiteSpace(exchange) ? "NSE" : exchange.Trim().ToUpperInvariant();
 
             var stock = await _stockRepository.GetBySymbolAsync(cleanSymbol, cleanExchange);
-
             if (stock == null)
             {
                 var details = await _yahooFinanceClient.GetCompanyDetailsAsync(cleanSymbol, cleanExchange, cancellationToken);
@@ -95,37 +89,34 @@ namespace StockLens_BusinessLayer.Services
             var isCacheFresh = lastFetchedAt.HasValue &&
                 (DateTime.UtcNow - lastFetchedAt.Value).TotalMinutes < _settings.NewsCacheMinutes;
 
-            if (forceRefresh || !isCacheFresh)
+            var existingEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
+
+            // Detect if previously cached news rows have raw HTML tags (<a href, <font, etc.) or if cache is stale
+            bool hasCorruptHtmlData = existingEntities.Any(e =>
+                !string.IsNullOrWhiteSpace(e.Description) && (e.Description.Contains("<a href") || e.Description.Contains("<font") || e.Description.Contains("&nbsp;")));
+
+            if (forceRefresh || !isCacheFresh || hasCorruptHtmlData || existingEntities.Count == 0)
             {
                 _logger.LogInformation(
-                    "News cache stale or refresh requested for Stock {Symbol} (StockId: {StockId}, ForceRefresh: {ForceRefresh}). Fetching from Google News.",
-                    stock.Symbol, stock.Id, forceRefresh);
+                    "News cache stale, corrupt HTML detected, or refresh requested for Stock {Symbol} (StockId: {StockId}, ForceRefresh: {ForceRefresh}, CorruptHtml: {CorruptHtml}). Syncing news.",
+                    stock.Symbol, stock.Id, forceRefresh, hasCorruptHtmlData);
 
-                await SyncNewsFromIndianApiAsync(stock, cancellationToken);
+                await SyncNewsFromGoogleNewsAsync(stock, forceRefresh || hasCorruptHtmlData, cancellationToken);
+                existingEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
             }
             else
             {
                 _logger.LogInformation(
-                    "Serving news from DB cache for Stock {Symbol} (StockId: {StockId}, LastFetched: {LastFetchedAt}).",
-                    stock.Symbol, stock.Id, lastFetchedAt);
+                    "Serving news from DB cache for Stock {Symbol} (StockId: {StockId}, LastFetched: {LastFetchedAt}, Count: {Count}).",
+                    stock.Symbol, stock.Id, lastFetchedAt, existingEntities.Count);
             }
 
-            var newsEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
-
-            // If cache was considered fresh but DB has 0 items, auto-sync to fetch news
-            if (!forceRefresh && isCacheFresh && newsEntities.Count == 0)
-            {
-                _logger.LogInformation("Stock {Symbol} has 0 news in DB. Triggering fresh sync from Google News.", stock.Symbol);
-                await SyncNewsFromIndianApiAsync(stock, cancellationToken);
-                newsEntities = (await _newsRepository.GetNewsByStockIdAsync(stock.Id, limit, page)).ToList();
-            }
-
-            var newsDtos = _mapper.Map<List<StockNewsItemDto>>(newsEntities);
+            var newsDtos = _mapper.Map<List<StockNewsItemDto>>(existingEntities);
 
             // Restore the full URL (which is stored in Content to avoid DB limits)
             foreach (var dto in newsDtos)
             {
-                var entity = newsEntities.FirstOrDefault(e => e.Id == dto.Id);
+                var entity = existingEntities.FirstOrDefault(e => e.Id == dto.Id);
                 if (entity != null && !string.IsNullOrWhiteSpace(entity.Content))
                 {
                     dto.SourceUrl = entity.Content;
@@ -146,18 +137,23 @@ namespace StockLens_BusinessLayer.Services
             };
         }
 
-        private async Task SyncNewsFromIndianApiAsync(Stock stock, CancellationToken cancellationToken)
+        private async Task SyncNewsFromGoogleNewsAsync(Stock stock, bool clearExisting, CancellationToken cancellationToken)
         {
             try
             {
-                // Commented out IndianAPI call as per user request to use Google News
-                // var articles = await _indianApiClient.GetStockNewsAsync(stock.Symbol, stock.Company?.CompanyName, cancellationToken);
-                
+                if (clearExisting)
+                {
+                    _logger.LogInformation("Purging previous cached news for {Symbol} prior to fresh sync.", stock.Symbol);
+                    await _newsRepository.DeleteOldNewsAsync(stock.Id, 0);
+                    await _newsRepository.SaveChangesAsync();
+                }
+
+                _logger.LogInformation("Fetching news from Google News RSS for {Symbol}...", stock.Symbol);
                 var articles = await _googleNewsClient.GetStockNewsAsync(stock.Symbol, stock.Company?.CompanyName, cancellationToken);
 
                 if (articles == null || articles.Count == 0)
                 {
-                    _logger.LogInformation("No articles returned from IndianAPI for {Symbol}.", stock.Symbol);
+                    _logger.LogInformation("No articles returned from Google News RSS for {Symbol}.", stock.Symbol);
                     return;
                 }
 
@@ -192,6 +188,7 @@ namespace StockLens_BusinessLayer.Services
 
                     var entity = _mapper.Map<StockNews>(article);
                     entity.StockId = stock.Id;
+                    entity.Description = CleanHtmlSnippet(article.Description, article.Title);
                     entity.FetchedAt = now;
                     entity.CreatedAt = now;
                     entity.UpdatedAt = now;
@@ -215,7 +212,7 @@ namespace StockLens_BusinessLayer.Services
                     await _newsRepository.AddRangeAsync(newEntities);
                     await _newsRepository.SaveChangesAsync();
 
-                    await _newsRepository.DeleteOldNewsAsync(stock.Id, 5);
+                    await _newsRepository.DeleteOldNewsAsync(stock.Id, 20);
                     await _newsRepository.SaveChangesAsync();
                 }
                 else
@@ -225,8 +222,21 @@ namespace StockLens_BusinessLayer.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error syncing news from IndianAPI for stock {Symbol} (ID: {StockId})", stock.Symbol, stock.Id);
+                _logger.LogError(ex, "Error syncing news from Google News RSS for stock {Symbol} (ID: {StockId})", stock.Symbol, stock.Id);
             }
+        }
+
+        private static string CleanHtmlSnippet(string? raw, string? title)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+            var clean = Regex.Replace(raw, "<.*?>", string.Empty);
+            clean = System.Net.WebUtility.HtmlDecode(clean);
+            clean = Regex.Replace(clean, @"\s+", " ").Trim();
+            if (!string.IsNullOrWhiteSpace(title) && string.Equals(clean, title.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+            return clean;
         }
     }
 }

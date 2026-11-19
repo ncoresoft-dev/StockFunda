@@ -4,13 +4,54 @@
 }
 
 /* =========================================================================
-   Unified Outer White Box Card (Matches explore-lens-card & money-rotation-card)
+   Outer Split Layout (2 Separate White Container Cards Side by Side)
+   Matches reference design: Left = Market Indices (2fr) | Right = Market News (1fr)
    ========================================================================= */
+.market-pulse-section-row {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.market-pulse-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(350px, 1.25fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* 1. Left Separate White Card: Market News */
+.news-container-card {
+  background: #ffffff;
+  border: 1px solid #e6ecdc;
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 2. Right Separate White Card: Market Indices */
+.indices-container-card {
+  background: #ffffff;
+  border: 1px solid #e6ecdc;
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Legacy fallback container */
 .market-pulse-card {
   background: #ffffff;
   border: 1px solid #e2e8d0;
   border-radius: 20px;
-  padding: 24px 28px 24px 28px;
+  padding: 24px 28px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   box-sizing: border-box;
   width: 100%;
@@ -28,11 +69,35 @@
   gap: 12px;
 }
 
+.indices-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 30px;
+}
+
 .pulse-title-group {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* Green Bar Chart Icon */
+.pulse-bar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+
+.bar-chart-svg {
+  width: 22px;
+  height: 22px;
+  color: #10b981;
 }
 
 /* Green Square Badge matching Money Rotation & Nifty 50 Map */
@@ -97,14 +162,14 @@
   font-weight: 600;
 }
 
-/* Right Controls: Timeframe Selector */
+/* Right Controls: Timeframe Selector (1D / 1W / 1M) inside Market Indices */
 .pulse-timeframes-bar {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: #f1f5f9;
   padding: 3px 4px;
-  border-radius: 8px;
+  border-radius: 9999px;
   border: 1px solid #e2e8f0;
 }
 
@@ -112,10 +177,10 @@
   background: transparent;
   border: none;
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -125,20 +190,18 @@
 }
 
 .tf-toggle-btn.active {
-  color: #0f172a;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: #ffffff;
+  background: #2563eb;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
   font-weight: 700;
 }
 
-/* =========================================================================
-   3-Column Index Cards Grid (Inside the White Box)
-   ========================================================================= */
 .pulse-cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 14px;
   width: 100%;
+  height: 100%;
 }
 
 .pulse-cards-grid.loading {
@@ -150,7 +213,7 @@
   background: #fcfdfa;
   border: 1px solid #e6ecdc;
   border-radius: 16px;
-  padding: 20px 22px 18px 22px;
+  padding: 13px 14px 11px 14px;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   display: flex;
@@ -232,12 +295,12 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 3px;
   flex-wrap: wrap;
 }
 
 .current-price-val {
-  font-size: 1.8rem;
+  font-size: 1.65rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.15;
@@ -281,13 +344,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 10px 0 16px 0;
+  margin: 2px 0 6px 0;
   position: relative;
 }
 
 .aperture-svg {
   width: 100%;
-  max-width: 270px;
+  max-width: 230px;
   height: auto;
   overflow: visible;
   display: block;
@@ -334,7 +397,7 @@
 
 /* Center Percentage Text */
 .gauge-center-pct {
-  font-size: 1.85rem;
+  font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   font-family: inherit;
@@ -416,43 +479,292 @@
   background: #f8faf5;
   border: 1px solid #eef3e4;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 6px 10px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
 
 .insight-icon {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   line-height: 1.3;
   flex-shrink: 0;
 }
 
 .insight-text {
   margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  font-size: 0.78rem;
+  line-height: 1.35;
   color: #334155;
   font-weight: 500;
 }
 
+
 /* =========================================================================
-   Responsive Breakpoints
+   Error & Empty States
    ========================================================================= */
-@media (max-width: 1024px) {
+.pulse-error-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 12px 0 16px;
+  gap: 16px;
+}
+
+.pulse-error-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.pulse-error-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.pulse-error-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.pulse-error-msg {
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+.pulse-empty-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 20px;
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 12px 0;
+}
+
+.pulse-retry-btn {
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pulse-retry-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+/* =========================================================================
+   Right Column: Market News Container Card & Feed
+   ========================================================================= */
+.news-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  min-height: 30px;
+}
+
+.news-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pulse-square-badge.news-badge {
+  background: #2563eb;
+  border-radius: 5px;
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.35);
+}
+
+.news-section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #14180d;
+  letter-spacing: -0.015em;
+}
+
+.live-status-pill.news-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2563eb;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.view-all-link:hover {
+  color: #1d4ed8;
+  transform: translateX(2px);
+}
+
+.news-feed-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.news-feed-row-item {
+  padding: 6px 6px 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  border-bottom: 1px solid #f1f5e9;
+}
+
+.news-feed-row-item:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.news-feed-row-item:hover {
+  background: #f8fafc;
+  transform: translateX(3px);
+}
+
+.news-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.news-row-source {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.news-row-dot {
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.news-row-time {
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.news-row-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.34;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.news-feed-row-item:hover .news-row-title {
+  color: #2563eb;
+}
+
+.news-feed-empty {
+  padding: 30px 12px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.news-feed-empty .empty-icon {
+  font-size: 1.6rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.news-feed-skeleton-item {
+  height: 56px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  margin: 4px 0;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+
+/* =========================================================================
+   Responsive Breakpoints for Outer Layout
+   ========================================================================= */
+@media (max-width: 1240px) {
+  .market-pulse-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 960px) {
   .pulse-cards-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 680px) {
-  .market-pulse-card {
-    padding: 18px;
+  .indices-container-card,
+  .news-container-card {
+    padding: 18px 16px;
     border-radius: 16px;
   }
 
   .pulse-cards-grid {
     grid-template-columns: 1fr;
+  }
+
+  .indices-header-row,
+  .news-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .price-stack {

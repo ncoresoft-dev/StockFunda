@@ -94,10 +94,6 @@ namespace StockLens_Infrastructure.ExternalServices.BharatStock
                 {
                     var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
                     _logger.LogWarning("BharatStock API rate limit exceeded (HTTP 429) for ticker {Ticker}. Response: {ErrorBody}.", cleanTicker, errorBody);
-                    if (_settings.UseMockData)
-                    {
-                        return MockShareholdingProvider.GenerateMockHistory(cleanTicker);
-                    }
                     var retryAfter = response.Headers.RetryAfter?.Delta;
                     throw new ProviderRateLimitException($"Rate limit exceeded for BharatStock API. {errorBody}", retryAfter);
                 }

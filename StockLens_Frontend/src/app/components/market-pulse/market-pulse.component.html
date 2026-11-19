@@ -1,168 +1,254 @@
-<div class="market-pulse-card">
-  <!-- Top Header Bar inside the White Box -->
-  <div class="pulse-header-row">
-    <div class="pulse-title-group">
-      <span class="pulse-square-badge" aria-hidden="true"></span>
-      <h2 class="pulse-title">Market Indices</h2>
-      <div class="live-status-pill">
-        <span class="pulse-live-dot" aria-hidden="true"></span>
-        <span class="pulse-delay-tag">Live · 15 min delayed</span>
+<div class="market-pulse-section-row">
+  <!-- Error or Empty State Display -->
+  @if (errorMessage()) {
+    <div class="pulse-error-box" role="alert">
+      <div class="pulse-error-icon">⚠️</div>
+      <div class="pulse-error-details">
+        <span class="pulse-error-heading">Unable to Load Market Indices</span>
+        <span class="pulse-error-msg">{{ errorMessage() }}</span>
+      </div>
+      <button type="button" class="pulse-retry-btn" (click)="loadPulseData(true)">Retry</button>
+    </div>
+  } @else if (!isLoading() && indices().length === 0) {
+    <div class="pulse-empty-box">
+      <span>No market indices data available at this time.</span>
+      <button type="button" class="pulse-retry-btn" (click)="loadPulseData(true)">Refresh</button>
+    </div>
+  }
+
+  <!-- Split Grid: Two Separate White Container Cards Side by Side (News 1st on Left, Indices on Right) -->
+  @if (!errorMessage() && indices().length > 0) {
+    <div class="market-pulse-grid-layout">
+      <!-- 1. LEFT SEPARATE WHITE CONTAINER: Market News -->
+      <aside class="news-container-card" aria-label="Latest Market News">
+        <!-- Top Header: Blue Badge + Title + Live Feed on Left, "View All →" on Right -->
+        <div class="news-header-row">
+          <div class="news-title-group">
+            <span class="pulse-square-badge news-badge" aria-hidden="true"></span>
+            <h3 class="news-section-title">Market News</h3>
+            <div class="live-status-pill news-live-pill">
+              <span class="pulse-live-dot" aria-hidden="true"></span>
+              <span class="pulse-delay-tag">Live Feed</span>
+            </div>
+          </div>
+
+          <!-- View All Link with Arrow -->
+          <a class="view-all-link" (click)="navigateToNewsHub()" tabindex="0" role="link" title="View all market news">
+            <span>View All</span>
+            <span class="arrow-glyph">→</span>
+          </a>
+        </div>
+
+        <!-- News Items List (Top 5 items) -->
+        <div class="news-feed-list">
+          @if (isNewsLoading()) {
+            <div class="news-feed-skeleton-item"></div>
+            <div class="news-feed-skeleton-item"></div>
+            <div class="news-feed-skeleton-item"></div>
+            <div class="news-feed-skeleton-item"></div>
+            <div class="news-feed-skeleton-item"></div>
+          } @else if (latestNews().length > 0) {
+            @for (news of latestNews(); track news.id || news.articleUrl || news.title; let i = $index) {
+              <article
+                class="news-feed-row-item"
+                (click)="openArticle(news.articleUrl || news.sourceUrl)"
+                tabindex="0"
+                role="link"
+                [title]="'Read: ' + news.title"
+              >
+                <div class="news-row-meta">
+                  <span class="news-row-source">{{ news.sourceName }}</span>
+                  <span class="news-row-dot">·</span>
+                  <span class="news-row-time">{{ news.timeAgo || 'Recent' }}</span>
+                </div>
+                <h4 class="news-row-title">{{ news.title }}</h4>
+              </article>
+            }
+          } @else {
+            <div class="news-feed-empty">
+              <span class="empty-icon">📰</span>
+              <p>No recent headlines available.</p>
+            </div>
+          }
+        </div>
+      </aside>
+
+      <!-- 2. RIGHT SEPARATE WHITE CONTAINER: Market Indices -->
+      <div class="indices-container-card">
+        <!-- Dedicated Indices Header: Title on Left, 1D/1W/1M on Right -->
+        <div class="indices-header-row">
+          <div class="pulse-title-group">
+            <span class="pulse-bar-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" class="bar-chart-svg">
+                <line x1="5" y1="20" x2="5" y2="8"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="19" y1="20" x2="19" y2="12"></line>
+              </svg>
+            </span>
+            <h2 class="pulse-title">Market Indices</h2>
+            <div class="live-status-pill">
+              <span class="pulse-live-dot" aria-hidden="true"></span>
+              <span class="pulse-delay-tag">Live · 15m delayed</span>
+            </div>
+          </div>
+
+          <!-- Timeframe Switcher (1D / 1W / 1M) on Top Right of Indices Card -->
+          <div class="pulse-timeframes-bar">
+            @for (tf of timeframes; track tf) {
+              <button 
+                type="button" 
+                class="tf-toggle-btn" 
+                [class.active]="selectedTimeframe() === tf"
+                (click)="setTimeframe(tf)">
+                {{ tf }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="pulse-cards-grid" [class.loading]="isLoading()">
+          @for (item of indices(); track item.symbol) {
+            <div 
+              class="pulse-card" 
+              [class.is-up]="item.isPositive" 
+              [class.is-down]="!item.isPositive"
+              (click)="onIndexCardClick(item)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="item.name + ', ' + item.formattedPrice + ', ' + item.formattedChangePercent"
+              [title]="'View ' + item.name + ' constituents & weightages'">
+              
+              <!-- Card Top Bar: Name + Exchange Tag + Explore Link -->
+              <div class="card-top-row">
+                <div class="index-meta-group">
+                  <span class="index-label">{{ item.name }}</span>
+                  <span class="exchange-tag">{{ item.symbol === '^BSESN' ? 'BSE' : 'NSE' }}</span>
+                </div>
+                <span class="explore-link">
+                  <span>Explore</span>
+                  <span class="explore-arrow">→</span>
+                </span>
+              </div>
+
+              <!-- Big Price & Points Change Stack -->
+              <div class="price-stack">
+                <div class="current-price-val">{{ item.formattedPrice }}</div>
+                <div 
+                  class="points-change-pill"
+                  [class.pill-pos]="item.isPositive"
+                  [class.pill-neg]="!item.isPositive">
+                  <span class="arrow-glyph">{{ item.isPositive ? '▲' : '▼' }}</span>
+                  <span class="points-text">{{ item.formattedPointsChange }}</span>
+                </div>
+              </div>
+
+              <!-- Aperture Ring Gauge Stage (Centerpiece - Zoomed In) -->
+              <div class="aperture-gauge-stage">
+                <svg class="aperture-svg" viewBox="0 0 240 172">
+                  <defs>
+                    <!-- Positive Vibrant Gradient -->
+                    <linearGradient [id]="'gaugePosGrad-' + item.symbol" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#84cc16" />
+                      <stop offset="50%" stop-color="#22c55e" />
+                      <stop offset="100%" stop-color="#10b981" />
+                    </linearGradient>
+
+                    <!-- Negative Coral Red Gradient -->
+                    <linearGradient [id]="'gaugeNegGrad-' + item.symbol" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#fb7185" />
+                      <stop offset="60%" stop-color="#f43f5e" />
+                      <stop offset="100%" stop-color="#e11d48" />
+                    </linearGradient>
+
+                    <!-- Soft Glow Filter for Marker Ring -->
+                    <filter [id]="'markerGlow-' + item.symbol" x="-50%" y="-50%" width="200%" height="200%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="3" [attr.flood-color]="item.isPositive ? '#22c55e' : '#f43f5e'" flood-opacity="0.35" />
+                    </filter>
+                  </defs>
+
+                  <!-- Outer Concentric Precision Dot Ring (Clear High-Contrast Dotted Border) -->
+                  <path 
+                    d="M 39.72 158.21 A 98 98 0 1 1 200.28 158.21" 
+                    fill="none" 
+                    class="gauge-tick-ring" 
+                  />
+
+                  <!-- Background Track Arc -->
+                  <path 
+                    d="M 52.83 149.03 A 82 82 0 1 1 187.17 149.03" 
+                    fill="none" 
+                    class="gauge-track-arc" 
+                  />
+
+                  <!-- Active Colored Progress Arc -->
+                  <path 
+                    d="M 52.83 149.03 A 82 82 0 1 1 187.17 149.03" 
+                    fill="none" 
+                    class="gauge-fill-arc"
+                    [attr.stroke]="item.isPositive ? 'url(#gaugePosGrad-' + item.symbol + ')' : 'url(#gaugeNegGrad-' + item.symbol + ')'"
+                    [style.stroke-dasharray]="gaugeArcLength"
+                    [style.stroke-dashoffset]="getStrokeDashoffset(item)"
+                  />
+
+                  <!-- Marker Ring Cursor at Current Level -->
+                  <circle 
+                    [attr.cx]="getMarkerX(item)" 
+                    [attr.cy]="getMarkerY(item)" 
+                    r="8" 
+                    class="gauge-marker-ring"
+                    [class.marker-pos]="item.isPositive"
+                    [class.marker-neg]="!item.isPositive"
+                    [attr.filter]="'url(#markerGlow-' + item.symbol + ')'"
+                  />
+
+                  <!-- Center Percentage Value -->
+                  <text 
+                    x="120" 
+                    y="92" 
+                    text-anchor="middle" 
+                    class="gauge-center-pct"
+                    [class.pct-pos]="item.isPositive"
+                    [class.pct-neg]="!item.isPositive">
+                    {{ item.formattedChangePercent }}
+                  </text>
+
+                  <!-- Center Subtitle Label (Dynamic: DAY RANGE / 1W RANGE / 1M RANGE) -->
+                  <text 
+                    x="120" 
+                    y="114" 
+                    text-anchor="middle" 
+                    class="gauge-center-sub">
+                    {{ selectedTimeframe() === '1D' ? 'DAY RANGE' : selectedTimeframe() + ' RANGE' }}
+                  </text>
+                </svg>
+
+                <!-- Day/Period Low & High Bound Badges Aligned Under Arc Feet -->
+                <div class="gauge-bounds-container">
+                  <div class="bound-pill low">
+                    <span class="bound-tag">{{ selectedTimeframe() }} LOW</span>
+                    <span class="bound-num">{{ item.formattedDayLow }}</span>
+                  </div>
+                  <div class="bound-dots" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <div class="bound-pill high">
+                    <span class="bound-tag">{{ selectedTimeframe() }} HIGH</span>
+                    <span class="bound-num">{{ item.formattedDayHigh }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Takeaway Insight Capsule -->
+              @if (item.takeawayNote) {
+                <div class="insight-capsule">
+                  <span class="insight-icon" aria-hidden="true">💡</span>
+                  <p class="insight-text">{{ item.takeawayNote }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
       </div>
     </div>
-
-    <!-- Right Controls: Timeframe switcher -->
-    <div class="pulse-timeframes-bar">
-      @for (tf of timeframes; track tf) {
-        <button 
-          type="button" 
-          class="tf-toggle-btn" 
-          [class.active]="selectedTimeframe() === tf"
-          (click)="setTimeframe(tf)">
-          {{ tf }}
-        </button>
-      }
-    </div>
-  </div>
-
-  <!-- 3-Column Index Cards Grid (Inside the White Box) -->
-  <div class="pulse-cards-grid" [class.loading]="isLoading()">
-    @for (item of indices(); track item.symbol) {
-      <div 
-        class="pulse-card" 
-        [class.is-up]="item.isPositive" 
-        [class.is-down]="!item.isPositive"
-        (click)="onIndexCardClick(item)"
-        tabindex="0"
-        role="button"
-        [attr.aria-label]="item.name + ', ' + item.formattedPrice + ', ' + item.formattedChangePercent"
-        [title]="'View ' + item.name + ' constituents & weightages'">
-        
-        <!-- Card Top Bar: Name + Exchange Tag + Explore Link -->
-        <div class="card-top-row">
-          <div class="index-meta-group">
-            <span class="index-label">{{ item.name }}</span>
-            <span class="exchange-tag">{{ item.symbol === '^BSESN' ? 'BSE' : 'NSE' }}</span>
-          </div>
-          <span class="explore-link">
-            <span>Explore</span>
-            <span class="explore-arrow">→</span>
-          </span>
-        </div>
-
-        <!-- Big Price & Points Change Stack -->
-        <div class="price-stack">
-          <div class="current-price-val">{{ item.formattedPrice }}</div>
-          <div 
-            class="points-change-pill"
-            [class.pill-pos]="item.isPositive"
-            [class.pill-neg]="!item.isPositive">
-            <span class="arrow-glyph">{{ item.isPositive ? '▲' : '▼' }}</span>
-            <span class="points-text">{{ item.formattedPointsChange }}</span>
-          </div>
-        </div>
-
-        <!-- Aperture Ring Gauge Stage (Centerpiece - Zoomed In) -->
-        <div class="aperture-gauge-stage">
-          <svg class="aperture-svg" viewBox="0 0 240 172">
-            <defs>
-              <!-- Positive Vibrant Gradient -->
-              <linearGradient [id]="'gaugePosGrad-' + item.symbol" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#84cc16" />
-                <stop offset="50%" stop-color="#22c55e" />
-                <stop offset="100%" stop-color="#10b981" />
-              </linearGradient>
-
-              <!-- Negative Coral Red Gradient -->
-              <linearGradient [id]="'gaugeNegGrad-' + item.symbol" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#fb7185" />
-                <stop offset="60%" stop-color="#f43f5e" />
-                <stop offset="100%" stop-color="#e11d48" />
-              </linearGradient>
-
-              <!-- Soft Glow Filter for Marker Ring -->
-              <filter [id]="'markerGlow-' + item.symbol" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="2" stdDeviation="3" [attr.flood-color]="item.isPositive ? '#22c55e' : '#f43f5e'" flood-opacity="0.35" />
-              </filter>
-            </defs>
-
-            <!-- Outer Concentric Precision Dot Ring (Clear High-Contrast Dotted Border) -->
-            <path 
-              d="M 39.72 158.21 A 98 98 0 1 1 200.28 158.21" 
-              fill="none" 
-              class="gauge-tick-ring" 
-            />
-
-            <!-- Background Track Arc -->
-            <path 
-              d="M 52.83 149.03 A 82 82 0 1 1 187.17 149.03" 
-              fill="none" 
-              class="gauge-track-arc" 
-            />
-
-            <!-- Active Colored Progress Arc -->
-            <path 
-              d="M 52.83 149.03 A 82 82 0 1 1 187.17 149.03" 
-              fill="none" 
-              class="gauge-fill-arc"
-              [attr.stroke]="item.isPositive ? 'url(#gaugePosGrad-' + item.symbol + ')' : 'url(#gaugeNegGrad-' + item.symbol + ')'"
-              [style.stroke-dasharray]="gaugeArcLength"
-              [style.stroke-dashoffset]="getStrokeDashoffset(item)"
-            />
-
-            <!-- Marker Ring Cursor at Current Level -->
-            <circle 
-              [attr.cx]="getMarkerX(item)" 
-              [attr.cy]="getMarkerY(item)" 
-              r="8" 
-              class="gauge-marker-ring"
-              [class.marker-pos]="item.isPositive"
-              [class.marker-neg]="!item.isPositive"
-              [attr.filter]="'url(#markerGlow-' + item.symbol + ')'"
-            />
-
-            <!-- Center Percentage Value -->
-            <text 
-              x="120" 
-              y="92" 
-              text-anchor="middle" 
-              class="gauge-center-pct"
-              [class.pct-pos]="item.isPositive"
-              [class.pct-neg]="!item.isPositive">
-              {{ item.formattedChangePercent }}
-            </text>
-
-            <!-- Center Subtitle Label (Dynamic: DAY RANGE / 1W RANGE / 1M RANGE) -->
-            <text 
-              x="120" 
-              y="114" 
-              text-anchor="middle" 
-              class="gauge-center-sub">
-              {{ selectedTimeframe() === '1D' ? 'DAY RANGE' : selectedTimeframe() + ' RANGE' }}
-            </text>
-          </svg>
-
-          <!-- Day/Period Low & High Bound Badges Aligned Under Arc Feet -->
-          <div class="gauge-bounds-container">
-            <div class="bound-pill low">
-              <span class="bound-tag">{{ selectedTimeframe() }} LOW</span>
-              <span class="bound-num">{{ item.formattedDayLow }}</span>
-            </div>
-            <div class="bound-dots" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
-            <div class="bound-pill high">
-              <span class="bound-tag">{{ selectedTimeframe() }} HIGH</span>
-              <span class="bound-num">{{ item.formattedDayHigh }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Takeaway Insight Capsule -->
-        <div class="insight-capsule">
-          <span class="insight-icon" aria-hidden="true">💡</span>
-          <p class="insight-text">{{ item.takeawayNote || getDefaultNote(item) }}</p>
-        </div>
-      </div>
-    }
-  </div>
+  }
 </div>

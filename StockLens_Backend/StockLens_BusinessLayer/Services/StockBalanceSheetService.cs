@@ -23,8 +23,6 @@ namespace StockLens_BusinessLayer.Services
         private readonly IStockRepository _stockRepository;
         private readonly IStockBalanceSheetRepository _balanceSheetRepository;
         private readonly IStockFinancialRepository _financialRepository;
-        private readonly IFinancialProvider _financialProvider;
-        private readonly ICompanyRepository _companyRepository;
         private readonly IYahooFinanceClient _yahooClient;
         private readonly ILogger<StockBalanceSheetService> _logger;
 
@@ -33,8 +31,8 @@ namespace StockLens_BusinessLayer.Services
             IStockRepository stockRepository,
             IStockBalanceSheetRepository balanceSheetRepository,
             IStockFinancialRepository financialRepository,
-            IFinancialProvider financialProvider,
-            ICompanyRepository companyRepository,
+            IFinancialProvider? financialProvider,
+            ICompanyRepository? companyRepository,
             IYahooFinanceClient yahooClient,
             ILogger<StockBalanceSheetService> logger)
         {
@@ -42,8 +40,6 @@ namespace StockLens_BusinessLayer.Services
             _stockRepository = stockRepository;
             _balanceSheetRepository = balanceSheetRepository;
             _financialRepository = financialRepository;
-            _financialProvider = financialProvider;
-            _companyRepository = companyRepository;
             _yahooClient = yahooClient;
             _logger = logger;
         }
@@ -287,19 +283,10 @@ namespace StockLens_BusinessLayer.Services
                         }
                     }
 
-                    // Tier 4: Fallback Balance Sheet Generator (Zero empty screen)
                     if (!dbRecords.Any())
                     {
-                        _logger.LogInformation("Tier 4: Generating realistic fallback balance sheet for {Symbol}", stock.Symbol);
-                        var fallbackRecords = GenerateFallbackBalanceSheets(stock);
-                        await _balanceSheetRepository.AddRangeAsync(fallbackRecords);
-                        await _balanceSheetRepository.SaveChangesAsync();
-                        dbRecords = await _balanceSheetRepository.GetRecentByStockIdAsync(stock.Id, 5);
-                    }
-
-                    if (!dbRecords.Any())
-                    {
-                        result.ErrorMessage = $"Data unavailable for {stock.Symbol}.";
+                        _logger.LogWarning("No real balance sheet records found for {Symbol}", stock.Symbol);
+                        result.ErrorMessage = $"Balance sheet data is currently unavailable for {stock.Symbol}.";
                         return result;
                     }
                 }
@@ -355,67 +342,6 @@ namespace StockLens_BusinessLayer.Services
                 result.ErrorMessage = "An error occurred while processing balance sheet data.";
                 return result;
             }
-        }
-
-        private static List<StockBalanceSheet> GenerateFallbackBalanceSheets(Stock stock)
-        {
-            var now = DateTime.UtcNow;
-            var isTech = stock.Symbol is "TCS" or "INFY" or "WIPRO" or "HCLTECH" or "TECHM";
-            var isBank = stock.Symbol is "HDFCBANK" or "ICICIBANK" or "SBIN" or "KOTAKBANK" or "AXISBANK";
-
-            decimal baseAssets = stock.Symbol switch
-            {
-                "RELIANCE" => 1812800.0m,
-                "TCS" => 142350.0m,
-                "INFY" => 125800.0m,
-                "TATAMOTORS" => 345000.0m,
-                "HDFCBANK" => 2850000.0m,
-                "ICICIBANK" => 1950000.0m,
-                _ => 150000.0m
-            };
-
-            var periods = new[]
-            {
-                (Fy: "FY22", Date: new DateTime(2022, 3, 31), Multiplier: 0.68m),
-                (Fy: "FY23", Date: new DateTime(2023, 3, 31), Multiplier: 0.76m),
-                (Fy: "FY24", Date: new DateTime(2024, 3, 31), Multiplier: 0.84m),
-                (Fy: "FY25", Date: new DateTime(2025, 3, 31), Multiplier: 0.92m),
-                (Fy: "FY26", Date: new DateTime(2026, 3, 31), Multiplier: 1.00m)
-            };
-
-            var list = new List<StockBalanceSheet>();
-            foreach (var p in periods)
-            {
-                var totalAssets = Math.Round(baseAssets * p.Multiplier, 2);
-                var fixedAssets = Math.Round(totalAssets * (isTech ? 0.25m : isBank ? 0.08m : 0.48m), 2);
-                var cwip = Math.Round(totalAssets * (isTech ? 0.02m : isBank ? 0.01m : 0.08m), 2);
-                var investments = Math.Round(totalAssets * (isBank ? 0.35m : 0.18m), 2);
-                var otherAssets = Math.Max(0, totalAssets - (fixedAssets + cwip + investments));
-
-                list.Add(new StockBalanceSheet
-                {
-                    StockId = stock.Id,
-                    PeriodKey = $"annual-{p.Fy.ToLowerInvariant()}",
-                    PeriodType = "annual",
-                    FiscalYear = p.Fy,
-                    PeriodEndDate = p.Date,
-                    ConsolidationType = "consolidated",
-                    Source = "IndianAPI (Market Estimated)",
-                    LastSyncedAt = now,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    FixedAssets = fixedAssets,
-                    Cwip = cwip,
-                    Investments = investments,
-                    OtherAssets = otherAssets,
-                    TotalAssets = totalAssets,
-                    TotalLiabilities = Math.Round(totalAssets * 0.55m, 2),
-                    EquityCapital = Math.Round(baseAssets * 0.02m, 2),
-                    Reserves = Math.Round(totalAssets * 0.43m, 2)
-                });
-            }
-
-            return list;
         }
 
         private BalanceSheetResponseDto MapToResponseDto(Stock stock, List<StockBalanceSheet> dbRecords)

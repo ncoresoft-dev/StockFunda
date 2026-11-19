@@ -1,0 +1,349 @@
+<div class="watchlist-feed-cockpit">
+  <!-- 1. Top Feed Control Header Bar -->
+  <div class="feed-header-bar">
+    <div class="header-left-group">
+      <div class="live-status-pill">
+        <span class="pulse-dot"></span>
+        <span class="source-label">NSE Official Feed</span>
+      </div>
+
+      @if (lastSyncedAt()) {
+      <span class="sync-time-label">Synced at {{ lastSyncedAt() }}</span>
+      }
+
+      @if (selectedSymbolFilter() !== 'ALL') {
+      <div class="active-stock-filter-pill">
+        <span>Filtered: <strong>{{ selectedSymbolFilter() }}</strong></span>
+        <button type="button" class="clear-pill-btn" (click)="setSymbolFilter('ALL')" title="Show all companies">✕</button>
+      </div>
+      }
+    </div>
+
+    <!-- Header Right Controls: Search, Mark Read, Sync -->
+    <div class="header-right-group">
+      <div class="feed-search-wrap">
+        <span class="search-ico">🔍</span>
+        <input
+          type="text"
+          class="feed-search-input"
+          placeholder="Search filings, keywords..."
+          [value]="searchQuery()"
+          (input)="onSearchChange($event)"
+        />
+        @if (searchQuery()) {
+        <button type="button" class="clear-search-btn" (click)="clearSearch()">✕</button>
+        }
+      </div>
+
+      @if (newCountSinceLastVisit() > 0) {
+      <button
+        type="button"
+        class="mark-read-btn"
+        (click)="markAllAsSeen()"
+        title="Mark all fresh filings as seen"
+      >
+        <span class="check-ico">✓</span>
+        <span>Mark {{ newCountSinceLastVisit() }} as seen</span>
+      </button>
+      }
+
+      <button
+        type="button"
+        class="sync-feed-btn"
+        [disabled]="isRefreshing()"
+        (click)="triggerRefresh()"
+        title="Fetch latest corporate disclosures from NSE"
+      >
+        <svg
+          class="sync-ico"
+          [class.spinning]="isRefreshing()"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>{{ isRefreshing() ? 'Syncing...' : 'Sync Feed' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. Empty Watchlist State (User has not followed any stock yet) -->
+  @if (followedCount() === 0) {
+  <div class="empty-feed-card">
+    <div class="empty-icon-bubble">⭐</div>
+    <h3 class="empty-title">Your Watchlist is empty</h3>
+    <p class="empty-desc">
+      Follow your favorite companies by starring ★ them on the NIFTY 50 dashboard or search bar.
+      Their real-time corporate announcements, board meetings, and SEBI disclosures will stream here automatically.
+    </p>
+    <button type="button" class="explore-btn" (click)="navigateToNifty()">
+      Explore NIFTY 50 Stocks →
+    </button>
+  </div>
+  }
+
+  <!-- 4. Loading Skeleton -->
+  @if (loadingState() === 'loading' && !isRefreshing() && followedCount() > 0) {
+  <div class="feed-skeleton-layout">
+    <div class="skeleton-stream">
+      <div class="sk-card"></div>
+      <div class="sk-card"></div>
+      <div class="sk-card"></div>
+    </div>
+    <div class="skeleton-sidebar">
+      <div class="sk-widget"></div>
+      <div class="sk-widget"></div>
+    </div>
+  </div>
+  }
+
+  <!-- 5. Error State -->
+  @if (loadingState() === 'error' && followedCount() > 0) {
+  <div class="error-feed-card">
+    <span class="err-icon">⚠️</span>
+    <p class="err-msg">{{ errorMessage() || 'Failed to load corporate announcements.' }}</p>
+    <button type="button" class="retry-btn" (click)="loadFeed(true)">Retry</button>
+  </div>
+  }
+
+  <!-- 6. Empty Results State (Watchlist has stocks, but no announcements match filters) -->
+  @if (loadingState() === 'empty' && followedCount() > 0) {
+  <div class="empty-feed-card">
+    <div class="empty-icon-bubble">📢</div>
+    <h3 class="empty-title">No announcements found</h3>
+    <p class="empty-desc">
+      @if (searchQuery()) {
+      No filings found matching "{{ searchQuery() }}".
+      } @else {
+      No corporate announcements recorded for your tracked stocks in the current period.
+      }
+    </p>
+    @if (searchQuery() || selectedSymbolFilter() !== 'ALL') {
+    <button
+      type="button"
+      class="clear-filters-btn"
+      (click)="clearSearch(); setSymbolFilter('ALL')"
+    >
+      Reset Filters
+    </button>
+    } @else {
+    <button type="button" class="explore-btn" (click)="triggerRefresh()">
+      Check Latest Updates from NSE
+    </button>
+    }
+  </div>
+  }
+
+  <!-- 7. Two-Column Screener Layout (Feed on Left, Sidebar Widgets on Right) -->
+  @if (loadingState() === 'success' && dateGroups().length > 0) {
+  <div class="screener-two-column-layout">
+    <!-- LEFT MAIN COLUMN: Date-Grouped Timeline Feed -->
+    <main class="feed-stream-column">
+      @for (group of dateGroups(); track group.dateKey) {
+      <section class="date-group-section">
+        <!-- Date Header (e.g. YESTERDAY, 17 NOVEMBER 2026) -->
+        <div class="date-group-header">
+          <span class="date-group-title">{{ group.dateLabel }}</span>
+        </div>
+
+        <div class="announcements-cards-list">
+          @for (item of group.items; track item.seqId || item.id) {
+          <article class="feed-item-card" [class.is-fresh]="item.isNewSinceLastVisit">
+            <!-- Card Header: Company, Category Pill, Timing -->
+            <div class="card-header-row">
+              <div class="company-badge-group">
+                <button
+                  type="button"
+                  class="company-link-btn"
+                  (click)="navigateToStock(item.symbol)"
+                  title="Open {{ item.companyName }} profile"
+                >
+                  <span class="company-name-text">{{ item.companyName || item.symbol }}</span>
+                  <span class="symbol-pill">{{ item.symbol }}</span>
+                  <svg class="ext-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="card-meta-right">
+                @if (item.isNewSinceLastVisit) {
+                <span class="new-pulse-badge">NEW</span>
+                }
+                <span class="category-pill" [class]="item.categoryBadgeClass">{{ item.categoryLabel }}</span>
+                <span class="broadcast-time-text" [title]="item.disseminationTime || item.broadcastDateTime">
+                  {{ item.timeAgo || item.disseminationTime || 'Recent' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Subject Line (Prominent Link) -->
+            @if (item.subject) {
+            <h4
+              class="announcement-subject-title"
+              (click)="item.attachmentUrl ? openPdf(item.attachmentUrl) : toggleExpand(item.id)"
+              [title]="item.subject"
+            >
+              {{ item.subject }}
+            </h4>
+            }
+
+            <!-- Short Details Preview / Summary -->
+            @if (item.details) {
+            <div class="announcement-details-wrap">
+              <p class="details-snippet" [class.clamped]="!isExpanded(item.id) && item.details.length > 220">
+                {{ item.details }}
+              </p>
+              @if (item.details.length > 220) {
+              <button
+                type="button"
+                class="read-toggle-btn"
+                (click)="toggleExpand(item.id)"
+              >
+                {{ isExpanded(item.id) ? 'Show less' : 'Read full filing details' }}
+              </button>
+              }
+            </div>
+            }
+
+            <!-- Card Bottom Bar: PDF Filing Link & Sequence ID -->
+            <div class="card-bottom-row">
+              @if (item.attachmentUrl) {
+              <a
+                [href]="item.attachmentUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="pdf-view-btn"
+                title="Open official NSE PDF disclosure"
+              >
+                <svg class="pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="pdf-btn-label">Official Disclosure PDF</span>
+                @if (item.attachmentFileSize) {
+                <span class="file-size-tag">{{ item.attachmentFileSize }}</span>
+                }
+                <span class="open-arrow">↗</span>
+              </a>
+              } @else {
+              <span class="text-only-tag">Exchange filing text disclosure</span>
+              }
+
+              <div class="seq-id-group">
+                @if (item.hasXbrl) {
+                <span class="xbrl-tag" title="Structured XBRL filing available">XBRL</span>
+                }
+                <span class="seq-id-text">Ref #{{ item.seqId }}</span>
+              </div>
+            </div>
+          </article>
+          }
+        </div>
+      </section>
+      }
+
+      <!-- Progressive Load More Section (Show next 2-3 weeks of filings) -->
+      @if (hasMore()) {
+      <div class="load-more-feed-row">
+        <button
+          type="button"
+          class="show-more-feed-btn"
+          (click)="loadMore()"
+          [disabled]="isLoadingMore() || isRefreshing()"
+        >
+          @if (isLoadingMore()) {
+          <span class="btn-spinner-sm"></span>
+          <span>Loading earlier announcements...</span>
+          } @else {
+          <svg class="chevron-down-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+          <span>Show More Announcements</span>
+          }
+        </button>
+        <span class="load-more-progress-text">
+          Showing <strong>{{ announcements().length }}</strong> of <strong>{{ totalCount() }}</strong> announcements (last 3 months)
+        </span>
+      </div>
+      } @else if (announcements().length > 0) {
+      <div class="all-caught-up-banner">
+        <span class="check-circle-ico">✓</span>
+        <span>All announcements from the past 3 months loaded for your followed companies.</span>
+      </div>
+      }
+    </main>
+
+    <!-- RIGHT SIDEBAR COLUMN: Screener-style Intelligence Widgets -->
+    <aside class="feed-sidebar-column">
+      <!-- Widget 1: Followed Companies Filter Quick List -->
+      <div class="sidebar-widget-card">
+        <div class="widget-header-row">
+          <h4 class="widget-title">Core Watchlist</h4>
+          <span class="widget-count">{{ followedCount() }} stocks</span>
+        </div>
+        <div class="sidebar-stocks-list">
+          <button
+            type="button"
+            class="sidebar-stock-item"
+            [class.selected]="selectedSymbolFilter() === 'ALL'"
+            (click)="setSymbolFilter('ALL')"
+          >
+            <div class="stk-info">
+              <span class="stk-sym">All Followed Stocks</span>
+              <span class="stk-desc">Combined activity stream</span>
+            </div>
+            <span class="stk-all-badge">ALL</span>
+          </button>
+
+          @for (stock of followedStocksMeta(); track stock.symbol) {
+          <button
+            type="button"
+            class="sidebar-stock-item"
+            [class.selected]="selectedSymbolFilter() === stock.symbol"
+            (click)="setSymbolFilter(stock.symbol)"
+          >
+            <div class="stk-info">
+              <span class="stk-sym">{{ stock.symbol }}</span>
+              <span class="stk-desc">{{ stock.companyName }}</span>
+            </div>
+            @if (stock.price) {
+            <div class="stk-price-group">
+              <span class="stk-price">₹{{ stock.price | number:'1.2-2' }}</span>
+              @if (stock.changePercent != null) {
+              <span
+                class="stk-chg"
+                [class.green]="stock.isPositive"
+                [class.red]="!stock.isPositive"
+              >
+                {{ stock.isPositive ? '+' : '' }}{{ stock.changePercent | number:'1.2-2' }}%
+              </span>
+              }
+            </div>
+            }
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- Widget 2: Filing Knowledge Card -->
+      <div class="sidebar-widget-card info-card">
+        <div class="info-header">
+          <span class="info-icon">💡</span>
+          <span class="info-title">Filing Intelligence</span>
+        </div>
+        <p class="info-text">
+          <strong>SEBI Regulation 30</strong> disclosures report material events—such as joint ventures, M&A acquisitions, capacity additions, and regulatory approvals—often hours before they hit news outlets.
+        </p>
+      </div>
+    </aside>
+  </div>
+  }
+</div>

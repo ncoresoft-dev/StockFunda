@@ -12,43 +12,51 @@
   <!-- Horizontal Scrolling Ticker Strip -->
   <div class="ticker-strip-wrapper">
     <div class="ticker-ribbon">
-      <div class="ticker-track">
-        <!-- Overall Market Indicator Pill -->
-        <div class="ticker-badge-overall">
-          <span class="up-arrow">▲</span> 0.1%
+      @if (tickerErrorMessage() && tickerQuotes().length === 0) {
+        <div class="ticker-error-box">
+          <span class="ticker-error-icon">⚠️</span>
+          <span class="ticker-error-text">{{ tickerErrorMessage() }}</span>
+          <button type="button" class="ticker-retry-btn" (click)="loadTickers(true)">Retry</button>
         </div>
+      } @else {
+        <div class="ticker-track">
+          <!-- Overall Market Indicator Pill (Dynamic) -->
+          <div *ngIf="tickerOverallChange() as overall" class="ticker-badge-overall" [class.negative]="!overall.isPositive">
+            <span class="up-arrow">{{ overall.isPositive ? '▲' : '▼' }}</span> {{ overall.text }}
+          </div>
 
-        <!-- Dynamic Ticker Quotes from API / DB -->
-        <div 
-          *ngFor="let item of tickerQuotes()" 
-          class="ticker-item"
-          [class.positive]="item.isPositive"
-          [class.negative]="!item.isPositive"
-        >
-          <span class="ticker-short-name">{{ item.shortName }}</span>
-          <span class="ticker-price">{{ item.formattedPrice }}</span>
-          <span class="ticker-change">
-            <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
-            {{ item.formattedChange }}
-          </span>
-        </div>
+          <!-- Dynamic Ticker Quotes from API / DB -->
+          <div 
+            *ngFor="let item of tickerQuotes()" 
+            class="ticker-item"
+            [class.positive]="item.isPositive"
+            [class.negative]="!item.isPositive"
+          >
+            <span class="ticker-short-name">{{ item.shortName }}</span>
+            <span class="ticker-price">{{ item.formattedPrice }}</span>
+            <span class="ticker-change">
+              <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
+              {{ item.formattedChange }}
+            </span>
+          </div>
 
-        <!-- Duplicate track items for seamless continuous marquee loop -->
-        <div 
-          *ngFor="let item of tickerQuotes()" 
-          class="ticker-item duplicate"
-          [class.positive]="item.isPositive"
-          [class.negative]="!item.isPositive"
-          aria-hidden="true"
-        >
-          <span class="ticker-short-name">{{ item.shortName }}</span>
-          <span class="ticker-price">{{ item.formattedPrice }}</span>
-          <span class="ticker-change">
-            <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
-            {{ item.formattedChange }}
-          </span>
+          <!-- Duplicate track items for seamless continuous marquee loop -->
+          <div 
+            *ngFor="let item of tickerQuotes()" 
+            class="ticker-item duplicate"
+            [class.positive]="item.isPositive"
+            [class.negative]="!item.isPositive"
+            aria-hidden="true"
+          >
+            <span class="ticker-short-name">{{ item.shortName }}</span>
+            <span class="ticker-price">{{ item.formattedPrice }}</span>
+            <span class="ticker-change">
+              <span class="arrow">{{ item.isPositive ? '▲' : '▼' }}</span>
+              {{ item.formattedChange }}
+            </span>
+          </div>
         </div>
-      </div>
+      }
     </div>
   </div>
 
@@ -58,9 +66,9 @@
       <h1 class="greeting-heading">
         {{ greeting() }} <span class="wave-emoji">👋</span>
       </h1>
-      <div class="market-mood-pill">
-        <span class="pulsing-green-dot"></span>
-        <span class="mood-text">Market mood: <strong>Cautiously Bullish</strong></span>
+      <div class="market-mood-pill" [class]="marketMood().class">
+        <span class="pulsing-mood-dot" [class.green]="marketMood().class === 'bullish'" [class.red]="marketMood().class === 'bearish'"></span>
+        <span class="mood-text">Market mood: <strong>{{ marketMood().text }}</strong></span>
       </div>
     </div>
 
@@ -136,6 +144,13 @@
       </button>
     </div>
 
+    @if (exploreLensErrorMessage() && currentLensItems().length === 0) {
+      <div class="explore-lens-error-box" role="alert">
+        <span class="lens-error-icon">⚠️</span>
+        <span class="lens-error-text">{{ exploreLensErrorMessage() }}</span>
+        <button type="button" class="lens-retry-btn" (click)="loadExploreLens(activeLens(), true)">Retry</button>
+      </div>
+    } @else {
     <!-- Two-Column Cockpit Layout -->
     <div class="cockpit-grid">
       <!-- Left Column: Interactive Orbital Radar Graphic -->
@@ -331,6 +346,7 @@
         </button>
       </div>
     </div>
+    }
   </section>
 
   <!-- ========================================================================= -->

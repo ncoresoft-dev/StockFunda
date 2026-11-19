@@ -20,7 +20,6 @@ namespace StockLens_BusinessLayer.Services
     {
         private readonly IStockRepository _stockRepository;
         private readonly IStockFinancialRepository _financialRepository;
-        private readonly ICompanyRepository _companyRepository;
         private readonly IIndianApiBalanceSheetClient? _indianApiClient;
         private readonly IYahooFinanceClient? _yahooFinanceClient;
         private readonly IMapper _mapper;
@@ -31,7 +30,7 @@ namespace StockLens_BusinessLayer.Services
         public StockQuarterlyResultsService(
             IStockRepository stockRepository,
             IStockFinancialRepository financialRepository,
-            ICompanyRepository companyRepository,
+            ICompanyRepository? companyRepository,
             IMapper mapper,
             ILogger<StockQuarterlyResultsService> logger,
             IIndianApiBalanceSheetClient? indianApiClient = null,
@@ -39,7 +38,6 @@ namespace StockLens_BusinessLayer.Services
         {
             _stockRepository = stockRepository;
             _financialRepository = financialRepository;
-            _companyRepository = companyRepository;
             _mapper = mapper;
             _logger = logger;
             _indianApiClient = indianApiClient;

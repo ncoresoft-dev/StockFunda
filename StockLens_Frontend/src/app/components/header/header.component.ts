@@ -60,6 +60,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @Input() showAnnualReports: boolean = true;
   @Input() showSectors: boolean = true;
   @Input() showCompare: boolean = true;
+  @Input() showNews: boolean = true;
   @Input() showWatchlist: boolean = true;
   @Input() showAdminBell: boolean = true;
 
@@ -278,6 +279,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   isCompareActive(): boolean {
     return this.router.url.startsWith('/compare');
+  }
+
+  navigateToNews(): void {
+    this.router.navigate(['/news']);
+  }
+
+  isNewsActive(): boolean {
+    return this.router.url.startsWith('/news');
   }
 
   navigateToWatchlist(): void {

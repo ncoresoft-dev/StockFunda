@@ -40,6 +40,11 @@ export const routes: Routes = [
     title: 'Sector Analysis & Heatmap — StockLens'
   },
   {
+    path: 'news',
+    loadComponent: () => import('./components/news-page/news-page.component').then(m => m.NewsPageComponent),
+    title: 'News Hub — Market & Company News — StockLens'
+  },
+  {
     path: 'annual-reports',
     loadComponent: () => import('./components/annual-reports-list/annual-reports-list.component').then(m => m.AnnualReportsListComponent),
     title: 'Companies with Annual Reports — StockLens'

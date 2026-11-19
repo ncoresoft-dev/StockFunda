@@ -11,5 +11,14 @@ namespace StockLens_Infrastructure.ExternalServices.GoogleNews
             string symbol,
             string? companyName = null,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Fetches market-wide news from the Google News RSS feed.
+        /// Guaranteed not to be fetched twice within the same minute.
+        /// </summary>
+        Task<IReadOnlyList<IndianApiStandardArticle>> GetMarketNewsRssAsync(
+            string? rssUrl = null,
+            CancellationToken cancellationToken = default);
     }
 }
+

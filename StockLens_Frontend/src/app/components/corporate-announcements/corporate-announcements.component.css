@@ -1,0 +1,661 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* =========================================================================
+   Unified Outer White Box Card
+   ========================================================================= */
+.announcements-card {
+  background: #ffffff;
+  border: 1px solid #e2e8d0;
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* =========================================================================
+   Top Header Bar
+   ========================================================================= */
+.announcements-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Indigo Square Badge for Official Announcements */
+.announcements-square-badge {
+  width: 18px;
+  height: 18px;
+  background: #3b82f6;
+  border-radius: 4px;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.35);
+}
+
+.announcements-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #14180d;
+  letter-spacing: -0.015em;
+}
+
+/* Live Status Badge Pill */
+.live-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  display: inline-block;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.1);
+  }
+}
+
+.source-tag {
+  font-size: 0.76rem;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.updated-tag {
+  font-size: 0.76rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+/* Right Controls: Filter Input & Refresh Button */
+.header-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-ico {
+  position: absolute;
+  left: 10px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.search-input {
+  padding: 6px 28px 6px 30px;
+  font-size: 0.82rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1e293b;
+  width: 260px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.search-input:focus {
+  width: 300px;
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  padding: 2px;
+}
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.refresh-icon.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================================
+   Scope Switcher (All Market vs My Watchlist)
+   ========================================================================= */
+.scope-switch-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.scope-pills-wrap {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.scope-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.scope-pill-btn:hover {
+  color: #0f172a;
+}
+
+.scope-pill-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.scope-count-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.scope-pill-btn.active .scope-count-badge {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* =========================================================================
+   Category Filter Pills
+   ========================================================================= */
+.categories-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.cat-pill-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cat-pill-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.cat-pill-btn.active {
+  background: #1e293b;
+  border-color: #1e293b;
+  color: #ffffff;
+}
+
+/* =========================================================================
+   Skeleton States
+   ========================================================================= */
+.skeleton-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.skeleton-card {
+  height: 120px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 14px;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* =========================================================================
+   Error & Empty States
+   ========================================================================= */
+.error-box,
+.empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  margin: 16px 0;
+}
+
+.error-icon,
+.empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.error-msg,
+.empty-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+}
+
+.empty-sub {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0 0 16px 0;
+}
+
+.retry-btn,
+.reset-filter-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.retry-btn:hover,
+.reset-filter-btn:hover {
+  background: #1d4ed8;
+}
+
+/* =========================================================================
+   Announcements Feed & Cards
+   ========================================================================= */
+.announcements-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.announcement-item-card {
+  background: #ffffff;
+  border: 1px solid #e9eef5;
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcement-item-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+/* Top Row: Symbol, Company Name, Meta */
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.company-identity-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.symbol-badge-btn {
+  background: #1e293b;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.symbol-badge-btn:hover {
+  background: #2563eb;
+}
+
+.company-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.industry-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.meta-timing-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.xbrl-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.broadcast-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.clock-icon {
+  width: 13px;
+  height: 13px;
+  color: #94a3b8;
+}
+
+/* Subject Headline Row */
+.subject-row {
+  display: flex;
+  align-items: center;
+}
+
+.subject-tag {
+  display: inline-block;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #3b82f6;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Details Box */
+.details-content-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.details-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.details-text.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.read-more-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+  align-self: flex-start;
+}
+
+.read-more-btn:hover {
+  text-decoration: underline;
+}
+
+/* Card Footer: PDF Attachment Link */
+.card-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pdf-attachment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pdf-attachment-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.pdf-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.file-size-pill {
+  font-size: 0.7rem;
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.external-icon {
+  width: 12px;
+  height: 12px;
+  opacity: 0.8;
+}
+
+.no-doc-tag {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.footer-seq-id {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* =========================================================================
+   Load More Button
+   ========================================================================= */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 9px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.chevron-down {
+  width: 16px;
+  height: 16px;
+}
+
+/* =========================================================================
+   Responsive Breakpoints
+   ========================================================================= */
+@media (max-width: 768px) {
+  .announcements-card {
+    padding: 16px 14px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .search-input:focus {
+    width: 100%;
+  }
+
+  .announcement-item-card {
+    padding: 14px 12px;
+  }
+
+  .card-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .meta-timing-group {
+    align-self: flex-start;
+  }
+}

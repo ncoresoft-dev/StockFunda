@@ -9,6 +9,7 @@ using StockLens_Infrastructure.DataContext;
 using StockLens_Infrastructure.ExternalServices.BharatStock;
 using StockLens_Infrastructure.ExternalServices.GoogleNews;
 using StockLens_Infrastructure.ExternalServices.IndianApi;
+using StockLens_Infrastructure.ExternalServices.Nse;
 using StockLens_Infrastructure.Repositories;
 using StockLens_Infrastructure.Seeders;
 
@@ -52,7 +53,6 @@ void ConfigureIndianApiClient(HttpClient client)
 }
 
 // Configure IndianAPI HTTP Clients
-builder.Services.AddHttpClient<IIndianApiNewsClient, IndianApiNewsClient>(ConfigureIndianApiClient);
 builder.Services.AddHttpClient<IIndianApiShareholdingClient, IndianApiShareholdingClient>(ConfigureIndianApiClient);
 builder.Services.AddHttpClient<IIndianApiBalanceSheetClient, IndianApiBalanceSheetClient>(ConfigureIndianApiClient);
 builder.Services.AddHttpClient<IIndianApiHistoricalDataClient, IndianApiHistoricalDataClient>(ConfigureIndianApiClient);
@@ -82,7 +82,7 @@ builder.Services.AddHttpClient<IIndicesProvider, BharatStockIndicesProvider>(Con
 // Register Yahoo Finance HTTP Client
 builder.Services.AddHttpClient<StockLens_Infrastructure.ExternalServices.YahooFinanceApi.IYahooFinanceClient, StockLens_Infrastructure.ExternalServices.YahooFinanceApi.YahooFinanceClient>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(10);
+    client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 // Register Google News HTTP Client
@@ -104,6 +104,10 @@ builder.Services.AddScoped<IStockDealsRepository, StockDealsRepository>();
 builder.Services.AddScoped<IStockPeerRepository, StockPeerRepository>();
 builder.Services.AddScoped<IStockAnnualReportRepository, StockAnnualReportRepository>();
 builder.Services.AddScoped<IMarketTickerRepository, MarketTickerRepository>();
+builder.Services.AddScoped<IStockAnnouncementRepository, StockAnnouncementRepository>();
+
+// Register NSE Corporate Announcement Client (reusable singleton with primed cookies)
+builder.Services.AddSingleton<INseAnnouncementClient, NseAnnouncementClient>();
 
 // Register Seeders & Daily Valuation
 builder.Services.AddTransient<CompanyMasterSeeder>();
@@ -116,6 +120,16 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<StockSeedingBackgr
 
 builder.Services.AddSingleton<DailyValuationBackgroundService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyValuationBackgroundService>());
+
+// Register Market News Cache, Service & Background Poller (Google News RSS with exponential backoff & rate-guard)
+builder.Services.AddSingleton<IMarketNewsCache, MarketNewsCache>();
+builder.Services.AddScoped<IMarketNewsService, MarketNewsService>();
+builder.Services.AddSingleton<MarketNewsBackgroundService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MarketNewsBackgroundService>());
+
+// Register NSE Corporate Announcements Background Poller (disabled)
+// builder.Services.AddSingleton<NseAnnouncementBackgroundService>();
+// builder.Services.AddHostedService(sp => sp.GetRequiredService<NseAnnouncementBackgroundService>());
 
 // Register Screener HTTP Client
 builder.Services.Configure<StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings>(builder.Configuration.GetSection(StockLens_Infrastructure.ExternalServices.Screener.ScreenerSettings.SectionName));
@@ -151,6 +165,7 @@ builder.Services.AddScoped<IMarketTickerService, MarketTickerService>();
 builder.Services.AddScoped<IExploreLensService, ExploreLensService>();
 builder.Services.AddScoped<IStockComparisonService, StockComparisonService>();
 builder.Services.AddScoped<ISectorAnalysisService, SectorAnalysisService>();
+builder.Services.AddScoped<IStockAnnouncementService, StockAnnouncementService>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());

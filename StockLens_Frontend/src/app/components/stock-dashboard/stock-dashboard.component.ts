@@ -155,6 +155,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   // Stock Evaluation State (Good / Neutral / Bad Signal Engine)
   evaluationResponse = signal<StockHealthScoreResponse | null>(null);
+  evaluationErrorMessage = signal<string | null>(null);
   isEvaluationRefreshing = signal<boolean>(false);
   isEvaluationModalOpen = signal<boolean>(false);
   isAboutModalOpen = signal<boolean>(false);
@@ -420,6 +421,7 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     this.assetsResponse.set(null);
     this.shareholdingResponse.set(null);
     this.evaluationResponse.set(null);
+    this.evaluationErrorMessage.set(null);
     this.newsResponse.set(null);
     this.deliveryAnalysisData.set(null);
     this.companyOverview.set(null);
@@ -575,19 +577,21 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
       this.isEvaluationRefreshing.set(true);
     }
 
+    this.evaluationErrorMessage.set(null);
     this.evaluationService.getEvaluation(symbol, exchange, isRefresh).subscribe({
       next: (data) => {
         if (this.selectedSymbol() !== symbol) return;
         if (data) {
           this.evaluationResponse.set(data);
+          this.evaluationErrorMessage.set(null);
         } else {
-        
+          this.evaluationErrorMessage.set(`Health evaluation is currently unavailable for ${symbol}.`);
         }
         this.isEvaluationRefreshing.set(false);
       },
       error: () => {
         if (this.selectedSymbol() !== symbol) return;
-       
+        this.evaluationErrorMessage.set(`Health evaluation is currently unavailable for ${symbol}.`);
         this.isEvaluationRefreshing.set(false);
       }
     });
@@ -600,18 +604,18 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
     if (existing && existing.symbol === this.selectedSymbol().toUpperCase()) {
       return existing;
     }
-    // Return placeholder while backend evaluation loads - do not compute score in UI
+    const errMsg = this.evaluationErrorMessage();
     return {
       symbol: this.selectedSymbol(),
       exchange: this.selectedExchange(),
       companyName: this.getCompanyName(),
       totalScore: 0,
-      signal: 'Evaluating...',
-      signalClass: 'badge-analyzing',
+      signal: errMsg ? 'Unavailable' : 'Evaluating...',
+      signalClass: errMsg ? 'badge-neutral' : 'badge-analyzing',
       pros: [],
       cons: [],
       redFlags: [],
-      summaryText: 'Fetching sector-adaptive algorithmic evaluation from backend...',
+      summaryText: errMsg || 'Fetching sector-adaptive algorithmic evaluation from backend...',
       categoryScores: []
     } as any;
   }
@@ -1131,6 +1135,15 @@ export class StockDashboardComponent implements OnInit, OnDestroy {
 
   getEvaluationVerdict(): { text: string, score: number | string, class: string, progressWidth: number, isLoading: boolean } {
     const evalData = this.evaluationResponse();
+    if (this.evaluationErrorMessage() && (!evalData || evalData.symbol !== this.selectedSymbol().toUpperCase())) {
+      return {
+        text: 'Unavailable',
+        score: '—',
+        class: 'badge-neutral',
+        progressWidth: 0,
+        isLoading: false
+      };
+    }
     if (this.isEvaluationRefreshing() || !evalData || evalData.symbol !== this.selectedSymbol().toUpperCase()) {
       return {
         text: 'Evaluating...',

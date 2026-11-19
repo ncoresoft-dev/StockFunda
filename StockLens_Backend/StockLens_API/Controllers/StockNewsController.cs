@@ -40,7 +40,7 @@ namespace StockLens_API.Controllers
         /// <param name="exchange">Stock exchange (NSE or BSE, default: NSE).</param>
         /// <param name="limit">Max number of news items to return (default: 5, max: 100).</param>
         /// <param name="page">Page index.</param>
-        /// <param name="refresh">Force cache refresh from IndianAPI / Google News.</param>
+        /// <param name="refresh">Force cache refresh from Google News RSS.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         [HttpGet("news")]
         [ProducesResponseType(typeof(StockNewsResponseDto), StatusCodes.Status200OK)]

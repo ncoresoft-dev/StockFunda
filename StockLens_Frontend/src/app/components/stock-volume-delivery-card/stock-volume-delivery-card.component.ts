@@ -19,23 +19,30 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   @Input() isLightTheme: boolean = false;
 
   deliveryData = signal<VolumeDeliveryAnalysisResponse | null>(null);
-  isLoading = computed(() => !this.deliveryData());
+  isLoading = computed(() => !this.deliveryData() && !this.errorMessage());
   errorMessage = signal<string | null>(null);
   activePeriod = signal<DeliveryPeriodTab>('Day');
 
   ngOnInit(): void {
     if (this.analysisData) {
       this.deliveryData.set(this.analysisData);
-    } else {
-      this.loadDeliveryData();
+      this.errorMessage.set(null);
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['analysisData'] && this.analysisData) {
-      this.deliveryData.set(this.analysisData);
-    } else if (changes['symbol'] && this.symbol && !this.analysisData) {
-      this.loadDeliveryData();
+    if (changes['analysisData']) {
+      if (this.analysisData) {
+        this.deliveryData.set(this.analysisData);
+        this.errorMessage.set(null);
+      } else if (changes['analysisData'].previousValue !== undefined) {
+        this.deliveryData.set(null);
+        this.errorMessage.set(`Volume and delivery breakdown is currently unavailable for ${this.companyName || this.symbol}.`);
+      }
+    }
+    if (changes['symbol'] && changes['symbol'].currentValue !== changes['symbol'].previousValue && !changes['symbol'].firstChange) {
+      this.deliveryData.set(null);
+      this.errorMessage.set(null);
     }
   }
 
@@ -122,6 +129,10 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
       d?.week?.deliveryPercentage === undefined || d?.week?.deliveryPercentage === null) {
       return null;
     }
+    // If neither period reported real delivery percentage, do not display a misleading 0.00% badge
+    if (d.day.deliveryPercentage <= 0 && d.week.deliveryPercentage <= 0) {
+      return null;
+    }
 
     const diff = +(d.day.deliveryPercentage - d.week.deliveryPercentage).toFixed(2);
     const sign = diff > 0 ? '+' : '';
@@ -193,6 +204,10 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
       d?.month?.deliveryPercentage === undefined || d?.month?.deliveryPercentage === null) {
       return null;
     }
+    // If neither period reported real delivery percentage, do not display a misleading 0.00% badge
+    if (d.week.deliveryPercentage <= 0 && d.month.deliveryPercentage <= 0) {
+      return null;
+    }
 
     const diff = +(d.week.deliveryPercentage - d.month.deliveryPercentage).toFixed(2);
     const sign = diff > 0 ? '+' : '';
@@ -206,21 +221,10 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
   loadDeliveryData(): void {
     if (!this.symbol) return;
 
-    this.deliveryData.set(null);
-    this.errorMessage.set(null);
-
-    // TODO: Verify if this data should come directly from the price history/chart data instead of a separate API call.
-    // this.deliveryService.getDeliveryAnalysis(this.symbol, this.exchange).subscribe({
-    //   next: (data) => {
-    //     this.deliveryData.set(data);
-    //   },
-    //   error: (err) => {
-    //     console.warn('Could not fetch delivery analysis from API, using fallback calculations:', err);
-    //     this.deliveryData.set(this.getFallbackData());
-    //   }
-    // });
-    
-    this.deliveryData.set(this.getFallbackData());
+    if (this.analysisData) {
+      this.deliveryData.set(this.analysisData);
+      this.errorMessage.set(null);
+    }
   }
 
   formatVolume(val?: number): string {
@@ -235,35 +239,5 @@ export class StockVolumeDeliveryCardComponent implements OnInit, OnChanges {
       return (val / 1000).toFixed(1) + 'K';
     }
     return val.toLocaleString();
-  }
-
-  private getFallbackData(): VolumeDeliveryAnalysisResponse {
-    return {
-      symbol: this.symbol,
-      companyName: this.companyName || this.symbol,
-      exchange: this.exchange,
-      asOfDate: new Date().toISOString().split('T')[0],
-      day: {
-        tradedVolume: 4100000,
-        deliveryVolume: 2800000,
-        deliveryPercentage: 69.54,
-        formattedTradedVolume: '4.10M',
-        formattedDeliveryVolume: '2.80M'
-      },
-      week: {
-        tradedVolume: 3900000,
-        deliveryVolume: 2000000,
-        deliveryPercentage: 50.34,
-        formattedTradedVolume: '3.90M',
-        formattedDeliveryVolume: '2.00M'
-      },
-      month: {
-        tradedVolume: 4400000,
-        deliveryVolume: 1900000,
-        deliveryPercentage: 42.66,
-        formattedTradedVolume: '4.40M',
-        formattedDeliveryVolume: '1.90M'
-      }
-    };
   }
 }

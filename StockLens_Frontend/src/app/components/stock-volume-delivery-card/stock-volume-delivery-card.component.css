@@ -662,3 +662,35 @@
 :host-context([data-theme="light"]) .skeleton-col {
   background: #f1f5f9 !important;
 }
+
+.delivery-error-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  margin: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 0.875rem;
+}
+
+.delivery-error-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke: #f87171;
+}
+
+.delivery-error-text {
+  line-height: 1.4;
+}
+
+.light-mode .delivery-error-state,
+:host-context(.light-theme) .delivery-error-state,
+:host-context([data-theme="light"]) .delivery-error-state {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}

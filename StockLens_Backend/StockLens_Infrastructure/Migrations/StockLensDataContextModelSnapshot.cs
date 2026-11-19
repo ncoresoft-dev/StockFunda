@@ -236,6 +236,87 @@ namespace StockLens_Infrastructure.Migrations
                     b.ToTable("Stocks", (string)null);
                 });
 
+            modelBuilder.Entity("StockLens_DataLayer.Entities.StockAnnouncement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AttachmentFileSize")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("AttachmentUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("BroadcastDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Difference")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DisseminationTime")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("HasXbrl")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Industry")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Isin")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SeqId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BroadcastDateTime")
+                        .HasDatabaseName("IX_StockAnnouncements_BroadcastDateTime");
+
+                    b.HasIndex("SeqId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StockAnnouncements_SeqId");
+
+                    b.HasIndex("Symbol")
+                        .HasDatabaseName("IX_StockAnnouncements_Symbol");
+
+                    b.HasIndex("Symbol", "BroadcastDateTime")
+                        .HasDatabaseName("IX_StockAnnouncements_Symbol_BroadcastDateTime");
+
+                    b.ToTable("StockAnnouncements", (string)null);
+                });
+
             modelBuilder.Entity("StockLens_DataLayer.Entities.StockAnnualReport", b =>
                 {
                     b.Property<int>("Id")

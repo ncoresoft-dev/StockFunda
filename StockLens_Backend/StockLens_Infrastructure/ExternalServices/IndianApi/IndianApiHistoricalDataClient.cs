@@ -35,7 +35,7 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
             }
         }
 
-        public async Task<List<IndianApiPriceRecord>> GetHistoricalPricesAsync(string cleanTicker, string period = "5yr", string? exchange = null, string filter = "price", CancellationToken cancellationToken = default)
+        public async Task<List<IndianApiPriceRecord>> GetHistoricalPricesAsync(string cleanTicker, string period = "5yr", string? exchange = null, string filter = "default", CancellationToken cancellationToken = default)
         {
             var allRecords = new List<IndianApiPriceRecord>();
             
@@ -43,8 +43,9 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
             
             // Default to 5yr if an invalid or empty period is passed
             if (string.IsNullOrWhiteSpace(period)) period = "5yr";
+            var filterParam = string.IsNullOrWhiteSpace(filter) ? "default" : filter;
             
-            var endpoint = $"/historical_data?stock_name={Uri.EscapeDataString(pureTicker)}&period={Uri.EscapeDataString(period)}&filter={Uri.EscapeDataString(filter)}";
+            var endpoint = $"/historical_data?stock_name={Uri.EscapeDataString(pureTicker)}&period={Uri.EscapeDataString(period)}&filter={Uri.EscapeDataString(filterParam)}";
 
             try
             {
@@ -121,24 +122,72 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
                                             record.TotalTradedVolume = record.Volume;
                                         }
 
-                                        if (item.GetArrayLength() >= 3 && item[2].ValueKind == JsonValueKind.Object)
+                                        if (item.GetArrayLength() >= 3)
                                         {
-                                            if (item[2].TryGetProperty("delivery", out var deliveryProp))
+                                            if (item[2].ValueKind == JsonValueKind.Object)
                                             {
-                                                if (deliveryProp.ValueKind == JsonValueKind.Number)
+                                                if (item[2].TryGetProperty("delivery", out var deliveryProp) ||
+                                                    item[2].TryGetProperty("delivery_percentage", out deliveryProp) ||
+                                                    item[2].TryGetProperty("deliveryPercentage", out deliveryProp))
                                                 {
-                                                    record.DeliveryPercentage = deliveryProp.GetDecimal();
+                                                    if (deliveryProp.ValueKind == JsonValueKind.Number)
+                                                    {
+                                                        record.DeliveryPercentage = deliveryProp.GetDecimal();
+                                                    }
+                                                    else if (deliveryProp.ValueKind == JsonValueKind.String && decimal.TryParse(deliveryProp.GetString(), out var delVal))
+                                                    {
+                                                        record.DeliveryPercentage = delVal;
+                                                    }
                                                 }
-                                                else if (deliveryProp.ValueKind == JsonValueKind.String && decimal.TryParse(deliveryProp.GetString(), out var delVal))
+
+                                                if (item[2].TryGetProperty("delivery_volume", out var delVolProp) ||
+                                                    item[2].TryGetProperty("deliveryVolume", out delVolProp))
                                                 {
-                                                    record.DeliveryPercentage = delVal;
+                                                    if (delVolProp.ValueKind == JsonValueKind.Number)
+                                                    {
+                                                        record.DeliveryVolume = delVolProp.GetInt64();
+                                                    }
+                                                    else if (delVolProp.ValueKind == JsonValueKind.String && long.TryParse(delVolProp.GetString(), out var dvVal))
+                                                    {
+                                                        record.DeliveryVolume = dvVal;
+                                                    }
                                                 }
+                                            }
+                                            else if (item[2].ValueKind == JsonValueKind.Number)
+                                            {
+                                                record.DeliveryPercentage = item[2].GetDecimal();
+                                            }
+                                            else if (item[2].ValueKind == JsonValueKind.String && decimal.TryParse(item[2].GetString(), out var delNum))
+                                            {
+                                                record.DeliveryPercentage = delNum;
                                             }
                                         }
 
-                                        if (record.Volume.HasValue && record.DeliveryPercentage.HasValue)
+                                        if (record.Volume.HasValue && record.DeliveryPercentage.HasValue && !record.DeliveryVolume.HasValue)
                                         {
                                             record.DeliveryVolume = (long)Math.Round(record.Volume.Value * (record.DeliveryPercentage.Value / 100m));
+                                        }
+                                    }
+                                    else if (metric != null && (metric.Equals("Delivery", StringComparison.OrdinalIgnoreCase) || metric.Equals("DeliveryPercentage", StringComparison.OrdinalIgnoreCase) || metric.Equals("Delivery%", StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        if (item[1].ValueKind == JsonValueKind.Number)
+                                        {
+                                            record.DeliveryPercentage = item[1].GetDecimal();
+                                        }
+                                        else if (item[1].ValueKind == JsonValueKind.String && decimal.TryParse(item[1].GetString(), out var dp))
+                                        {
+                                            record.DeliveryPercentage = dp;
+                                        }
+                                    }
+                                    else if (metric != null && (metric.Equals("DeliveryVolume", StringComparison.OrdinalIgnoreCase) || metric.Equals("Delivery Volume", StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        if (item[1].ValueKind == JsonValueKind.Number)
+                                        {
+                                            record.DeliveryVolume = item[1].GetInt64();
+                                        }
+                                        else if (item[1].ValueKind == JsonValueKind.String && long.TryParse(item[1].GetString(), out var dv))
+                                        {
+                                            record.DeliveryVolume = dv;
                                         }
                                     }
                                     else if (metric == "DMA50")

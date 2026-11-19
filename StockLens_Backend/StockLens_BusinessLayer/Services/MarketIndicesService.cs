@@ -1110,30 +1110,10 @@ namespace StockLens_BusinessLayer.Services
                 }
             }
 
-            // Graceful baseline fallbacks if market quotes are unavailable
             if (indexCurrentPrice <= 0)
             {
-                if (cleanKey == "bank-nifty")
-                {
-                    indexCurrentPrice = 51850.40m;
-                    indexPreviousClose = 51620.10m;
-                    indexChange = 230.30m;
-                    indexChangePercent = 0.45m;
-                }
-                else if (cleanKey == "sensex")
-                {
-                    indexCurrentPrice = 82890.90m;
-                    indexPreviousClose = 82450.20m;
-                    indexChange = 440.70m;
-                    indexChangePercent = 0.53m;
-                }
-                else
-                {
-                    indexCurrentPrice = 25291.10m;
-                    indexPreviousClose = 25144.30m;
-                    indexChange = 146.80m;
-                    indexChangePercent = 0.58m;
-                }
+                Console.WriteLine($"[MarketIndicesService] Market quote unavailable for index benchmark {indexSymbol}. Returning null attribution.");
+                return null;
             }
 
             if (indexPreviousClose <= 0)
@@ -1201,13 +1181,9 @@ namespace StockLens_BusinessLayer.Services
                         price = dbConst.Price.Value;
                     }
 
-                    // If changePercent is still zero, generate consistent realistic variance based on index change & weight
-                    if (changePercent == 0m)
+                    if (changePercent == 0m && change != 0m && price > 0m)
                     {
-                        var pseudoRandomFactor = Math.Sin(sym.GetHashCode() % 100);
-                        var baseChange = (indexChangePercent * 0.9m) + (decimal)(pseudoRandomFactor * 1.5);
-                        changePercent = Math.Round(baseChange, 2);
-                        change = Math.Round(price * (changePercent / 100m), 2);
+                        changePercent = Math.Round((change / price) * 100m, 2);
                     }
 
                     // Raw mathematical point contribution

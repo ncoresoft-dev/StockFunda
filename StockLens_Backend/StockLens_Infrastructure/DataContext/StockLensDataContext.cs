@@ -23,6 +23,7 @@ namespace StockLens_Infrastructure.DataContext
         public DbSet<MarketIndexConstituent> MarketIndexConstituents => Set<MarketIndexConstituent>();
         public DbSet<StockAnnualReport> StockAnnualReports => Set<StockAnnualReport>();
         public DbSet<MarketTickerQuote> MarketTickerQuotes => Set<MarketTickerQuote>();
+        public DbSet<StockAnnouncement> StockAnnouncements => Set<StockAnnouncement>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -576,6 +577,62 @@ namespace StockLens_Infrastructure.DataContext
                 entity.HasIndex(t => t.Symbol)
                     .IsUnique()
                     .HasDatabaseName("IX_MarketTickerQuotes_Symbol");
+            });
+
+            // StockAnnouncement configuration
+            modelBuilder.Entity<StockAnnouncement>(entity =>
+            {
+                entity.ToTable("StockAnnouncements");
+                entity.HasKey(a => a.Id);
+
+                entity.Property(a => a.SeqId)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(a => a.Symbol)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(a => a.CompanyName)
+                    .HasMaxLength(250)
+                    .IsRequired();
+
+                entity.Property(a => a.Isin)
+                    .HasMaxLength(50);
+
+                entity.Property(a => a.Industry)
+                    .HasMaxLength(150);
+
+                entity.Property(a => a.Subject)
+                    .HasMaxLength(500);
+
+                entity.Property(a => a.Details)
+                    .HasColumnType("nvarchar(max)");
+
+                entity.Property(a => a.AttachmentUrl)
+                    .HasMaxLength(1000);
+
+                entity.Property(a => a.AttachmentFileSize)
+                    .HasMaxLength(50);
+
+                entity.Property(a => a.DisseminationTime)
+                    .HasMaxLength(50);
+
+                entity.Property(a => a.Difference)
+                    .HasMaxLength(50);
+
+                entity.HasIndex(a => a.SeqId)
+                    .IsUnique()
+                    .HasDatabaseName("IX_StockAnnouncements_SeqId");
+
+                entity.HasIndex(a => a.Symbol)
+                    .HasDatabaseName("IX_StockAnnouncements_Symbol");
+
+                entity.HasIndex(a => a.BroadcastDateTime)
+                    .HasDatabaseName("IX_StockAnnouncements_BroadcastDateTime");
+
+                entity.HasIndex(a => new { a.Symbol, a.BroadcastDateTime })
+                    .HasDatabaseName("IX_StockAnnouncements_Symbol_BroadcastDateTime");
             });
         }
     }

@@ -408,14 +408,26 @@
   height: 14px;
 }
 
-/* Watchlist & Annual Reports Buttons */
+/* ==========================================================================
+   Navigation Buttons (Watchlist, Annual Reports, Sectors, Compare, News)
+   ========================================================================== */
+.nav-news-btn,
+.nav-sectors-btn,
+.nav-compare-btn {
+  padding: 0.28rem 1.15rem;
+  min-width: 90px;
+  justify-content: center;
+  font-size: 0.78rem;
+  gap: 0.5rem;
+}
+
 .nav-watchlist-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  color: #fbbf24;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
   padding: 0.28rem 0.75rem;
   border-radius: 6px;
   font-size: 0.76rem;
@@ -428,19 +440,45 @@
 }
 
 .nav-watchlist-btn:hover {
-  background: rgba(251, 191, 36, 0.22);
-  border-color: #f59e0b;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
-.star-nav-icon {
+.nav-watchlist-btn.active {
+  background: rgba(2, 132, 199, 0.22);
+  border-color: #0284c7;
+  color: #38bdf8;
+}
+
+.star-nav-icon,
+.reports-nav-icon,
+.sectors-nav-icon,
+.compare-nav-icon,
+.news-nav-icon {
   width: 14px;
   height: 14px;
+  color: currentColor;
+  transition: color 0.15s ease;
+}
+
+/* Watchlist Button Dedicated Styling (Modern Indigo/Blue - No Washed Yellow) */
+.nav-watchlist-btn.nav-fav-btn {
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.nav-watchlist-btn.nav-fav-btn:hover {
+  background: rgba(37, 99, 235, 0.24);
+  border-color: #60a5fa;
+  color: #93c5fd;
 }
 
 .watchlist-pill-count {
-  background: #f59e0b;
-  color: #0f172a;
+  background: #2563eb;
+  color: #ffffff;
   font-size: 0.65rem;
   font-weight: 800;
   padding: 0.05rem 0.4rem;
@@ -448,26 +486,30 @@
   line-height: 1.2;
 }
 
-.nav-reports-btn {
+.nav-reports-btn,
+.nav-sectors-btn,
+.nav-compare-btn,
+.nav-news-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #94a3b8;
 }
 
 .nav-reports-btn:hover,
-.nav-reports-btn.active {
+.nav-sectors-btn:hover,
+.nav-compare-btn:hover,
+.nav-news-btn:hover {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 
-.reports-nav-icon {
-  width: 14px;
-  height: 14px;
-  color: #94a3b8;
-}
-
-.nav-reports-btn:hover .reports-nav-icon {
+.nav-reports-btn.active,
+.nav-sectors-btn.active,
+.nav-compare-btn.active,
+.nav-news-btn.active {
+  background: rgba(2, 132, 199, 0.22);
+  border-color: #0284c7;
   color: #38bdf8;
 }
 
@@ -697,29 +739,117 @@
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
 }
 
+/* Navigation Buttons in Light Theme (White Header Background) */
+:host-context(.light-theme) .nav-watchlist-btn,
+:host-context([data-theme="light"]) .nav-watchlist-btn,
+.cockpit-header.light-theme .nav-watchlist-btn,
 :host-context(.light-theme) .nav-reports-btn,
 :host-context([data-theme="light"]) .nav-reports-btn,
-.cockpit-header.light-theme .nav-reports-btn {
-  background: #f1f5f9;
+.cockpit-header.light-theme .nav-reports-btn,
+:host-context(.light-theme) .nav-sectors-btn,
+:host-context([data-theme="light"]) .nav-sectors-btn,
+.cockpit-header.light-theme .nav-sectors-btn,
+:host-context(.light-theme) .nav-compare-btn,
+:host-context([data-theme="light"]) .nav-compare-btn,
+.cockpit-header.light-theme .nav-compare-btn,
+:host-context(.light-theme) .nav-news-btn,
+:host-context([data-theme="light"]) .nav-news-btn,
+.cockpit-header.light-theme .nav-news-btn {
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
-  color: #475569;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
+:host-context(.light-theme) .nav-watchlist-btn:hover,
+:host-context([data-theme="light"]) .nav-watchlist-btn:hover,
+.cockpit-header.light-theme .nav-watchlist-btn:hover,
 :host-context(.light-theme) .nav-reports-btn:hover,
 :host-context([data-theme="light"]) .nav-reports-btn:hover,
-:host-context(.light-theme) .nav-reports-btn.active,
-:host-context([data-theme="light"]) .nav-reports-btn.active,
 .cockpit-header.light-theme .nav-reports-btn:hover,
-.cockpit-header.light-theme .nav-reports-btn.active {
-  background: #e2e8f0;
+:host-context(.light-theme) .nav-sectors-btn:hover,
+:host-context([data-theme="light"]) .nav-sectors-btn:hover,
+.cockpit-header.light-theme .nav-sectors-btn:hover,
+:host-context(.light-theme) .nav-compare-btn:hover,
+:host-context([data-theme="light"]) .nav-compare-btn:hover,
+.cockpit-header.light-theme .nav-compare-btn:hover,
+:host-context(.light-theme) .nav-news-btn:hover,
+:host-context([data-theme="light"]) .nav-news-btn:hover,
+.cockpit-header.light-theme .nav-news-btn:hover {
+  background: #f1f5f9;
   border-color: #cbd5e1;
   color: #0f172a;
 }
 
+:host-context(.light-theme) .nav-watchlist-btn.active,
+:host-context([data-theme="light"]) .nav-watchlist-btn.active,
+.cockpit-header.light-theme .nav-watchlist-btn.active,
+:host-context(.light-theme) .nav-reports-btn.active,
+:host-context([data-theme="light"]) .nav-reports-btn.active,
+.cockpit-header.light-theme .nav-reports-btn.active,
+:host-context(.light-theme) .nav-sectors-btn.active,
+:host-context([data-theme="light"]) .nav-sectors-btn.active,
+.cockpit-header.light-theme .nav-sectors-btn.active,
+:host-context(.light-theme) .nav-compare-btn.active,
+:host-context([data-theme="light"]) .nav-compare-btn.active,
+.cockpit-header.light-theme .nav-compare-btn.active,
+:host-context(.light-theme) .nav-news-btn.active,
+:host-context([data-theme="light"]) .nav-news-btn.active,
+.cockpit-header.light-theme .nav-news-btn.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+:host-context(.light-theme) .nav-watchlist-btn.active svg,
+:host-context([data-theme="light"]) .nav-watchlist-btn.active svg,
+.cockpit-header.light-theme .nav-watchlist-btn.active svg {
+  color: #ffffff;
+}
+
+/* Watchlist Button in Light Theme: Crisp Royal Blue Shade (replaces yellow) */
+:host-context(.light-theme) .nav-watchlist-btn.nav-fav-btn,
+:host-context([data-theme="light"]) .nav-watchlist-btn.nav-fav-btn,
+.cockpit-header.light-theme .nav-watchlist-btn.nav-fav-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+:host-context(.light-theme) .nav-watchlist-btn.nav-fav-btn:hover,
+:host-context([data-theme="light"]) .nav-watchlist-btn.nav-fav-btn:hover,
+.cockpit-header.light-theme .nav-watchlist-btn.nav-fav-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+:host-context(.light-theme) .star-nav-icon,
+:host-context([data-theme="light"]) .star-nav-icon,
+.cockpit-header.light-theme .star-nav-icon,
 :host-context(.light-theme) .reports-nav-icon,
 :host-context([data-theme="light"]) .reports-nav-icon,
-.cockpit-header.light-theme .reports-nav-icon {
-  color: #64748b;
+.cockpit-header.light-theme .reports-nav-icon,
+:host-context(.light-theme) .sectors-nav-icon,
+:host-context([data-theme="light"]) .sectors-nav-icon,
+.cockpit-header.light-theme .sectors-nav-icon,
+:host-context(.light-theme) .compare-nav-icon,
+:host-context([data-theme="light"]) .compare-nav-icon,
+.cockpit-header.light-theme .compare-nav-icon,
+:host-context(.light-theme) .news-nav-icon,
+:host-context([data-theme="light"]) .news-nav-icon,
+.cockpit-header.light-theme .news-nav-icon {
+  color: inherit;
+}
+
+:host-context(.light-theme) .watchlist-pill-count,
+:host-context([data-theme="light"]) .watchlist-pill-count,
+.cockpit-header.light-theme .watchlist-pill-count {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 :host-context(.light-theme) .exchange-pills,
@@ -776,6 +906,13 @@
   .brand-tagline {
     display: none;
   }
+
+  .nav-news-btn,
+  .nav-sectors-btn,
+  .nav-compare-btn {
+    min-width: 80px;
+    padding: 0.28rem 0.8rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -813,6 +950,7 @@
   .nav-reports-btn,
   .btn-back-home {
     padding: 0 8px;
+    min-width: unset;
   }
 
   .header-page-tag {

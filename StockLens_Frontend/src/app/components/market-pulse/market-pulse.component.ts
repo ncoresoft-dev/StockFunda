@@ -2,7 +2,9 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { MarketTickerService } from '../../services/market-ticker.service';
+import { StockNewsService } from '../../services/stock-news.service';
 import { MarketPulseResponse, MarketPulseIndex } from '../../models/market-ticker.model';
+import { MarketNewsItem, MarketNewsResponse } from '../../models/stock-news.model';
 
 @Component({
   selector: 'app-market-pulse',
@@ -13,12 +15,18 @@ import { MarketPulseResponse, MarketPulseIndex } from '../../models/market-ticke
 })
 export class MarketPulseComponent implements OnInit {
   private readonly tickerService = inject(MarketTickerService);
+  private readonly newsService = inject(StockNewsService);
   private readonly router = inject(Router);
 
   readonly timeframes: Array<'1D' | '1W' | '1M'> = ['1D', '1W', '1M'];
   selectedTimeframe = signal<'1D' | '1W' | '1M'>('1D');
   isLoading = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
   pulseData = signal<MarketPulseResponse | null>(null);
+
+  // Live Market News Feed (Option 2 - 30% Column)
+  latestNews = signal<MarketNewsItem[]>([]);
+  isNewsLoading = signal<boolean>(false);
 
   indices = computed<MarketPulseIndex[]>(() => this.pulseData()?.indices ?? []);
 
@@ -46,6 +54,38 @@ export class MarketPulseComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPulseData();
+    this.loadLatestNews();
+  }
+
+  loadLatestNews(): void {
+    this.isNewsLoading.set(true);
+    this.newsService.getMarketNews(5).subscribe({
+      next: (res: MarketNewsResponse) => {
+        if (res && res.news && res.news.length > 0) {
+          this.latestNews.set(res.news.slice(0, 5));
+        } else {
+          this.latestNews.set([]);
+        }
+        this.isNewsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load market news for indices feed:', err);
+        this.latestNews.set([]);
+        this.isNewsLoading.set(false);
+      }
+    });
+  }
+
+  navigateToNewsHub(): void {
+    this.router.navigate(['/news']);
+  }
+
+  openArticle(url?: string): void {
+    if (!url) {
+      this.navigateToNewsHub();
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   setTimeframe(tf: '1D' | '1W' | '1M'): void {
@@ -56,13 +96,23 @@ export class MarketPulseComponent implements OnInit {
 
   loadPulseData(forceRefresh = false): void {
     this.isLoading.set(true);
+    this.errorMessage.set(null);
     this.tickerService.getMarketPulse(this.selectedTimeframe(), forceRefresh).subscribe({
       next: (data) => {
-        this.pulseData.set(data);
+        if (data && data.indices && data.indices.length > 0) {
+          this.pulseData.set(data);
+          this.errorMessage.set(null);
+        } else {
+          this.pulseData.set(null);
+          this.errorMessage.set('Market indices data is currently unavailable.');
+        }
         this.isLoading.set(false);
       },
       error: (err) => {
         console.error('Failed to load market pulse data:', err);
+        this.pulseData.set(null);
+        const msg = err?.error?.message || err?.message || 'Failed to load live market indices data. Please check your connection and retry.';
+        this.errorMessage.set(msg);
         this.isLoading.set(false);
       }
     });
@@ -86,33 +136,6 @@ export class MarketPulseComponent implements OnInit {
   }
 
   getDefaultNote(item: MarketPulseIndex): string {
-    const sym = (item.symbol || '').toUpperCase();
-    const isUp = item.isPositive ?? (item.change >= 0);
-    const tf = this.selectedTimeframe();
-
-    if (tf === '1W') {
-      return isUp 
-        ? 'Weekly momentum positive; steady accumulation in large caps.' 
-        : 'Weekly consolidation after prior rally.';
-    }
-    if (tf === '1M') {
-      return isUp 
-        ? 'Monthly trend strongly bullish; benchmarks up over 3%.' 
-        : 'Monthly range-bound trading with selective stock picking.';
-    }
-
-    if (sym.includes('BANK')) {
-      return isUp 
-        ? 'Banking leads rally; private banks showing strong inflows.' 
-        : 'Private banks weak; PSU banks holding.';
-    }
-    if (sym.includes('BSESN') || (item.name || '').toLowerCase().includes('sensex')) {
-      return isUp 
-        ? 'Large caps drive the move; BSE breadth positive.' 
-        : 'Large cap drag; profit booking across heavyweights.';
-    }
-    return isUp 
-      ? 'IT and auto lead; 36 of 50 stocks up.' 
-      : 'Broad market cautious; 18 of 50 stocks up.';
+    return item.takeawayNote || '';
   }
 }

@@ -1,0 +1,21 @@
+<div class="news-page-cockpit">
+  <!-- Top Application Navbar -->
+  <app-header [showNews]="true" [showSearch]="true" [theme]="'light'"></app-header>
+
+  <main class="news-page-main">
+    <!-- Hero Header with Title & Market Context -->
+    <header class="news-hub-hero">
+      <div class="hero-text-group">
+        <h1 class="hub-title">Market News Hub</h1>
+        <p class="hub-subtitle">
+          Real-time macro trends, Sensex, Nifty & Indian stock market coverage refreshed automatically.
+        </p>
+      </div>
+    </header>
+
+    <!-- News Content Panel -->
+    <section class="tab-content-panel animate-fade-in" aria-label="Market News">
+      <app-market-news></app-market-news>
+    </section>
+  </main>
+</div>

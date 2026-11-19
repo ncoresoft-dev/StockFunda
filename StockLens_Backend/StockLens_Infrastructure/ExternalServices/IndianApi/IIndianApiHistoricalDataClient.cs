@@ -7,6 +7,6 @@ namespace StockLens_Infrastructure.ExternalServices.IndianApi
 {
     public interface IIndianApiHistoricalDataClient
     {
-        Task<List<IndianApiPriceRecord>> GetHistoricalPricesAsync(string ticker, string period = "5yr", string? exchange = null, string filter = "price", CancellationToken cancellationToken = default);
+        Task<List<IndianApiPriceRecord>> GetHistoricalPricesAsync(string ticker, string period = "5yr", string? exchange = null, string filter = "default", CancellationToken cancellationToken = default);
     }
 }

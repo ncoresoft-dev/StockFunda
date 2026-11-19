@@ -39,4 +39,31 @@ export interface StockNewsResponse {
   lastFetchedAt?: string;
 }
 
+export interface MarketNewsItem {
+  id: string | number;
+  title: string;
+  description?: string;
+  content?: string;
+  sourceName: string;
+  sourceUrl: string;
+  articleUrl: string;
+  imageUrl?: string;
+  publishedAt: string;
+  category: string;
+  timeAgo?: string;
+  isHot?: boolean;
+}
+
+export interface MarketNewsResponse {
+  news: MarketNewsItem[];
+  totalCount: number;
+  lastFetchedAt: string;
+  isCached: boolean;
+  status: string;
+  message?: string;
+  query: string;
+  nextRetryInMinutes?: number;
+  availableCategories?: string[];
+}
+
 export type LoadingState = 'idle' | 'loading' | 'success' | 'empty' | 'error';

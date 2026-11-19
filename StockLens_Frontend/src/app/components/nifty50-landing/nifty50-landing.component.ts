@@ -15,6 +15,7 @@ import {
 
 import { AdminAnnualReportModalComponent } from '../admin-annual-report-modal/admin-annual-report-modal.component';
 import { HeaderComponent } from '../header/header.component';
+import { WatchlistFeedComponent } from '../watchlist-feed/watchlist-feed.component';
 
 export type SortField = 'weightage' | 'symbol' | 'name' | 'sector' | 'industry';
 export type SortOrder = 'asc' | 'desc';
@@ -61,7 +62,7 @@ export interface DonutTooltipData {
 @Component({
   selector: 'app-nifty50-landing',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdminAnnualReportModalComponent, HeaderComponent],
+  imports: [CommonModule, FormsModule, AdminAnnualReportModalComponent, HeaderComponent, WatchlistFeedComponent],
   templateUrl: './nifty50-landing.component.html',
   styleUrl: './nifty50-landing.component.css'
 })
@@ -88,6 +89,7 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Attribution Data & Loading State
   attributionData = signal<IndexAttributionResponse | null>(null);
+  attributionErrorMessage = signal<string | null>(null);
   isAttributionLoading = signal<boolean>(false);
   hoveredSliceId = signal<string | null>(null);
   activeTooltip = signal<DonutTooltipData | null>(null);
@@ -113,7 +115,11 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
   sortOrder = signal<SortOrder>('desc');
 
   // Watchlist View State & Controls
-  watchlistViewMode = signal<'cards'>('cards');
+  watchlistViewMode = signal<'cards' | 'feed'>('cards');
+
+  setWatchlistViewMode(mode: 'cards' | 'feed'): void {
+    this.watchlistViewMode.set(mode);
+  }
   watchlistFilterQuery = signal<string>('');
   watchlistSortField = signal<'sno' | 'name' | 'sector' | 'price' | 'changePercent' | 'marketCap'>('sno');
   watchlistSortOrder = signal<'asc' | 'desc'>('desc');
@@ -782,8 +788,12 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
     // Check query params immediately before triggering initial loads
     const initialView = this.route.snapshot.queryParams['tab'] || this.route.snapshot.queryParams['view'];
-    if (initialView === 'watchlist') {
+    const feedParam = this.route.snapshot.queryParams['feed'];
+    if (initialView === 'watchlist' || initialView === 'feed') {
       this.setActiveTab('watchlist');
+      if (feedParam === 'true' || feedParam === '1' || initialView === 'feed') {
+        this.watchlistViewMode.set('feed');
+      }
     } else if (initialView === 'sensex') {
       this.setActiveTab('sensex');
     } else if (initialView === 'banknifty') {
@@ -1010,7 +1020,11 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
   // Load Attribution Analytics (Tug of war, circle slices, contributors)
   loadAttributionData(tab: ViewTab = this.activeTab(), forceRefresh = false): void {
-    if (tab === 'watchlist') return;
+    if (tab === 'watchlist') {
+      this.attributionData.set(null);
+      this.attributionErrorMessage.set(null);
+      return;
+    }
 
     let indexKey = 'nifty-50';
     if (tab === 'sensex') indexKey = 'sensex';
@@ -1018,13 +1032,23 @@ export class Nifty50LandingComponent implements OnInit, OnDestroy {
 
     this.attributionSub?.unsubscribe();
     this.isAttributionLoading.set(true);
+    this.attributionErrorMessage.set(null);
     this.attributionSub = this.indexService.getIndexAttribution(indexKey, forceRefresh).subscribe({
       next: (data) => {
-        this.attributionData.set(data);
+        if (data) {
+          this.attributionData.set(data);
+          this.attributionErrorMessage.set(null);
+        } else {
+          this.attributionData.set(null);
+          this.attributionErrorMessage.set(`Attribution data for ${this.currentTabTitle()} is currently unavailable.`);
+        }
         this.isAttributionLoading.set(false);
       },
       error: (err) => {
         console.warn('Failed to load attribution data:', err);
+        this.attributionData.set(null);
+        const msg = err?.error?.message || err?.message || `Failed to load attribution data for ${this.currentTabTitle()}.`;
+        this.attributionErrorMessage.set(msg);
         this.isAttributionLoading.set(false);
       }
     });

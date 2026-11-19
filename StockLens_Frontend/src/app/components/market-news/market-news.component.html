@@ -1,0 +1,163 @@
+<div class="market-news-card">
+  <!-- 1. Top Header Row -->
+  <div class="news-header-row">
+    <div class="news-title-group">
+      <span class="news-square-badge" aria-hidden="true"></span>
+      <h2 class="news-title">News</h2>
+      <div class="live-status-pill">
+        <span class="news-live-dot" aria-hidden="true"></span>
+        <span class="news-source-tag">Live · Google News RSS</span>
+      </div>
+      @if (lastUpdated()) {
+      <span class="news-updated-tag">Updated {{ lastUpdated() }}</span>
+      }
+    </div>
+
+    <!-- Right Controls: Search & Refresh Button -->
+    <div class="news-controls-group">
+      <div class="news-search-box">
+        <span class="search-ico">🔍</span>
+        <input
+          type="text"
+          class="news-search-input"
+          placeholder="Filter headlines..."
+          [(ngModel)]="filterQuery"
+        />
+        @if (filterQuery()) {
+        <button type="button" class="clear-search-btn" (click)="filterQuery.set('')">✕</button>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="refresh-news-btn"
+        [disabled]="isRefreshing()"
+        (click)="loadNews(true)"
+        title="Check latest news"
+      >
+        <svg
+          class="refresh-icon"
+          [class.spinning]="isRefreshing()"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+        >
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>{{ isRefreshing() ? 'Refreshing...' : 'Refresh' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Loading Skeleton State -->
+  @if (loadingState() === 'loading' && !isRefreshing()) {
+  <div class="news-skeleton-grid">
+    <div class="skeleton-card hero"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+  }
+
+  <!-- 4. Error State -->
+  @if (loadingState() === 'error') {
+  <div class="news-error-box">
+    <span class="error-icon">⚠️</span>
+    <p class="error-msg">{{ errorMessage() || 'Failed to load latest market news.' }}</p>
+    <button type="button" class="retry-btn" (click)="loadNews()">Try Again</button>
+  </div>
+  }
+
+  <!-- 4. Empty State -->
+  @if (loadingState() === 'empty' || (loadingState() === 'success' && filteredNews().length === 0)) {
+  <div class="news-empty-box">
+    <span class="empty-icon">📰</span>
+    <p class="empty-title">No headlines found</p>
+    <p class="empty-sub">
+      @if (filterQuery()) {
+        No recent news matching "{{ filterQuery() }}".
+      } @else {
+        No recent market news available.
+      }
+    </p>
+  </div>
+  }
+
+  <!-- 6. News Content Display -->
+  @if (loadingState() === 'success' && filteredNews().length > 0) {
+  <div class="news-content-layout">
+    <!-- Featured Top Story (if available) -->
+    @if (featuredArticle(); as hero) {
+    <article
+      class="featured-hero-article"
+      (click)="openArticle(hero.articleUrl || hero.sourceUrl)"
+      tabindex="0"
+      role="link"
+      [title]="'Read full coverage: ' + hero.title"
+    >
+      <div class="hero-content">
+        <div class="article-meta-row">
+          <span class="category-badge" [attr.data-cat]="hero.category">{{ hero.category }}</span>
+          @if (hero.isHot) {
+          <span class="hot-badge">⚡ TOP STORY</span>
+          }
+          <span class="publisher-name">{{ hero.sourceName }}</span>
+          <span class="meta-dot">·</span>
+          <span class="publish-time">{{ hero.timeAgo || 'Recent' }}</span>
+        </div>
+
+        <h3 class="hero-headline">{{ hero.title }}</h3>
+
+        @if (hero.description) {
+        <p class="hero-snippet">{{ hero.description }}</p>
+        }
+
+        <div class="hero-footer">
+          <span class="read-link">
+            <span>Read full coverage on {{ hero.sourceName }}</span>
+            <svg class="outbound-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M7 17L17 7M17 7H7M17 7V17"></path>
+            </svg>
+          </span>
+        </div>
+      </div>
+    </article>
+    }
+
+    <!-- 2-Column Feed Grid for Remaining Headlines -->
+    <div class="news-feed-grid">
+      @for (item of feedArticles(); track item.id || item.articleUrl || item.title) {
+      <article
+        class="news-feed-card"
+        (click)="openArticle(item.articleUrl || item.sourceUrl)"
+        tabindex="0"
+        role="link"
+        [title]="'Read: ' + item.title"
+      >
+        <div class="card-top-meta">
+          <span class="category-pill-mini" [attr.data-cat]="item.category">{{ item.category }}</span>
+          <span class="publisher-label">{{ item.sourceName }}</span>
+          <span class="meta-dot">·</span>
+          <span class="time-label">{{ item.timeAgo || 'Recent' }}</span>
+        </div>
+
+        <h4 class="card-headline">{{ item.title }}</h4>
+
+        @if (item.description) {
+        <p class="card-snippet">{{ item.description }}</p>
+        }
+
+        <div class="card-bottom-row">
+          <span class="read-more-text">
+            <span>Read story</span>
+            <span class="arrow-glyph">→</span>
+          </span>
+        </div>
+      </article>
+      }
+    </div>
+  </div>
+  }
+</div>

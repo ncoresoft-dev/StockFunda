@@ -19,7 +19,6 @@ namespace StockLens_BusinessLayer.Services
     public class SectorAnalysisService : ISectorAnalysisService
     {
         private readonly StockLensDataContext _dbContext;
-        private readonly ICompareProvider _compareProvider;
         private readonly IMemoryCache? _memoryCache;
         private readonly ILogger<SectorAnalysisService> _logger;
 
@@ -34,7 +33,6 @@ namespace StockLens_BusinessLayer.Services
             _dbContext = dbContext;
             _logger = logger;
             _memoryCache = memoryCache;
-            _compareProvider = compareProvider!;
         }
 
         /// <summary>
