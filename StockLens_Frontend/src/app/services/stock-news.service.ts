@@ -99,11 +99,19 @@ export class StockNewsService {
 
   /**
    * Request backend to trigger a fresh sync from NSE feed.
+   * Defaults to fast sync (last 2 days). Pass days or months for custom range.
    */
-  triggerAnnouncementSync(): Observable<{ success: boolean; newRecordsAdded: number }> {
+  triggerAnnouncementSync(days: number = 2, months?: number): Observable<{ success: boolean; newRecordsAdded: number }> {
+    let params: Record<string, string> = {};
+    if (months && months > 0) {
+      params['months'] = months.toString();
+    } else {
+      params['days'] = (days > 0 ? days : 2).toString();
+    }
     return this.http.post<{ success: boolean; newRecordsAdded: number }>(
       `${this.baseUrl}/api/corporate-announcements/sync`,
-      {}
+      {},
+      { params }
     );
   }
 }

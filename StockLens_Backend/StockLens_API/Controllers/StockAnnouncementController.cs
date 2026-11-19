@@ -65,13 +65,27 @@ namespace StockLens_API.Controllers
         }
 
         /// <summary>
-        /// Manually triggers a sync from NSE for the past 3 months (or specified months) and persists new announcements.
+        /// Manually triggers a sync from NSE and persists new announcements.
+        /// By default syncs the last 2 days (fast, ~1-2 sec). Pass months for deeper historical sync.
         /// </summary>
         [HttpPost("sync")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<IActionResult> TriggerSync([FromQuery] int months = 3, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> TriggerSync(
+            [FromQuery] int? days = null,
+            [FromQuery] int? months = null,
+            CancellationToken cancellationToken = default)
         {
-            var added = await _announcementService.SyncLatestAnnouncementsAsync(months, cancellationToken);
+            int added;
+            if (months.HasValue && months.Value > 0)
+            {
+                added = await _announcementService.SyncLatestAnnouncementsAsync(months.Value, cancellationToken);
+            }
+            else
+            {
+                int daysToSync = days.HasValue && days.Value > 0 ? days.Value : 2;
+                added = await _announcementService.SyncLatestAnnouncementsByDaysAsync(daysToSync, cancellationToken);
+            }
+
             return Ok(new { success = true, newRecordsAdded = added });
         }
     }

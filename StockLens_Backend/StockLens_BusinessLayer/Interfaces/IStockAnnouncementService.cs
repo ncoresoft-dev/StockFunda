@@ -46,5 +46,10 @@ namespace StockLens_BusinessLayer.Interfaces
         /// Fetches announcements from the NSE feed for the specified number of months back (e.g. 3 months).
         /// </summary>
         Task<int> SyncLatestAnnouncementsAsync(int monthsBack, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Fetches announcements from the NSE feed for the specified number of days back (e.g. 1-2 days for quick sync).
+        /// </summary>
+        Task<int> SyncLatestAnnouncementsByDaysAsync(int daysBack, CancellationToken cancellationToken = default);
     }
 }

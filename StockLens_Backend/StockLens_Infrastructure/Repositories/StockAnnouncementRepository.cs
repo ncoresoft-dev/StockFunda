@@ -46,7 +46,7 @@ namespace StockLens_Infrastructure.Repositories
             if (limit > 100) limit = 100;
 
             return await query
-                .OrderByDescending(a => a.BroadcastDateTime ?? a.CreatedAt)
+                .OrderByDescending(a => a.BroadcastDateTime)
                 .ThenByDescending(a => a.Id)
                 .Skip((page - 1) * limit)
                 .Take(limit)
@@ -113,6 +113,12 @@ namespace StockLens_Infrastructure.Repositories
 
             if (!newItems.Any()) return 0;
 
+            foreach (var item in newItems)
+            {
+                item.BroadcastDateTime ??= item.CreatedAt;
+                item.Symbol = item.Symbol.Trim().ToUpperInvariant();
+            }
+
             await _context.StockAnnouncements.AddRangeAsync(newItems, cancellationToken);
             return await _context.SaveChangesAsync(cancellationToken);
         }
@@ -144,20 +150,21 @@ namespace StockLens_Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(symbol))
             {
-                var trimmedSymbol = symbol.Trim();
+                var trimmedSymbol = symbol.Trim().ToUpperInvariant();
                 query = query.Where(a => a.Symbol == trimmedSymbol);
             }
             else if (symbols != null && symbols.Any())
             {
                 var upperSymbols = symbols
                     .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .Select(s => s.Trim().ToUpper())
+                    .Select(s => s.Trim().ToUpperInvariant())
                     .Distinct()
                     .ToList();
 
                 if (upperSymbols.Any())
                 {
-                    query = query.Where(a => upperSymbols.Contains(a.Symbol.ToUpper()));
+                    // SARGABLE: Use a.Symbol directly without scalar function so SQL Server can seek index IX_StockAnnouncements_Symbol
+                    query = query.Where(a => upperSymbols.Contains(a.Symbol));
                 }
             }
 
